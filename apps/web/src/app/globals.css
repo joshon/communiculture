@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --comm-blue: #0033cc;
+  --comm-red: #cc3300;
+  --comm-orange: #ff6600;
+}
+
+body {
+  background: #ffffff;
+  color: #000000;
+}
+
+/* Original-style uppercase link text */
+.comm-link {
+  @apply text-comm-blue lowercase tracking-tight hover:underline;
+}
+
+/* Continuum bar navigation arrows */
+.continuum-arrow {
+  @apply text-comm-blue font-bold text-lg;
+}

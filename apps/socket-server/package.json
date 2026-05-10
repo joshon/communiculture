@@ -1,0 +1,21 @@
+{
+  "name": "@communiculture/socket-server",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@communiculture/db": "workspace:*",
+    "@socket.io/redis-adapter": "^8.3.0",
+    "ioredis": "^5.3.2",
+    "socket.io": "^4.7.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.11.0",
+    "typescript": "^5.4.0"
+  }
+}
