@@ -1,169 +1,290 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment } from "@react-three/drei";
-import { useAvatarStore, COLOR_PALETTE, type AvatarPart } from "@/store/avatarStore";
-import { BlockyAvatar } from "./BlockyAvatar";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { AvatarRenderer } from "./AvatarRenderer";
+import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
+import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 
-const PARTS: AvatarPart[] = ["hair", "head", "face", "neck", "arms", "body", "pants", "legs", "shoes"];
+// ─── color palette ─────────────────────────────────────────────────────────────
+// 5 rows × 6 cols = 30 swatches, matching the original asterisk grid feel
+export const COLOR_PALETTE: string[] = [
+  // Row 0 — reds / oranges
+  "#cc0000", "#cc3300", "#cc6600", "#cc9900", "#ccaa33", "#c8a46e",
+  // Row 1 — yellows / greens
+  "#aacc00", "#66cc00", "#33cc00", "#00cc33", "#00cc99", "#00cccc",
+  // Row 2 — blues / purples
+  "#0066cc", "#0033cc", "#3300cc", "#6600cc", "#aa00cc", "#cc0099",
+  // Row 3 — pinks / skin
+  "#cc0066", "#cc3366", "#f5a0a0", "#f5c5a3", "#f5dfc0", "#c9a882",
+  // Row 4 — earth / neutrals
+  "#9e7a5f", "#6b4c3b", "#3d2b1f", "#999999", "#555555", "#000000",
+];
 
-export function AvatarEditor() {
-  const { config, selectedPart, setColor, setSelectedPart, randomize, setConfig } = useAvatarStore();
-  const { data: session } = useSession();
-  const router = useRouter();
+// ─── avatar part positions (relative to the bordered avatar box) ───────────────
+// Positions place label text anchored around the box using absolute positioning.
+// [top%, left%, anchor]
+const PART_LABELS: {
+  part: AvatarPart;
+  top: string;
+  left?: string;
+  right?: string;
+  textAlign?: "left" | "right";
+}[] = [
+  { part: "hair",  top: "-7%",  left: "50%",   textAlign: "left" },
+  { part: "head",  top: "8%",   right: "-70px", textAlign: "left" },
+  { part: "face",  top: "22%",  left: "-64px",  textAlign: "right" },
+  { part: "arms",  top: "38%",  left: "-64px",  textAlign: "right" },
+  { part: "body",  top: "38%",  right: "-64px", textAlign: "left" },
+  { part: "pants", top: "58%",  left: "-64px",  textAlign: "right" },
+  { part: "legs",  top: "65%",  right: "-64px", textAlign: "left" },
+  { part: "shoes", top: "82%",  right: "-64px", textAlign: "left" },
+];
+
+const DEFAULT_COLORS: Record<AvatarPart, string> = {
+  hair:  "#3d2b1f",
+  head:  "#f5c5a3",
+  face:  "#1a1a1a",
+  neck:  "#f5c5a3",
+  arms:  "#4a9e6b",
+  body:  "#4a9e6b",
+  pants: "#3b6bcc",
+  legs:  "#3b6bcc",
+  shoes: "#555555",
+};
+
+const DEFAULT_VARIANTS = Object.fromEntries(
+  AVATAR_PARTS.map((p) => [p, 0])
+) as Record<AvatarPart, number>;
+
+// ─── component ────────────────────────────────────────────────────────────────
+
+interface AvatarEditorProps {
+  library: AvatarVariantLibrary;
+  initialColors?: Record<AvatarPart, string>;
+  initialVariants?: Record<AvatarPart, number>;
+  onSave: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => Promise<void>;
+}
+
+export function AvatarEditor({
+  library,
+  initialColors,
+  initialVariants,
+  onSave,
+}: AvatarEditorProps) {
+  const [colors, setColors] = useState<Record<AvatarPart, string>>(
+    initialColors ?? DEFAULT_COLORS
+  );
+  const [variants, setVariants] = useState<Record<AvatarPart, number>>(
+    initialVariants ?? DEFAULT_VARIANTS
+  );
+  const [selectedPart, setSelectedPart] = useState<AvatarPart | null>("hair");
   const [saving, setSaving] = useState(false);
 
-  const handlePartClick = (part: string) => {
-    setSelectedPart(part as AvatarPart);
-  };
+  const handlePartSelect = useCallback((part: AvatarPart) => {
+    setSelectedPart((prev) => (prev === part ? null : part));
+  }, []);
 
-  const handleSave = async () => {
+  const handleColorSelect = useCallback((color: string) => {
+    if (!selectedPart) return;
+    setColors((prev) => ({ ...prev, [selectedPart]: color }));
+  }, [selectedPart]);
+
+  const cycleVariant = useCallback((part: AvatarPart, dir: 1 | -1) => {
+    const count = library[part]?.length ?? 1;
+    setVariants((prev) => ({
+      ...prev,
+      [part]: ((prev[part] ?? 0) + dir + count) % count,
+    }));
+  }, [library]);
+
+  const handleReset = useCallback(() => {
+    setColors(DEFAULT_COLORS);
+    setVariants(DEFAULT_VARIANTS);
+    setSelectedPart("hair");
+  }, []);
+
+  const handleRandomize = useCallback(() => {
+    const rand = () => COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+    const randVariant = (part: AvatarPart) => {
+      const count = library[part]?.length ?? 1;
+      return Math.floor(Math.random() * count);
+    };
+    setColors(Object.fromEntries(AVATAR_PARTS.map((p) => [p, rand()])) as Record<AvatarPart, string>);
+    setVariants(Object.fromEntries(AVATAR_PARTS.map((p) => [p, randVariant(p)])) as Record<AvatarPart, number>);
+  }, [library]);
+
+  const handleSubmit = useCallback(async () => {
     setSaving(true);
     try {
-      await fetch("/api/users/avatar", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ avatarConfig: config }),
-      });
-      router.refresh();
+      await onSave(colors, variants);
     } finally {
       setSaving(false);
     }
-  };
+  }, [colors, variants, onSave]);
 
-  const handleReset = () => {
-    setConfig({
-      hair: "#3d2b1f",
-      head: "#f5c5a3",
-      face: "#1a1a1a",
-      neck: "#f5c5a3",
-      arms: "#4a9e6b",
-      body: "#4a9e6b",
-      pants: "#3b6bcc",
-      legs: "#3b6bcc",
-      shoes: "#555555",
-    });
-    setSelectedPart(null);
-  };
+  const selectedPartVariantCount = selectedPart ? (library[selectedPart]?.length ?? 1) : 0;
+  const selectedVariantLabel = selectedPart
+    ? library[selectedPart]?.[variants[selectedPart] ?? 0]?.label ?? ""
+    : "";
 
   return (
-    <div className="flex gap-8 items-start">
-      {/* 3D Preview */}
-      <div className="relative">
-        <div className="w-72 h-96 bg-gray-50 border border-gray-200">
-          <Canvas camera={{ position: [0, 1.2, 4], fov: 45 }}>
-            <ambientLight intensity={0.8} />
-            <directionalLight position={[5, 5, 5]} intensity={1} />
-            <BlockyAvatar
-              config={config}
-              position={[0, -1.2, 0]}
-              onClick={handlePartClick}
-            />
-            <OrbitControls
-              enablePan={false}
-              minDistance={2}
-              maxDistance={6}
-              target={[0, 0.5, 0]}
-            />
-          </Canvas>
-        </div>
-        {/* Part labels around avatar (matching original layout) */}
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-gray-500 lowercase">hair</div>
-        <div className="absolute top-16 right-0 translate-x-full pl-2 text-xs text-gray-500 lowercase">head</div>
-        <div className="absolute top-28 right-0 translate-x-full pl-2 text-xs text-gray-500 lowercase">face</div>
-        <div className="absolute top-44 left-0 -translate-x-full pr-2 text-xs text-gray-500 lowercase">arms</div>
-        <div className="absolute top-52 right-0 translate-x-full pl-2 text-xs text-gray-500 lowercase">body</div>
-        <div className="absolute bottom-28 right-0 translate-x-full pl-2 text-xs text-gray-500 lowercase">pants</div>
-        <div className="absolute bottom-16 right-0 translate-x-full pl-2 text-xs text-gray-500 lowercase">legs</div>
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-gray-500 lowercase">shoes</div>
-      </div>
+    <div className="flex h-full min-h-[600px] bg-white select-none font-mono">
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4">
-        {/* Active part selector */}
-        {selectedPart && (
-          <div>
-            <p className="text-xs text-gray-500 lowercase mb-2">
-              editing: <span className="text-comm-blue">{selectedPart}</span>
-            </p>
-            <ColorGrid
-              selected={config[selectedPart]}
-              onSelect={(color) => setColor(selectedPart, color)}
-            />
-          </div>
-        )}
+      {/* ── Left: color palette + variant selector ── */}
+      <div className="flex-1 flex flex-col items-center justify-center px-8 gap-6">
 
-        {!selectedPart && (
-          <div>
-            <p className="text-xs text-gray-500 lowercase mb-3">click a part to edit its color</p>
-            <div className="grid grid-cols-2 gap-1">
-              {PARTS.map((part) => (
+        {selectedPart ? (
+          <>
+            {/* Variant cycler — only shown when part has multiple variants */}
+            {selectedPartVariantCount > 1 && (
+              <div className="flex items-center gap-3 text-[#0033cc] lowercase text-sm">
                 <button
-                  key={part}
-                  onClick={() => setSelectedPart(part)}
-                  className="text-xs lowercase px-3 py-1.5 border border-gray-200 hover:border-comm-blue text-left flex items-center gap-2"
+                  onClick={() => cycleVariant(selectedPart, -1)}
+                  className="hover:text-black transition-colors px-1"
                 >
-                  <span
-                    className="w-3 h-3 rounded-none inline-block border border-gray-300"
-                    style={{ background: config[part] }}
-                  />
-                  {part}
+                  ←
                 </button>
-              ))}
-            </div>
-          </div>
-        )}
+                <span className="w-32 text-center text-xs text-black/60">
+                  {selectedVariantLabel}
+                </span>
+                <button
+                  onClick={() => cycleVariant(selectedPart, 1)}
+                  className="hover:text-black transition-colors px-1"
+                >
+                  →
+                </button>
+              </div>
+            )}
 
-        <div className="flex gap-2 mt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="bg-comm-blue text-white px-4 py-2 text-xs lowercase hover:bg-blue-800 disabled:opacity-50"
+            {/* Color asterisk grid */}
+            <div>
+              <p className="text-[10px] text-black/30 lowercase mb-3 text-center tracking-widest">
+                {selectedPart} color
+              </p>
+              <div className="grid grid-cols-6 gap-y-1 gap-x-2">
+                {COLOR_PALETTE.map((col) => (
+                  <button
+                    key={col}
+                    onClick={() => handleColorSelect(col)}
+                    className="text-xl leading-none transition-transform hover:scale-125"
+                    style={{
+                      color: col,
+                      textShadow: colors[selectedPart] === col
+                        ? `0 0 0 2px #0033cc, 0 0 0 3px #0033cc`
+                        : "none",
+                      fontWeight: colors[selectedPart] === col ? 900 : 400,
+                      filter: colors[selectedPart] === col
+                        ? "drop-shadow(0 0 3px #0033cc)"
+                        : "none",
+                    }}
+                    title={col}
+                  >
+                    *
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-black/30 lowercase text-center">
+            click a part to edit
+          </p>
+        )}
+      </div>
+
+      {/* ── Right: Avatar + labels ── */}
+      <div className="shrink-0 flex items-center justify-center pr-16 pl-8">
+        <div className="relative">
+
+          {/* Part labels — positioned around the avatar box */}
+          {PART_LABELS.map(({ part, top, left, right, textAlign }) => (
+            <button
+              key={part}
+              onClick={() => handlePartSelect(part)}
+              style={{
+                position: "absolute",
+                top,
+                left,
+                right,
+                zIndex: 10,
+                textAlign,
+                whiteSpace: "nowrap",
+              }}
+              className={`text-xs lowercase transition-colors ${
+                selectedPart === part
+                  ? "text-[#0033cc] underline"
+                  : "text-[#0033cc] hover:text-black"
+              }`}
+            >
+              {selectedPart === part ? <s>{part}</s> : part}
+            </button>
+          ))}
+
+          {/* Submit / Reset — right side of avatar box */}
+          <div
+            style={{
+              position: "absolute",
+              right: "-70px",
+              top: "50%",
+              display: "flex",
+              flexDirection: "column",
+              gap: "4px",
+              transform: "translateY(-50%)",
+              zIndex: 10,
+            }}
           >
-            {saving ? "saving..." : "submit"}
-          </button>
-          <button
-            onClick={handleReset}
-            className="border border-gray-300 px-4 py-2 text-xs lowercase hover:border-gray-500"
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="text-xs lowercase text-[#0033cc] hover:text-black transition-colors disabled:opacity-40"
+            >
+              {saving ? "saving…" : "submit"}
+            </button>
+            <button
+              onClick={handleReset}
+              className="text-xs lowercase text-[#0033cc] hover:text-black transition-colors"
+            >
+              reset
+            </button>
+          </div>
+
+          {/* Random — below avatar box */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "-28px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 10,
+            }}
           >
-            reset
-          </button>
-          <button
-            onClick={randomize}
-            className="border border-gray-300 px-4 py-2 text-xs lowercase hover:border-gray-500"
+            <button
+              onClick={handleRandomize}
+              className="text-xs lowercase text-[#0033cc] hover:text-black transition-colors"
+            >
+              random
+            </button>
+          </div>
+
+          {/* Avatar canvas in dark-bordered box */}
+          <div
+            style={{
+              width: 280,
+              height: 460,
+              border: "4px solid #3d1f08",
+              background: "#f8f7f4",
+              overflow: "hidden",
+            }}
           >
-            random
-          </button>
+            <AvatarRenderer
+              library={library}
+              variantIndices={variants}
+              colors={colors}
+              selectedPart={selectedPart}
+            />
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ColorGrid({
-  selected,
-  onSelect,
-}: {
-  selected: string;
-  onSelect: (color: string) => void;
-}) {
-  return (
-    <div className="grid grid-cols-6 gap-1 w-fit">
-      {COLOR_PALETTE.map((color) => (
-        <button
-          key={color}
-          onClick={() => onSelect(color)}
-          className="w-7 h-7 border-2 transition-transform hover:scale-110"
-          style={{
-            background: color,
-            borderColor: selected === color ? "#0033cc" : "transparent",
-          }}
-          title={color}
-        />
-      ))}
     </div>
   );
 }

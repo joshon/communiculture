@@ -1,8 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAvatarStore, type AvatarConfig } from "@/store/avatarStore";
 import { AvatarEditor } from "./AvatarEditor";
+import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
+
+interface V2Config {
+  format: "v2";
+  colors: Record<AvatarPart, string>;
+  variants: Record<AvatarPart, number>;
+}
+
+function parseAvatarConfig(raw: unknown): { colors: Record<AvatarPart, string>; variants: Record<AvatarPart, number> } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (obj.format === "v2" && obj.colors && obj.variants) {
+    return { colors: obj.colors as V2Config["colors"], variants: obj.variants as V2Config["variants"] };
+  }
+  return null;
+}
 
 interface Props {
   user: {
@@ -15,61 +30,47 @@ interface Props {
 }
 
 export function AvatarEditorClient({ user }: Props) {
-  const setConfig = useAvatarStore((s) => s.setConfig);
-  const [profile, setProfile] = useState({
-    name: user.name ?? "",
-    slogan: user.slogan ?? "",
-    url: user.url ?? "",
-  });
-  const [saving, setSaving] = useState(false);
+  const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
 
-  // Hydrate store with saved avatar config on mount
+  const parsed = parseAvatarConfig(user.avatarConfig);
+
   useEffect(() => {
-    if (user.avatarConfig && typeof user.avatarConfig === "object") {
-      setConfig(user.avatarConfig as AvatarConfig);
-    }
+    fetch("/api/dev/avatar-library")
+      .then((r) => r.json())
+      .then((data: { library: AvatarVariantLibrary } | null) => {
+        if (data?.library) setLibrary(data.library);
+      })
+      .catch(() => {});
   }, []);
 
-  const handleProfileSave = async () => {
-    setSaving(true);
-    try {
-      await fetch("/api/users/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(profile),
-      });
-    } finally {
-      setSaving(false);
-    }
+  const handleSave = async (
+    colors: Record<AvatarPart, string>,
+    variants: Record<AvatarPart, number>
+  ) => {
+    const avatarConfig: V2Config = { format: "v2", colors, variants };
+    await fetch("/api/users/avatar", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ avatarConfig }),
+    });
   };
 
-  return (
-    <div className="space-y-10">
-      <AvatarEditor />
-
-      <div className="border-t pt-8">
-        <h3 className="text-comm-blue lowercase mb-4">profile info</h3>
-        <div className="grid gap-3 max-w-md">
-          {(["name", "slogan", "url"] as const).map((field) => (
-            <div key={field} className="flex items-center gap-3">
-              <label className="text-sm text-gray-500 lowercase w-16">{field}</label>
-              <input
-                type="text"
-                value={profile[field]}
-                onChange={(e) => setProfile((p) => ({ ...p, [field]: e.target.value }))}
-                className="flex-1 border-b border-gray-300 focus:border-comm-blue outline-none text-sm py-1 lowercase"
-              />
-            </div>
-          ))}
-          <button
-            onClick={handleProfileSave}
-            disabled={saving}
-            className="mt-2 bg-comm-blue text-white px-4 py-2 text-xs lowercase hover:bg-blue-800 disabled:opacity-50 w-fit"
-          >
-            {saving ? "saving..." : "save profile"}
-          </button>
-        </div>
+  if (!library) {
+    return (
+      <div className="flex items-center justify-center h-64 text-xs text-black/30 lowercase font-mono">
+        loading…
       </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 flex flex-col" style={{ minHeight: "calc(100vh - 52px)" }}>
+      <AvatarEditor
+        library={library}
+        initialColors={parsed?.colors}
+        initialVariants={parsed?.variants}
+        onSave={handleSave}
+      />
     </div>
   );
 }

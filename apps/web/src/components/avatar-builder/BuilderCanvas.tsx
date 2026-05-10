@@ -145,6 +145,13 @@ function CharacterPreview() {
                 (selectedElementIds.includes(el.id) ||
                   selectedElementIds.includes(primaryId));
 
+              const isMirror =
+                (sym && elIdx % 2 === 1) ||
+                (!sym && !!el.pairedWith && (() => {
+                  const pi = variant.elements.findIndex((e) => e.id === el.pairedWith);
+                  return pi !== -1 && pi < elIdx;
+                })());
+
               return (
                 <ElementMesh
                   key={el.id}
@@ -152,6 +159,7 @@ function CharacterPreview() {
                   color={color}
                   isSelectedElement={isSelectedEl}
                   isMultiSelected={isMultiEl}
+                  isMirror={isMirror}
                   onClick={(shiftKey) => {
                     if (shiftKey) {
                       if (part !== selectedPart) setSelectedPart(part);
@@ -217,12 +225,14 @@ function ElementMesh({
   color,
   isSelectedElement,
   isMultiSelected,
+  isMirror,
   onClick,
 }: {
   element: MeshElement;
   color: string;
   isSelectedElement: boolean;
   isMultiSelected: boolean;
+  isMirror: boolean;
   onClick: (shiftKey: boolean) => void;
 }) {
   const baseEmissive = new THREE.Color(element.emissiveColor ?? "#000000");
@@ -258,6 +268,17 @@ function ElementMesh({
   const roundSmooth = element.smoothness ?? 2;
   const cylSegs = element.segments ?? 14;
   const sphSegs = element.segments ?? 16;
+  const cylArc = element.halfCylinder ? Math.PI : Math.PI * 2;
+  // thetaStart=π on the mirror so the open face of a half-cylinder faces the correct direction
+  const cylThetaStart = isMirror && element.halfCylinder ? Math.PI : 0;
+  // Pre-rotation baked into the mesh so W/H/D always map to X/Y/Z regardless of axis.
+  // Mirror across YZ: M·Rz(-π/2)·M = Rz(+π/2), so X-axis cylinders need the opposite sign on mirrors.
+  const meshPreRot: [number, number, number] =
+    element.type === 'cylinder'
+      ? element.cylinderAxis === 'X' ? [0, 0, isMirror ? Math.PI / 2 : -Math.PI / 2]
+      : element.cylinderAxis === 'Z' ? [Math.PI / 2, 0, 0]
+      : [0, 0, 0]
+    : [0, 0, 0];
 
   const outlineWidth = element.outlineWidth ?? 0;
   const hasOutline = outlineWidth > 0;
@@ -320,12 +341,13 @@ function ElementMesh({
         </RoundedBox>
       ) : (
         <mesh
+          rotation={meshPreRot}
           renderOrder={hasOutline ? 1 : 0}
           onClick={(e) => { e.stopPropagation(); if (!suppressNextClick) onClick(e.shiftKey); }}
         >
           {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
           {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
-          {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs]} />}
+          {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
           {element.type === "tapered" && <TaperedGeom topScale={element.topScale ?? [1, 1]} />}
           {element.type === "plane" && <planeGeometry args={[1, 1]} />}
           {isFlat ? (
@@ -383,10 +405,10 @@ function ElementMesh({
             {wireMat}
           </RoundedBox>
         ) : (
-          <mesh renderOrder={10}>
+          <mesh rotation={meshPreRot} renderOrder={10}>
             {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
             {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
-            {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs]} />}
+            {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
             {element.type === "tapered" && <TaperedGeom topScale={element.topScale ?? [1, 1]} />}
             {element.type === "plane" && <planeGeometry args={[1, 1]} />}
             {wireMat}
