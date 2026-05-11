@@ -61,11 +61,13 @@ function RenderMesh({
   color,
   isMirror = false,
   highlight = false,
+  showOutline = false,
 }: {
   element: MeshElement;
   color: string;
   isMirror?: boolean;
   highlight?: boolean;
+  showOutline?: boolean;
 }) {
   const meshColor = useMemo(() => {
     const base = element.color ?? color;
@@ -111,7 +113,21 @@ function RenderMesh({
     [element.texture]
   );
 
-  const matProps = {
+  // When showOutline is active every main mesh writes stencil=1.
+  // The outline shells (rendered later at renderOrder=5) test stencil≠1,
+  // so they only appear outside the combined silhouette — no interior lines.
+  const stencilWrite = showOutline
+    ? ({
+        stencilWrite: true,
+        stencilRef: 1,
+        stencilFunc: THREE.AlwaysStencilFunc,
+        stencilZPass: THREE.ReplaceStencilOp,
+      } as const)
+    : ({} as const);
+
+  const mainRenderOrder = hasOutline ? 1 : 0;
+
+  const sharedMat = {
     color: meshColor,
     transparent: true,
     opacity,
@@ -119,30 +135,31 @@ function RenderMesh({
     map: stickerTex ?? undefined,
     alphaTest: stickerTex ? 0.05 : 0,
     side: element.type === "plane" ? THREE.DoubleSide : THREE.FrontSide,
-  } as const;
+    ...stencilWrite,
+  };
 
   return (
     <group position={element.position} rotation={element.rotation}>
       <group scale={element.scale}>
         {useRounded ? (
-          <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={hasOutline ? 1 : 0}>
+          <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={mainRenderOrder}>
             {isFlat ? (
-              <meshBasicMaterial {...matProps} />
+              <meshBasicMaterial {...sharedMat} />
             ) : (
-              <meshStandardMaterial {...matProps} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
+              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
             )}
           </RoundedBox>
         ) : (
-          <mesh rotation={meshPreRot} renderOrder={hasOutline ? 1 : 0}>
+          <mesh rotation={meshPreRot} renderOrder={mainRenderOrder}>
             {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
             {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
             {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
             {element.type === "tapered" && <TaperedGeom topScale={element.topScale ?? [1, 1]} />}
             {element.type === "plane" && <planeGeometry args={[1, 1]} />}
             {isFlat ? (
-              <meshBasicMaterial {...matProps} />
+              <meshBasicMaterial {...sharedMat} />
             ) : (
-              <meshStandardMaterial {...matProps} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
+              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
             )}
           </mesh>
         )}
@@ -154,6 +171,44 @@ function RenderMesh({
           </mesh>
         )}
       </group>
+
+      {/* Silhouette outline shell — only draws where stencil=0 (outside avatar silhouette).
+          renderOrder=5 ensures ALL main meshes have written stencil before this tests it. */}
+      {showOutline && element.type !== "plane" && (
+        <group scale={[
+          element.scale[0] + 0.04,
+          element.scale[1] + 0.04,
+          element.scale[2] + 0.04,
+        ]}>
+          {useRounded ? (
+            <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={5}>
+              <meshBasicMaterial
+                color="#1a1a1a"
+                side={THREE.BackSide}
+                stencilWrite={false}
+                stencilRef={1}
+                stencilFunc={THREE.NotEqualStencilFunc}
+                depthWrite={false}
+              />
+            </RoundedBox>
+          ) : (
+            <mesh rotation={meshPreRot} renderOrder={5}>
+              {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
+              {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
+              {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
+              {element.type === "tapered" && <TaperedGeom topScale={element.topScale ?? [1, 1]} />}
+              <meshBasicMaterial
+                color="#1a1a1a"
+                side={THREE.BackSide}
+                stencilWrite={false}
+                stencilRef={1}
+                stencilFunc={THREE.NotEqualStencilFunc}
+                depthWrite={false}
+              />
+            </mesh>
+          )}
+        </group>
+      )}
     </group>
   );
 }
@@ -166,12 +221,14 @@ function CharacterGroup({
   colors,
   selectedPart,
   onPartClick,
+  showOutline,
 }: {
   library: AvatarVariantLibrary;
   variantIndices: Record<AvatarPart, number>;
   colors: Record<AvatarPart, string>;
   selectedPart?: AvatarPart | null;
   onPartClick?: (part: AvatarPart) => void;
+  showOutline?: boolean;
 }) {
   return (
     <group>
@@ -201,6 +258,7 @@ function CharacterGroup({
                   color={color}
                   isMirror={isMirror}
                   highlight={isSelected}
+                  showOutline={showOutline}
                 />
               );
             })}
@@ -219,6 +277,7 @@ export interface AvatarRendererProps {
   colors: Record<AvatarPart, string>;
   selectedPart?: AvatarPart | null;
   onPartClick?: (part: AvatarPart) => void;
+  showOutline?: boolean;
 }
 
 export function AvatarRenderer({
@@ -227,12 +286,14 @@ export function AvatarRenderer({
   colors,
   selectedPart,
   onPartClick,
+  showOutline = true,
 }: AvatarRendererProps) {
   return (
     <Canvas
       orthographic
       camera={{ position: [0, 1.5, 4.5], zoom: 130, near: -100, far: 100 }}
       shadows
+      gl={{ stencil: true }}
     >
       <ambientLight intensity={0.9} />
       <directionalLight position={[4, 6, 4]} intensity={1.2} castShadow />
@@ -244,6 +305,7 @@ export function AvatarRenderer({
         colors={colors}
         selectedPart={selectedPart}
         onPartClick={onPartClick}
+        showOutline={showOutline}
       />
 
       <OrbitControls

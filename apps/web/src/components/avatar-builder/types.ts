@@ -64,6 +64,14 @@ export interface MeshElement {
   smoothness?: number;
   /** Radial segment count for cylinder/sphere (default: cylinder 14, sphere 16). */
   segments?: number;
+  /** Render cylinder as a half-circle (180° arc). Flat face is open. */
+  halfCylinder?: boolean;
+  /**
+   * Base axis for cylinder — sets which scale dimension controls length.
+   * 'Y' (default): H = length · 'X': W = length · 'Z': D = length.
+   * Applied as a pre-rotation on the mesh before the element's own rotation.
+   */
+  cylinderAxis?: 'Y' | 'X' | 'Z';
   /** Inverted-hull outline width in world units. Creates a solid border that works with transparent lenses. */
   outlineWidth?: number;
   /** Color of the outline border. Defaults to white. */

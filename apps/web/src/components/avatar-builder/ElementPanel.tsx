@@ -348,6 +348,7 @@ function TypeBadge({ type }: { type: MeshType }) {
 
 type ScaleAnchorH = 'left' | 'center' | 'right';
 type ScaleAnchorV = 'top' | 'center' | 'bottom';
+type ScaleAnchorD = 'front' | 'center' | 'back';
 
 function ElementEditor({
   element,
@@ -362,6 +363,7 @@ function ElementEditor({
 }) {
   const [anchorH, setAnchorH] = useState<ScaleAnchorH>('center');
   const [anchorV, setAnchorV] = useState<ScaleAnchorV>('center');
+  const [anchorD, setAnchorD] = useState<ScaleAnchorD>('center');
 
   const updateVec = (
     key: "position" | "scale" | "rotation",
@@ -384,9 +386,13 @@ function ElementEditor({
     } else if (axis === 1) {
       if (anchorV === 'bottom') newPos[1] += delta / 2;
       if (anchorV === 'top')    newPos[1] -= delta / 2;
+    } else if (axis === 2) {
+      // Z+  = toward camera (front), Z- = away (back)
+      if (anchorD === 'front') newPos[2] -= delta / 2;
+      if (anchorD === 'back')  newPos[2] += delta / 2;
     }
     onChange({ scale: newScale, position: newPos });
-  }, [element.scale, element.position, anchorH, anchorV, onChange]);
+  }, [element.scale, element.position, anchorH, anchorV, anchorD, onChange]);
 
   return (
     <div className="space-y-4">
@@ -427,12 +433,21 @@ function ElementEditor({
                 </button>
               ))}
             </div>
+            <div className="flex gap-px">
+              {(['front','center','back'] as ScaleAnchorD[]).map((v, i) => (
+                <button key={v} onClick={() => setAnchorD(v)}
+                  title={`scale from ${v}`}
+                  className={`w-5 h-4 text-[9px] leading-none transition-colors ${anchorD === v ? 'bg-orange-600 text-white' : 'bg-white/10 text-white/40 hover:bg-white/20'}`}>
+                  {['↙','⊕','↗'][i]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         <div className="space-y-1 mt-1">
           <AxisRow label="W" value={element.scale[0]} min={0.01} max={2} step={0.01} onChange={(v) => updateScale(0, v)} />
           <AxisRow label="H" value={element.scale[1]} min={0.01} max={2} step={0.01} onChange={(v) => updateScale(1, v)} />
-          <AxisRow label="D" value={element.scale[2]} min={0.01} max={2} step={0.01} onChange={(v) => updateVec("scale", 2, v)} />
+          <AxisRow label="D" value={element.scale[2]} min={0.01} max={2} step={0.01} onChange={(v) => updateScale(2, v)} />
         </div>
       </div>
 
@@ -494,7 +509,7 @@ function ElementEditor({
         <div>
           <Label>segments</Label>
           <p className="text-white/25 text-[9px] mb-1">radial subdivisions — more = rounder</p>
-          <div className="mt-1">
+          <div className="mt-1 space-y-1">
             <AxisRow
               label="n"
               value={element.segments ?? (element.type === "cylinder" ? 14 : 16)}
@@ -504,6 +519,44 @@ function ElementEditor({
                 onChange({ segments: Math.round(v) === def ? undefined : Math.round(v) });
               }}
             />
+            {element.type === "cylinder" && (
+              <>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <span className="text-white/40 text-[9px] w-3">ax</span>
+                  {(['Y', 'X', 'Z'] as const).map((ax) => (
+                    <button key={ax}
+                      onClick={() => onChange({ cylinderAxis: ax === 'Y' ? undefined : ax })}
+                      title={ax === 'Y' ? 'H = length (default)' : ax === 'X' ? 'W = length' : 'D = length'}
+                      className={`px-2 py-0.5 text-[9px] transition-colors ${
+                        (element.cylinderAxis ?? 'Y') === ax
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-white/10 hover:bg-white/20 text-white/60'
+                      }`}
+                    >
+                      {ax}
+                    </button>
+                  ))}
+                  <span className="text-white/25 text-[9px]">
+                    {(element.cylinderAxis ?? 'Y') === 'Y' ? 'H = length'
+                      : (element.cylinderAxis) === 'X' ? 'W = length'
+                      : 'D = length'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pt-0.5">
+                  <button
+                    onClick={() => onChange({ halfCylinder: element.halfCylinder ? undefined : true })}
+                    className={`px-2 py-1 text-[9px] transition-colors ${
+                      element.halfCylinder
+                        ? "bg-orange-600 text-white"
+                        : "bg-white/10 hover:bg-white/20 text-white/60"
+                    }`}
+                  >
+                    {element.halfCylinder ? "✓ half circle" : "half circle"}
+                  </button>
+                  <span className="text-white/25 text-[9px]">180° arc</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

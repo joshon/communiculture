@@ -20,6 +20,16 @@ export const COLOR_PALETTE: string[] = [
   "#9e7a5f", "#6b4c3b", "#3d2b1f", "#999999", "#555555", "#000000",
 ];
 
+// Parts that share the same skin tone — selecting a color for any one updates all
+const SKIN_PARTS: AvatarPart[] = ["head", "neck", "arms", "legs"];
+
+// Realistic skin tones used for randomization (light → dark)
+const SKIN_TONES: string[] = [
+  "#f5dfc0", "#f5c5a3", "#e8b88a", "#d4956a",
+  "#c9a882", "#b07850", "#9e7a5f", "#8d5524",
+  "#7d4427", "#6b4c3b", "#5c3317", "#4a2912",
+];
+
 // ─── avatar part positions (relative to the bordered avatar box) ───────────────
 // Positions place label text anchored around the box using absolute positioning.
 // [top%, left%, anchor]
@@ -40,15 +50,17 @@ const PART_LABELS: {
   { part: "shoes", top: "82%",  right: "-64px", textAlign: "left" },
 ];
 
+const DEFAULT_SKIN = "#f5c5a3";
+
 const DEFAULT_COLORS: Record<AvatarPart, string> = {
   hair:  "#3d2b1f",
-  head:  "#f5c5a3",
+  head:  DEFAULT_SKIN,
   face:  "#1a1a1a",
-  neck:  "#f5c5a3",
-  arms:  "#4a9e6b",
+  neck:  DEFAULT_SKIN,
+  arms:  DEFAULT_SKIN,
   body:  "#4a9e6b",
   pants: "#3b6bcc",
-  legs:  "#3b6bcc",
+  legs:  DEFAULT_SKIN,
   shoes: "#555555",
 };
 
@@ -86,7 +98,15 @@ export function AvatarEditor({
 
   const handleColorSelect = useCallback((color: string) => {
     if (!selectedPart) return;
-    setColors((prev) => ({ ...prev, [selectedPart]: color }));
+    if (SKIN_PARTS.includes(selectedPart)) {
+      // Changing any skin part updates all skin parts together
+      setColors((prev) => ({
+        ...prev,
+        ...Object.fromEntries(SKIN_PARTS.map((p) => [p, color])),
+      }));
+    } else {
+      setColors((prev) => ({ ...prev, [selectedPart]: color }));
+    }
   }, [selectedPart]);
 
   const cycleVariant = useCallback((part: AvatarPart, dir: 1 | -1) => {
@@ -109,7 +129,13 @@ export function AvatarEditor({
       const count = library[part]?.length ?? 1;
       return Math.floor(Math.random() * count);
     };
-    setColors(Object.fromEntries(AVATAR_PARTS.map((p) => [p, rand()])) as Record<AvatarPart, string>);
+    // Pick one skin tone and apply it to all skin parts
+    const skinColor = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
+    const skinEntries = Object.fromEntries(SKIN_PARTS.map((p) => [p, skinColor]));
+    const nonSkinEntries = Object.fromEntries(
+      AVATAR_PARTS.filter((p) => !SKIN_PARTS.includes(p)).map((p) => [p, rand()])
+    );
+    setColors({ ...nonSkinEntries, ...skinEntries } as Record<AvatarPart, string>);
     setVariants(Object.fromEntries(AVATAR_PARTS.map((p) => [p, randVariant(p)])) as Record<AvatarPart, number>);
   }, [library]);
 
@@ -159,7 +185,7 @@ export function AvatarEditor({
             {/* Color asterisk grid */}
             <div>
               <p className="text-[10px] text-black/30 lowercase mb-3 text-center tracking-widest">
-                {selectedPart} color
+                {SKIN_PARTS.includes(selectedPart) ? "skin color (head · neck · arms · legs)" : `${selectedPart} color`}
               </p>
               <div className="grid grid-cols-6 gap-y-1 gap-x-2">
                 {COLOR_PALETTE.map((col) => (
@@ -193,7 +219,8 @@ export function AvatarEditor({
       </div>
 
       {/* ── Right: Avatar + labels ── */}
-      <div className="shrink-0 flex items-center justify-center pr-16 pl-8">
+      {/* pr-24 ensures the right-side absolute labels (–70px offset) are never clipped */}
+      <div className="shrink-0 flex items-center justify-center pr-24 pl-8">
         <div className="relative">
 
           {/* Part labels — positioned around the avatar box */}
@@ -266,12 +293,11 @@ export function AvatarEditor({
             </button>
           </div>
 
-          {/* Avatar canvas in dark-bordered box */}
+          {/* Avatar canvas */}
           <div
             style={{
               width: 280,
               height: 460,
-              border: "4px solid #3d1f08",
               background: "#f8f7f4",
               overflow: "hidden",
             }}

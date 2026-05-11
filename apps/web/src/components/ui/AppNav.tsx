@@ -27,6 +27,7 @@ export function AppNav({ user }: Props) {
         <div className="flex gap-4 mt-2 text-xs text-[#0033cc] lowercase">
           <Link href="/dashboard" className="hover:underline">continuums</Link>
           <Link href="/dashboard" className="hover:underline">view others</Link>
+          <Link href="/profile" className="hover:underline">edit yourself</Link>
         </div>
       </div>
 
