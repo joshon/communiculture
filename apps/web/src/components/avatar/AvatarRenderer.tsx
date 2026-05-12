@@ -18,8 +18,8 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    // 90% of previous scale
-    const zoom = Math.max(45, Math.min(160, size.width / 10));
+    // 85% of previous scale
+    const zoom = Math.max(38, Math.min(136, size.width / 11.76));
     orthoCamera.zoom = zoom;
     // Shift the frustum so the avatar (at world x=0) sits at ~72% from screen left
     // while the orbit pivot stays exactly at avatar center [0,1.2,0]
@@ -350,7 +350,7 @@ function PartLabels({
                 onClick={() => onPartClick?.(part)}
                 style={{
                   fontFamily: "Proletarian, sans-serif",
-                  fontSize: "clamp(18px, 2.2vw, 34px)",
+                  fontSize: "clamp(15px, 1.87vw, 29px)",
                   lineHeight: 1,
                   color: LOGO_BLUE,
                   background: "none",
