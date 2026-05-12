@@ -40,14 +40,14 @@ const PART_LABELS: {
   right?: string;
   textAlign?: "left" | "right";
 }[] = [
-  { part: "hair",  top: "-7%",  left: "50%",   textAlign: "left" },
-  { part: "head",  top: "8%",   right: "-70px", textAlign: "left" },
-  { part: "face",  top: "22%",  left: "-64px",  textAlign: "right" },
-  { part: "arms",  top: "38%",  left: "-64px",  textAlign: "right" },
-  { part: "body",  top: "38%",  right: "-64px", textAlign: "left" },
-  { part: "pants", top: "58%",  left: "-64px",  textAlign: "right" },
-  { part: "legs",  top: "65%",  right: "-64px", textAlign: "left" },
-  { part: "shoes", top: "82%",  right: "-64px", textAlign: "left" },
+  { part: "hair",  top: "-1%",  left: "50%",   textAlign: "left" },
+  { part: "head",  top: "13%",  right: "-70px", textAlign: "left" },
+  { part: "face",  top: "25%",  left: "-64px",  textAlign: "right" },
+  { part: "arms",  top: "39%",  left: "-64px",  textAlign: "right" },
+  { part: "body",  top: "39%",  right: "-64px", textAlign: "left" },
+  { part: "pants", top: "57%",  left: "-64px",  textAlign: "right" },
+  { part: "legs",  top: "63%",  right: "-64px", textAlign: "left" },
+  { part: "shoes", top: "78%",  right: "-64px", textAlign: "left" },
 ];
 
 const DEFAULT_SKIN = "#f5c5a3";
@@ -297,7 +297,7 @@ export function AvatarEditor({
           <div
             style={{
               width: 280,
-              height: 460,
+              height: 520,
               background: "#ffffff",
               overflow: "hidden",
             }}

@@ -291,9 +291,9 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // 30° elevation, -30° initial Y rotation
-      // horizontal r=4.33: x = r·sin(-30°) = -2.17, z = r·cos(-30°) = 3.75
-      camera={{ position: [-2.17, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
+      // 30° elevation, -20° initial Y rotation
+      // horizontal r=4.33: x = r·sin(-20°) = -1.48, z = r·cos(-20°) = 4.07
+      camera={{ position: [-1.48, 3.7, 4.07], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
     >
