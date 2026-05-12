@@ -17,7 +17,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        mono: ["var(--font-mono)", "monospace"],
+        sans: ["Proletarian", "sans-serif"],
+        mono: ["Proletarian", "var(--font-mono)", "monospace"],
       },
     },
   },

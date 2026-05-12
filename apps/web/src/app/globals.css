@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'Proletarian';
+  src: url('/Proletarian Regular.woff2') format('woff2'),
+       url('/Proletarian Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --comm-blue: #0033cc;
   --comm-red: #cc3300;
@@ -11,6 +20,7 @@
 body {
   background: #ffffff;
   color: #000000;
+  font-family: 'Proletarian', sans-serif;
 }
 
 /* Original-style uppercase link text */
