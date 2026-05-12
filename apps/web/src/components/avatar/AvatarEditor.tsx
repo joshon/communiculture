@@ -229,21 +229,26 @@ export function AvatarEditor({
         </nav>
       </div>
 
-      {/* ── Palette + controls overlay (mid-left, higher and further right) ── */}
+      {/* ── Palette + controls overlay ── */}
       <div
         className="absolute flex flex-col"
         style={{
-          bottom: "22vh",
-          left: S(200),
+          bottom: "30vh",
+          left: S(340),
           pointerEvents: "none",
           gap: S(10),
         }}
       >
-        {/* Variant selector */}
+        {/* Variant selector — right-aligned to match palette width */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div
             className="flex items-end"
-            style={{ gap: S(8), pointerEvents: "auto", overflow: "visible" }}
+            style={{
+              gap: S(8),
+              pointerEvents: "auto",
+              overflow: "visible",
+              justifyContent: "flex-end",
+            }}
           >
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
@@ -276,11 +281,26 @@ export function AvatarEditor({
           </p>
         )}
 
-        {/* Color palette — 3 rows with divider lines */}
+        {/* Color palette — 3 rows, line runs behind asterisks at vertical center */}
         <div style={{ pointerEvents: "auto" }}>
           {[0, 1, 2].map((row) => (
-            <div key={row}>
-              <div style={{ display: "flex", gap: S(10), paddingBottom: S(8) }}>
+            <div
+              key={row}
+              style={{ position: "relative", marginBottom: row < 2 ? S(10) : 0 }}
+            >
+              {/* Line behind asterisks, vertically centered */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: 0,
+                  right: 0,
+                  borderTop: "1.5px solid rgba(0,0,0,0.15)",
+                  zIndex: 0,
+                }}
+              />
+              {/* Asterisks above the line */}
+              <div style={{ display: "flex", gap: S(15), position: "relative", zIndex: 1 }}>
                 {COLOR_PALETTE.slice(row * 6, row * 6 + 6).map((col) => {
                   const isActive = col === activeColor;
                   return (
@@ -296,12 +316,6 @@ export function AvatarEditor({
                   );
                 })}
               </div>
-              <div
-                style={{
-                  borderBottom: "1.5px solid rgba(0,0,0,0.18)",
-                  marginBottom: S(8),
-                }}
-              />
             </div>
           ))}
         </div>
@@ -315,6 +329,7 @@ export function AvatarEditor({
             color: LOGO_BLUE,
             fontFamily: "var(--font-pixelify)",
             pointerEvents: "auto",
+            marginTop: S(4),
           }}
         >
           <button onClick={handleSubmit} disabled={saving} className="hover:opacity-60 transition-opacity disabled:opacity-30">
