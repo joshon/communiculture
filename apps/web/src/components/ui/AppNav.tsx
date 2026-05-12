@@ -21,7 +21,7 @@ export function AppNav({ user }: Props) {
             communi<span className="text-[#0033cc]">*</span>culture
           </span>
         </Link>
-        <span className="text-[9px] text-black/40 uppercase tracking-widest leading-none">
+        <span className="text-[9px] text-black/40 uppercase tracking-widest leading-none" style={{ fontFamily: "var(--font-pixelify)" }}>
           a division of futurefarmers
         </span>
         <div className="flex gap-4 mt-2 text-xs text-[#0033cc] lowercase">
@@ -32,7 +32,7 @@ export function AppNav({ user }: Props) {
       </div>
 
       {/* Right: about + log off in bordered button style */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1" style={{ fontFamily: "var(--font-pixelify)" }}>
         <Link
           href="#"
           className="text-[10px] uppercase tracking-widest border border-[#0033cc] text-[#0033cc] px-2 py-0.5 hover:bg-[#0033cc] hover:text-white transition-colors font-bold"
