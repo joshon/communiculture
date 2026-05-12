@@ -7,6 +7,9 @@ import { AvatarRenderer } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 
+// ─── vw scale helper (reference width: 1440px) ────────────────────────────────
+const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
+
 // ─── 18-color palette ─────────────────────────────────────────────────────────
 export const COLOR_PALETTE: string[] = [
   "#191A1C", "#3F58D0", "#608E76", "#659AC7",
@@ -162,107 +165,125 @@ export function AvatarEditor({
     ? (SKIN_PARTS.includes(selectedPart) ? colors["head"] : colors[selectedPart])
     : null;
 
-  // Shared text style for nav/labels/actions — vw-scaled, logo blue
-  const textStyle = (size: string) => ({
-    fontFamily: "var(--font-pixelify)",
-    fontSize: size,
-    color: LOGO_BLUE,
-  });
-
   return (
-    <div className="flex flex-col md:flex-row h-screen overflow-hidden select-none">
+    <div className="relative h-screen overflow-hidden select-none">
 
-      {/* ── Left column ──
-          On mobile: full width, stacked above canvas.
-          On desktop: fixed vw-based width so canvas gets the rest.
-          md:w-[14vw] overrides w-full at ≥768px viewport.
-      */}
+      {/* ── Full-screen canvas ── */}
+      <div className="absolute inset-0">
+        <AvatarRenderer
+          library={library}
+          variantIndices={variants}
+          colors={colors}
+          selectedPart={selectedPart}
+          onPartClick={handlePartClick}
+          showOutline={true}
+          showLabels={true}
+        />
+      </div>
+
+      {/* ── Logo + nav overlay (top-left) ── */}
       <div
-        className="flex flex-col flex-shrink-0 overflow-visible
-                   w-full md:w-[14vw] md:min-w-[160px] md:max-w-[220px]
-                   md:h-full md:overflow-y-auto"
+        className="absolute"
         style={{
-          paddingLeft:   "clamp(14px, 1.8vw, 28px)",
-          paddingRight:  "clamp(10px, 1.2vw, 20px)",
-          paddingTop:    "clamp(20px, 5vw, 80px)",   // push logo ~1/6 down
-          paddingBottom: "clamp(12px, 1.5vw, 20px)",
-          // Desktop: this div is a flex column so the spacer can push palette down
-          display: "flex",
-          flexDirection: "column",
+          top: S(90),
+          left: S(30),
+          pointerEvents: "none",
         }}
       >
-        {/* Logo + tagline */}
-        <Link href="/dashboard" className="block flex-shrink-0 overflow-visible">
+        <Link href="/dashboard" className="block overflow-visible" style={{ pointerEvents: "auto" }}>
           <Image
             src="/logo.svg"
             alt="communi*culture"
             width={200}
             height={37}
-            style={{ width: "clamp(90px, 9vw, 160px)", height: "auto" }}
+            style={{ width: S(175), height: "auto" }}
             priority
           />
-          {/* Intentionally single-line; overflows to right, not wrapped */}
           <span
-            className="block text-black/40 uppercase leading-none mt-1"
+            className="block text-black/40 uppercase leading-none"
             style={{
               fontFamily: "var(--font-pixelify)",
-              fontSize: "clamp(6px, 0.55vw, 9px)",
+              fontSize: S(9),
               letterSpacing: "0.2em",
               whiteSpace: "nowrap",
+              marginTop: S(4),
             }}
           >
             a division of futurefarmers
           </span>
         </Link>
 
-        {/* Nav */}
-        <nav className="mt-3 flex flex-col gap-0.5 flex-shrink-0 lowercase">
-          <Link href="/dashboard" className="hover:opacity-60 transition-opacity" style={textStyle("clamp(11px, 1vw, 16px)")}>continuums</Link>
-          <Link href="/dashboard" className="hover:opacity-60 transition-opacity" style={textStyle("clamp(11px, 1vw, 16px)")}>view others</Link>
+        <nav
+          className="flex flex-col lowercase"
+          style={{
+            marginTop: S(14),
+            gap: S(3),
+            fontFamily: "var(--font-pixelify)",
+            fontSize: S(14),
+            color: LOGO_BLUE,
+            pointerEvents: "auto",
+          }}
+        >
+          <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
+          <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
         </nav>
+      </div>
 
-        {/* Flexible spacer — proportional gap between nav and palette */}
-        <div className="flex-1 min-h-[16px] max-h-[30vh]" />
-
-        {/* Variant selector — single row, all same size, raised = selected */}
-        <div className="flex-shrink-0" style={{ minHeight: "clamp(14px, 1.8vw, 22px)" }}>
-          {selectedPart && selectedPartVariantCount > 1 && (
-            <div className="flex items-end gap-1.5 overflow-x-auto pb-1">
-              {Array.from({ length: selectedPartVariantCount }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setVariantIndex(selectedPart, i)}
-                  className="flex-shrink-0 transition-all duration-100"
-                  style={{
-                    transform: i === selectedVariantIdx ? "translateY(-4px)" : "none",
-                    opacity:   i === selectedVariantIdx ? 1 : 0.4,
-                  }}
-                  title={`variant ${i + 1}`}
-                >
-                  <AsteriskIcon color={LOGO_BLUE} size="clamp(9px, 1.1vw, 14px)" />
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+      {/* ── Palette + controls overlay (bottom-left) ── */}
+      <div
+        className="absolute flex flex-col"
+        style={{
+          bottom: S(70),
+          left: S(30),
+          pointerEvents: "none",
+          gap: S(8),
+        }}
+      >
+        {/* Variant selector */}
+        {selectedPart && selectedPartVariantCount > 1 && (
+          <div
+            className="flex items-end overflow-x-auto"
+            style={{ gap: S(6), pointerEvents: "auto" }}
+          >
+            {Array.from({ length: selectedPartVariantCount }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setVariantIndex(selectedPart, i)}
+                className="flex-shrink-0 transition-all duration-100"
+                style={{
+                  transform: i === selectedVariantIdx ? "translateY(-4px)" : "none",
+                  opacity:   i === selectedVariantIdx ? 1 : 0.4,
+                }}
+                title={`variant ${i + 1}`}
+              >
+                <AsteriskIcon color={LOGO_BLUE} size={S(14)} />
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Color label */}
         {selectedPart && (
           <p
-            className="lowercase mt-3 mb-1.5 flex-shrink-0"
-            style={{ color: "rgba(0,0,0,0.3)", fontSize: "clamp(6px, 0.5vw, 9px)", letterSpacing: "0.2em" }}
+            className="lowercase"
+            style={{
+              color: "rgba(0,0,0,0.3)",
+              fontSize: S(8),
+              letterSpacing: "0.2em",
+              margin: 0,
+            }}
           >
             {SKIN_PARTS.includes(selectedPart) ? "skin" : `${selectedPart} color`}
           </p>
         )}
 
-        {/* Color palette — content-sized columns, not stretched to container */}
+        {/* Color palette */}
         <div
-          className="flex-shrink-0"
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(6, max-content)",
-            gap: "clamp(3px, 0.4vw, 7px)",
+            gap: S(5),
+            pointerEvents: "auto",
           }}
         >
           {COLOR_PALETTE.map((col) => {
@@ -275,7 +296,7 @@ export function AvatarEditor({
                 style={{ transform: isActive ? "scale(1.3)" : undefined }}
                 title={col}
               >
-                <AsteriskIcon color={col} size={`clamp(16px, 1.6vw, 22px)`} />
+                <AsteriskIcon color={col} size={S(20)} />
               </button>
             );
           })}
@@ -283,8 +304,14 @@ export function AvatarEditor({
 
         {/* Actions */}
         <div
-          className="mt-4 flex gap-4 flex-shrink-0 lowercase"
-          style={{ fontSize: "clamp(9px, 0.8vw, 13px)", color: LOGO_BLUE, fontFamily: "var(--font-pixelify)" }}
+          className="flex lowercase"
+          style={{
+            gap: S(16),
+            fontSize: S(12),
+            color: LOGO_BLUE,
+            fontFamily: "var(--font-pixelify)",
+            pointerEvents: "auto",
+          }}
         >
           <button onClick={handleSubmit} disabled={saving} className="hover:opacity-60 transition-opacity disabled:opacity-30">
             {saving ? "saving…" : "submit"}
@@ -292,19 +319,6 @@ export function AvatarEditor({
           <button onClick={handleReset} className="hover:opacity-60 transition-opacity">reset</button>
           <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity">random</button>
         </div>
-      </div>
-
-      {/* ── Right column: 3D avatar (flex-1 fills the rest of the row) ── */}
-      <div className="flex-1 min-h-[360px] md:h-full">
-        <AvatarRenderer
-          library={library}
-          variantIndices={variants}
-          colors={colors}
-          selectedPart={selectedPart}
-          onPartClick={handlePartClick}
-          showOutline={true}
-          showLabels={true}
-        />
       </div>
     </div>
   );
