@@ -29,18 +29,30 @@ export default async function DashboardPage() {
 
       {/* ── Left column: logo + nav ── */}
       <div className="w-52 flex-shrink-0 px-6 py-8 flex flex-col gap-3">
-        <Link href="/dashboard" className="block">
-          <Image src="/logo.svg" alt="communi*culture" width={140} height={26} priority />
+        <Link href="/dashboard" className="block overflow-visible">
+          <Image
+            src="/logo.svg"
+            alt="communi*culture"
+            width={200}
+            height={37}
+            style={{ width: "clamp(100px, 10vw, 180px)", height: "auto" }}
+            priority
+          />
           <span
-            className="block text-[9px] text-black/50 uppercase tracking-[0.2em] leading-none mt-1"
-            style={{ fontFamily: "var(--font-pixelify)" }}
+            className="block text-black/40 uppercase leading-none mt-1"
+            style={{
+              fontFamily: "var(--font-pixelify)",
+              fontSize: "clamp(7px, 0.6vw, 10px)",
+              letterSpacing: "0.2em",
+              whiteSpace: "nowrap",
+            }}
           >
             a division of futurefarmers
           </span>
         </Link>
         <nav
-          className="flex flex-col gap-0.5 text-sm text-[#3F58D0] lowercase"
-          style={{ fontFamily: "var(--font-pixelify)" }}
+          className="flex flex-col gap-0.5 text-[#0083FF] lowercase"
+          style={{ fontFamily: "var(--font-pixelify)", fontSize: "clamp(11px, 1vw, 16px)" }}
         >
           <Link href="/dashboard" className="hover:underline">continuums</Link>
           <Link href="/dashboard" className="hover:underline">view others</Link>

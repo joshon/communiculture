@@ -1,13 +1,30 @@
 "use client";
 
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls, RoundedBox, Html, Line } from "@react-three/drei";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import * as THREE from "three";
 import type { AvatarVariantLibrary, AvatarPart, MeshElement } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS, isSymmetric } from "@/components/avatar-builder/types";
 import { createTaperedBoxGeometry } from "@/lib/taperedBoxGeometry";
 import { getStickerTexture } from "@/lib/stickerTextures";
+
+// Logo blue — must match the SVG and editor
+const LOGO_BLUE = "#0083FF";
+
+// ─── viewport-proportional zoom (scales avatar like a video with page width) ──
+
+function CameraController() {
+  const { size, camera } = useThree();
+  useEffect(() => {
+    const orthoCamera = camera as THREE.OrthographicCamera;
+    // At 1200px canvas width → zoom ≈ 90; scales linearly, clamped 45–120
+    const zoom = Math.max(45, Math.min(120, size.width / 13.5));
+    orthoCamera.zoom = zoom;
+    orthoCamera.updateProjectionMatrix();
+  }, [size.width, camera]);
+  return null;
+}
 
 // ─── frame geometry ───────────────────────────────────────────────────────────
 
@@ -330,17 +347,18 @@ function PartLabels({
               <button
                 onClick={() => onPartClick?.(part)}
                 style={{
-                  fontFamily: "Proletarian, sans-serif",
-                  fontSize: "13px",
+                  fontFamily: "var(--font-pixelify), Proletarian, sans-serif",
+                  // 1.5× the base nav size, scales with viewport width
+                  fontSize: "clamp(14px, 1.5vw, 22px)",
                   lineHeight: 1,
-                  color: "#3F58D0",
+                  color: LOGO_BLUE,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
                   padding: "3px 5px",
                   whiteSpace: "nowrap",
                   userSelect: "none",
-                  textDecoration: isSelected ? "line-through" : "none",
+                  textDecoration: "none",
                 }}
               >
                 {part}
@@ -350,8 +368,8 @@ function PartLabels({
             {isSelected && ppos && (
               <Line
                 points={[lpos, ppos]}
-                color="#3F58D0"
-                lineWidth={1.2}
+                color={LOGO_BLUE}
+                lineWidth={1.5}
               />
             )}
           </group>
@@ -395,6 +413,9 @@ export function AvatarRenderer({
       {/* White scene background */}
       <color attach="background" args={["#ffffff"]} />
 
+      {/* Zoom scales with canvas width so avatar maintains visual proportion */}
+      <CameraController />
+
       <ambientLight intensity={0.9} />
       <directionalLight position={[4, 6, 4]} intensity={1.2} castShadow />
       <directionalLight position={[-3, 3, -3]} intensity={0.4} />
@@ -417,7 +438,8 @@ export function AvatarRenderer({
         enablePan={false}
         minDistance={2}
         maxDistance={8}
-        target={[0, 1.2, 0]}
+        // Offset target left so avatar sits in the right portion of the canvas
+        target={[-0.6, 1.2, 0]}
         // Lock to Y-axis rotation only — polar angle fixed at 60° (30° above horizontal)
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 3}
