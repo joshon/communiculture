@@ -185,8 +185,8 @@ export function AvatarEditor({
       <div
         className="absolute"
         style={{
-          top: S(90),
-          left: S(30),
+          top: S(70),
+          left: S(40),
           pointerEvents: "none",
         }}
       >
@@ -196,17 +196,17 @@ export function AvatarEditor({
             alt="communi*culture"
             width={200}
             height={37}
-            style={{ width: S(175), height: "auto" }}
+            style={{ width: S(240), height: "auto" }}
             priority
           />
           <span
             className="block text-black/40 uppercase leading-none"
             style={{
               fontFamily: "var(--font-pixelify)",
-              fontSize: S(9),
+              fontSize: S(10),
               letterSpacing: "0.2em",
               whiteSpace: "nowrap",
-              marginTop: S(4),
+              marginTop: S(5),
             }}
           >
             a division of futurefarmers
@@ -216,10 +216,10 @@ export function AvatarEditor({
         <nav
           className="flex flex-col lowercase"
           style={{
-            marginTop: S(14),
-            gap: S(3),
+            marginTop: S(18),
+            gap: S(5),
             fontFamily: "var(--font-pixelify)",
-            fontSize: S(14),
+            fontSize: S(20),
             color: LOGO_BLUE,
             pointerEvents: "auto",
           }}
@@ -229,21 +229,21 @@ export function AvatarEditor({
         </nav>
       </div>
 
-      {/* ── Palette + controls overlay (bottom-left) ── */}
+      {/* ── Palette + controls overlay (mid-left, higher and further right) ── */}
       <div
         className="absolute flex flex-col"
         style={{
-          bottom: S(70),
-          left: S(30),
+          bottom: "22vh",
+          left: S(200),
           pointerEvents: "none",
-          gap: S(8),
+          gap: S(10),
         }}
       >
         {/* Variant selector */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div
             className="flex items-end overflow-x-auto"
-            style={{ gap: S(6), pointerEvents: "auto" }}
+            style={{ gap: S(8), pointerEvents: "auto" }}
           >
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
@@ -256,7 +256,7 @@ export function AvatarEditor({
                 }}
                 title={`variant ${i + 1}`}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={S(14)} />
+                <AsteriskIcon color={LOGO_BLUE} size={S(16)} />
               </button>
             ))}
           </div>
@@ -268,7 +268,7 @@ export function AvatarEditor({
             className="lowercase"
             style={{
               color: "rgba(0,0,0,0.3)",
-              fontSize: S(8),
+              fontSize: S(9),
               letterSpacing: "0.2em",
               margin: 0,
             }}
@@ -277,37 +277,42 @@ export function AvatarEditor({
           </p>
         )}
 
-        {/* Color palette */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(6, max-content)",
-            gap: S(5),
-            pointerEvents: "auto",
-          }}
-        >
-          {COLOR_PALETTE.map((col) => {
-            const isActive = col === activeColor;
-            return (
-              <button
-                key={col}
-                onClick={() => handleColorSelect(col)}
-                className="transition-transform hover:scale-110"
-                style={{ transform: isActive ? "scale(1.3)" : undefined }}
-                title={col}
-              >
-                <AsteriskIcon color={col} size={S(20)} />
-              </button>
-            );
-          })}
+        {/* Color palette — 3 rows with divider lines */}
+        <div style={{ pointerEvents: "auto" }}>
+          {[0, 1, 2].map((row) => (
+            <div key={row}>
+              <div style={{ display: "flex", gap: S(10), paddingBottom: S(8) }}>
+                {COLOR_PALETTE.slice(row * 6, row * 6 + 6).map((col) => {
+                  const isActive = col === activeColor;
+                  return (
+                    <button
+                      key={col}
+                      onClick={() => handleColorSelect(col)}
+                      className="flex-shrink-0 transition-transform hover:scale-110"
+                      style={{ transform: isActive ? "scale(1.3)" : undefined }}
+                      title={col}
+                    >
+                      <AsteriskIcon color={col} size={S(34)} />
+                    </button>
+                  );
+                })}
+              </div>
+              <div
+                style={{
+                  borderBottom: "1.5px solid rgba(0,0,0,0.18)",
+                  marginBottom: S(8),
+                }}
+              />
+            </div>
+          ))}
         </div>
 
         {/* Actions */}
         <div
           className="flex lowercase"
           style={{
-            gap: S(16),
-            fontSize: S(12),
+            gap: S(20),
+            fontSize: S(14),
             color: LOGO_BLUE,
             fontFamily: "var(--font-pixelify)",
             pointerEvents: "auto",

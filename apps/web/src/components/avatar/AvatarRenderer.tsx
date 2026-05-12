@@ -18,8 +18,8 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    // 1.5× bigger than before: at 1440px canvas → zoom ≈ 240; clamped 70–270
-    const zoom = Math.max(70, Math.min(270, size.width / 6));
+    // smaller avatar, pushed right by orbit target offset
+    const zoom = Math.max(50, Math.min(180, size.width / 9));
     orthoCamera.zoom = zoom;
     orthoCamera.updateProjectionMatrix();
   }, [size.width, camera]);
@@ -348,7 +348,7 @@ function PartLabels({
                 onClick={() => onPartClick?.(part)}
                 style={{
                   fontFamily: "Proletarian, sans-serif",
-                  fontSize: "clamp(14px, 1.5vw, 22px)",
+                  fontSize: "clamp(18px, 2.2vw, 34px)",
                   lineHeight: 1,
                   color: LOGO_BLUE,
                   background: "none",
@@ -438,7 +438,7 @@ export function AvatarRenderer({
         enableZoom={false}
         minDistance={2}
         maxDistance={8}
-        target={[0, 1.2, 0]}
+        target={[-1.5, 1.2, 0]}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 3}
       />
