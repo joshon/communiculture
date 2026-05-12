@@ -291,9 +291,9 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // Camera at 30° elevation: offset = [0, 2.5, 4.33] from target [0,1.2,0]
-      // polar angle = atan2(4.33, 2.5) = 60° from Y axis = 30° above horizontal
-      camera={{ position: [0, 3.7, 4.33], zoom: 130, near: -100, far: 100 }}
+      // 30° elevation, 60° initial Y rotation
+      // horizontal r=4.33: x = r·sin(60°) = 3.75, z = r·cos(60°) = 2.17
+      camera={{ position: [3.75, 3.7, 2.17], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
     >
