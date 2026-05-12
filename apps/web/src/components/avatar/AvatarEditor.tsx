@@ -298,7 +298,7 @@ export function AvatarEditor({
             style={{
               width: 280,
               height: 460,
-              background: "#f8f7f4",
+              background: "#ffffff",
               overflow: "hidden",
             }}
           >

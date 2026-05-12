@@ -291,10 +291,15 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      camera={{ position: [0, 1.5, 4.5], zoom: 130, near: -100, far: 100 }}
+      // Camera at 30° elevation: offset = [0, 2.5, 4.33] from target [0,1.2,0]
+      // polar angle = atan2(4.33, 2.5) = 60° from Y axis = 30° above horizontal
+      camera={{ position: [0, 3.7, 4.33], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
     >
+      {/* White scene background */}
+      <color attach="background" args={["#ffffff"]} />
+
       <ambientLight intensity={0.9} />
       <directionalLight position={[4, 6, 4]} intensity={1.2} castShadow />
       <directionalLight position={[-3, 3, -3]} intensity={0.4} />
@@ -314,6 +319,9 @@ export function AvatarRenderer({
         minDistance={2}
         maxDistance={8}
         target={[0, 1.2, 0]}
+        // Lock to Y-axis rotation only — polar angle fixed at 60° (30° above horizontal)
+        minPolarAngle={Math.PI / 3}
+        maxPolarAngle={Math.PI / 3}
       />
     </Canvas>
   );
