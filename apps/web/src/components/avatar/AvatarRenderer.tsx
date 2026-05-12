@@ -306,7 +306,7 @@ function CharacterGroup({
 const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
   hair:  [0.1,  3.15, 0.0],
   head:  [0.7,  2.6,  0.0],
-  face:  [-0.7, 2.0,  0.0],
+  face:  [-0.7, 2.6,  0.0],
   arms:  [-1.4, 1.55, 0.0],
   body:  [1.05, 1.3,  0.0],
   pants: [-1.1, 0.65, 0.0],
