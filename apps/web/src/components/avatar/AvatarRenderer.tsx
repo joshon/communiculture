@@ -18,11 +18,14 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    // smaller avatar, pushed right by orbit target offset
-    const zoom = Math.max(50, Math.min(180, size.width / 9));
+    // 90% of previous scale
+    const zoom = Math.max(45, Math.min(160, size.width / 10));
     orthoCamera.zoom = zoom;
+    // Shift the frustum so the avatar (at world x=0) sits at ~72% from screen left
+    // while the orbit pivot stays exactly at avatar center [0,1.2,0]
+    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.22, 0, size.width, size.height);
     orthoCamera.updateProjectionMatrix();
-  }, [size.width, camera]);
+  }, [size.width, size.height, camera]);
   return null;
 }
 
@@ -302,14 +305,14 @@ function CharacterGroup({
 
 // Label anchor positions in world space (tuned for -20° Y, 30° elevation camera)
 const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
-  hair:  [0.1,  3.05, 0.0],
-  head:  [1.15, 2.2,  0.0],
-  face:  [-1.2, 2.0,  0.0],
-  arms:  [-2.0, 1.55, 0.0],
-  body:  [1.6,  1.3,  0.0],
-  pants: [-1.6, 0.65, 0.0],
-  legs:  [1.6,  0.2,  0.0],
-  shoes: [1.3,  -0.2, 0.0],
+  hair:  [0.1,  2.75, 0.0],
+  head:  [0.7,  2.2,  0.0],
+  face:  [-0.7, 2.0,  0.0],
+  arms:  [-1.4, 1.55, 0.0],
+  body:  [1.05, 1.3,  0.0],
+  pants: [-1.1, 0.65, 0.0],
+  legs:  [1.0,  0.2,  0.0],
+  shoes: [0.85, -0.2, 0.0],
 };
 
 // Body-part center world positions (line endpoint)
@@ -438,7 +441,7 @@ export function AvatarRenderer({
         enableZoom={false}
         minDistance={2}
         maxDistance={8}
-        target={[-1.5, 1.2, 0]}
+        target={[0, 1.2, 0]}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 3}
       />

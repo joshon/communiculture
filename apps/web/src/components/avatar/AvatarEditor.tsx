@@ -242,8 +242,8 @@ export function AvatarEditor({
         {/* Variant selector */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div
-            className="flex items-end overflow-x-auto"
-            style={{ gap: S(8), pointerEvents: "auto" }}
+            className="flex items-end"
+            style={{ gap: S(8), pointerEvents: "auto", overflow: "visible" }}
           >
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
@@ -251,12 +251,11 @@ export function AvatarEditor({
                 onClick={() => setVariantIndex(selectedPart, i)}
                 className="flex-shrink-0 transition-all duration-100"
                 style={{
-                  transform: i === selectedVariantIdx ? "translateY(-4px)" : "none",
-                  opacity:   i === selectedVariantIdx ? 1 : 0.4,
+                  transform: i === selectedVariantIdx ? "translateY(-5px)" : "none",
                 }}
                 title={`variant ${i + 1}`}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={S(16)} />
+                <AsteriskIcon color={LOGO_BLUE} size={S(13)} />
               </button>
             ))}
           </div>
@@ -292,7 +291,7 @@ export function AvatarEditor({
                       style={{ transform: isActive ? "scale(1.3)" : undefined }}
                       title={col}
                     >
-                      <AsteriskIcon color={col} size={S(34)} />
+                      <AsteriskIcon color={col} size={S(20)} />
                     </button>
                   );
                 })}
