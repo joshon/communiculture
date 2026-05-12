@@ -127,10 +127,9 @@ function RenderMesh({
 
   const isFlat = element.flat ?? false;
   const emissive = useMemo(() => {
-    if (highlight) return new THREE.Color("#3366ff");
     return new THREE.Color(element.emissiveColor ?? "#000000");
-  }, [highlight, element.emissiveColor]);
-  const emissiveIntensity = highlight ? 0.4 : (element.emissiveIntensity ?? 0);
+  }, [element.emissiveColor]);
+  const emissiveIntensity = element.emissiveIntensity ?? 0;
 
   const stickerTex = useMemo(
     () => (element.texture ? getStickerTexture(element.texture) : null),
@@ -305,8 +304,8 @@ function CharacterGroup({
 
 // Label anchor positions in world space (tuned for -20° Y, 30° elevation camera)
 const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
-  hair:  [0.1,  2.75, 0.0],
-  head:  [0.7,  2.2,  0.0],
+  hair:  [0.1,  3.15, 0.0],
+  head:  [0.7,  2.6,  0.0],
   face:  [-0.7, 2.0,  0.0],
   arms:  [-1.4, 1.55, 0.0],
   body:  [1.05, 1.3,  0.0],
