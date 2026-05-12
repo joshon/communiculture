@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { signOut } from "next-auth/react";
 
 interface Props {
@@ -14,17 +15,20 @@ interface Props {
 export function AppNav({ user }: Props) {
   return (
     <nav className="flex items-start justify-between px-5 pt-4 pb-3 bg-white border-b border-black/10">
-      {/* Left: logo + tagline + nav links */}
+      {/* Left: logo lockup + nav links */}
       <div className="flex flex-col gap-0.5">
-        <Link href="/dashboard" className="block leading-none">
-          <span className="text-[#0033cc] font-bold lowercase tracking-tight text-xl leading-none">
-            communi<span className="text-[#0033cc]">*</span>culture
+        <Link href="/dashboard" className="block">
+          {/* SVG logo */}
+          <Image src="/logo.svg" alt="communi*culture" width={156} height={29} priority />
+          {/* Tagline — flush left below logo, Pixelify Sans */}
+          <span
+            className="block text-[9px] text-black/50 uppercase tracking-[0.2em] leading-none mt-1"
+            style={{ fontFamily: "var(--font-pixelify)" }}
+          >
+            a division of futurefarmers
           </span>
         </Link>
-        <span className="text-[9px] text-black/40 uppercase tracking-widest leading-none" style={{ fontFamily: "var(--font-pixelify)" }}>
-          a division of futurefarmers
-        </span>
-        <div className="flex gap-4 mt-2 text-xs text-[#0033cc] lowercase">
+        <div className="flex gap-4 mt-2 text-xs text-[#0083ff] lowercase">
           <Link href="/dashboard" className="hover:underline">continuums</Link>
           <Link href="/dashboard" className="hover:underline">view others</Link>
           <Link href="/profile" className="hover:underline">edit yourself</Link>
