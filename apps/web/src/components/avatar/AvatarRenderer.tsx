@@ -317,10 +317,10 @@ const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
 // Body-part center world positions (line endpoint)
 const PART_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
   hair:  [0.0,  2.55, 0.0],
-  head:  [0.05, 2.3,  0.0],
-  face:  [0.05, 2.3,  0.0],
-  arms:  [0.05, 2.05, 0.0],
-  body:  [0.0,  1.62, 0.0],
+  head:  [0.05, 2.63, 0.0],
+  face:  [0.05, 2.63, 0.0],
+  arms:  [0.05, 2.38, 0.0],
+  body:  [0.0,  1.95, 0.0],
   pants: [0.0,  0.65, 0.0],
   legs:  [0.0,  0.2,  0.0],
   shoes: [0.0,  -0.05, 0.0],
