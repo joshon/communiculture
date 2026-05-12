@@ -64,13 +64,11 @@ export function AvatarEditorClient({ user }: Props) {
   }
 
   return (
-    <div className="flex-1 flex flex-col" style={{ minHeight: "calc(100vh - 52px)" }}>
-      <AvatarEditor
-        library={library}
-        initialColors={parsed?.colors}
-        initialVariants={parsed?.variants}
-        onSave={handleSave}
-      />
-    </div>
+    <AvatarEditor
+      library={library}
+      initialColors={parsed?.colors}
+      initialVariants={parsed?.variants}
+      onSave={handleSave}
+    />
   );
 }

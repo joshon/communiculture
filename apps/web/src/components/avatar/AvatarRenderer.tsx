@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, RoundedBox } from "@react-three/drei";
+import { OrbitControls, RoundedBox, Html, Line } from "@react-three/drei";
 import { useMemo } from "react";
 import * as THREE from "three";
 import type { AvatarVariantLibrary, AvatarPart, MeshElement } from "@/components/avatar-builder/types";
@@ -9,7 +9,7 @@ import { AVATAR_PARTS, isSymmetric } from "@/components/avatar-builder/types";
 import { createTaperedBoxGeometry } from "@/lib/taperedBoxGeometry";
 import { getStickerTexture } from "@/lib/stickerTextures";
 
-// ─── frame geometry (hollow rect with optional rounded corners) ───────────────
+// ─── frame geometry ───────────────────────────────────────────────────────────
 
 function addRoundedRectPath(p: THREE.Shape | THREE.Path, hw: number, hh: number, r: number) {
   const cr = Math.min(Math.abs(r), hw, hh);
@@ -54,20 +54,24 @@ function TaperedGeom({ topScale }: { topScale: [number, number] }) {
   return <primitive object={geo} attach="geometry" />;
 }
 
-// ─── single element mesh (no selection/gizmo state) ───────────────────────────
+// ─── single element mesh ──────────────────────────────────────────────────────
 
 function RenderMesh({
   element,
   color,
+  part,
   isMirror = false,
   highlight = false,
   showOutline = false,
+  onPartClick,
 }: {
   element: MeshElement;
   color: string;
+  part?: AvatarPart;
   isMirror?: boolean;
   highlight?: boolean;
   showOutline?: boolean;
+  onPartClick?: (part: AvatarPart) => void;
 }) {
   const meshColor = useMemo(() => {
     const base = element.color ?? color;
@@ -113,9 +117,6 @@ function RenderMesh({
     [element.texture]
   );
 
-  // When showOutline is active every main mesh writes stencil=1.
-  // The outline shells (rendered later at renderOrder=5) test stencil≠1,
-  // so they only appear outside the combined silhouette — no interior lines.
   const stencilWrite = showOutline
     ? ({
         stencilWrite: true,
@@ -138,11 +139,22 @@ function RenderMesh({
     ...stencilWrite,
   };
 
+  const handleClick = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    if (part) onPartClick?.(part);
+  };
+
   return (
     <group position={element.position} rotation={element.rotation}>
       <group scale={element.scale}>
         {useRounded ? (
-          <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={mainRenderOrder}>
+          <RoundedBox
+            args={[1, 1, 1]}
+            radius={roundRadius}
+            smoothness={roundSmooth}
+            renderOrder={mainRenderOrder}
+            onClick={handleClick}
+          >
             {isFlat ? (
               <meshBasicMaterial {...sharedMat} />
             ) : (
@@ -150,7 +162,7 @@ function RenderMesh({
             )}
           </RoundedBox>
         ) : (
-          <mesh rotation={meshPreRot} renderOrder={mainRenderOrder}>
+          <mesh rotation={meshPreRot} renderOrder={mainRenderOrder} onClick={handleClick}>
             {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
             {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
             {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
@@ -172,8 +184,6 @@ function RenderMesh({
         )}
       </group>
 
-      {/* Silhouette outline shell — only draws where stencil=0 (outside avatar silhouette).
-          renderOrder=5 ensures ALL main meshes have written stencil before this tests it. */}
       {showOutline && element.type !== "plane" && (
         <group scale={[
           element.scale[0] + 0.04,
@@ -256,9 +266,11 @@ function CharacterGroup({
                   key={el.id}
                   element={el}
                   color={color}
+                  part={part}
                   isMirror={isMirror}
                   highlight={isSelected}
                   showOutline={showOutline}
+                  onPartClick={onPartClick}
                 />
               );
             })}
@@ -266,6 +278,86 @@ function CharacterGroup({
         );
       })}
     </group>
+  );
+}
+
+// ─── floating part labels (Html) ──────────────────────────────────────────────
+
+// Label anchor positions in world space (tuned for -20° Y, 30° elevation camera)
+const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
+  hair:  [0.1,  3.05, 0.0],
+  head:  [1.15, 2.2,  0.0],
+  face:  [-1.2, 2.0,  0.0],
+  arms:  [-2.0, 1.55, 0.0],
+  body:  [1.6,  1.3,  0.0],
+  pants: [-1.6, 0.65, 0.0],
+  legs:  [1.6,  0.2,  0.0],
+  shoes: [1.3,  -0.2, 0.0],
+};
+
+// Body-part center world positions (line endpoint)
+const PART_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
+  hair:  [0.0,  2.55, 0.0],
+  head:  [0.1,  2.1,  0.2],
+  face:  [0.0,  2.05, 0.3],
+  arms:  [0.0,  1.5,  0.0],
+  body:  [0.0,  1.25, 0.0],
+  pants: [0.0,  0.65, 0.0],
+  legs:  [0.0,  0.2,  0.0],
+  shoes: [0.0,  -0.05, 0.0],
+};
+
+const LABEL_PARTS: AvatarPart[] = ["hair", "head", "face", "arms", "body", "pants", "legs", "shoes"];
+
+function PartLabels({
+  selectedPart,
+  onPartClick,
+}: {
+  selectedPart?: AvatarPart | null;
+  onPartClick?: (part: AvatarPart) => void;
+}) {
+  return (
+    <>
+      {LABEL_PARTS.map((part) => {
+        const lpos = LABEL_POS[part];
+        const ppos = PART_POS[part];
+        if (!lpos) return null;
+        const isSelected = part === selectedPart;
+
+        return (
+          <group key={part}>
+            <Html position={lpos} center zIndexRange={[200, 0]}>
+              <button
+                onClick={() => onPartClick?.(part)}
+                style={{
+                  fontFamily: "Proletarian, sans-serif",
+                  fontSize: "13px",
+                  lineHeight: 1,
+                  color: "#3F58D0",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: "3px 5px",
+                  whiteSpace: "nowrap",
+                  userSelect: "none",
+                  textDecoration: isSelected ? "line-through" : "none",
+                }}
+              >
+                {part}
+              </button>
+            </Html>
+
+            {isSelected && ppos && (
+              <Line
+                points={[lpos, ppos]}
+                color="#3F58D0"
+                lineWidth={1.2}
+              />
+            )}
+          </group>
+        );
+      })}
+    </>
   );
 }
 
@@ -278,6 +370,7 @@ export interface AvatarRendererProps {
   selectedPart?: AvatarPart | null;
   onPartClick?: (part: AvatarPart) => void;
   showOutline?: boolean;
+  showLabels?: boolean;
 }
 
 export function AvatarRenderer({
@@ -287,6 +380,7 @@ export function AvatarRenderer({
   selectedPart,
   onPartClick,
   showOutline = true,
+  showLabels = false,
 }: AvatarRendererProps) {
   return (
     <Canvas
@@ -296,6 +390,7 @@ export function AvatarRenderer({
       camera={{ position: [-1.48, 3.7, 4.07], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
+      style={{ width: "100%", height: "100%" }}
     >
       {/* White scene background */}
       <color attach="background" args={["#ffffff"]} />
@@ -312,6 +407,10 @@ export function AvatarRenderer({
         onPartClick={onPartClick}
         showOutline={showOutline}
       />
+
+      {showLabels && (
+        <PartLabels selectedPart={selectedPart} onPartClick={onPartClick} />
+      )}
 
       <OrbitControls
         makeDefault
