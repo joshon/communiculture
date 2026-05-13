@@ -258,7 +258,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
       <div
         className="absolute flex flex-col"
         style={{
-          bottom: "30vh",
+          top: S(490),
           left: S(340),
           pointerEvents: "none",
           gap: S(10),
@@ -334,8 +334,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
       <div
         className="absolute flex lowercase"
         style={{
-          bottom: S(60),
-          left: "65%",
+          top: S(820),
+          left: S(936),
           gap: S(28),
           fontSize: S(24),
           color: LOGO_BLUE,

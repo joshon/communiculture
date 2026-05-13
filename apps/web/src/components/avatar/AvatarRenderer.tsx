@@ -20,9 +20,9 @@ function CameraController() {
     const orthoCamera = camera as THREE.OrthographicCamera;
     const zoom = Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
-    // Shift the frustum so the avatar (at world x=0) sits at ~72% from screen left
+    // Shift the frustum so the avatar sits at ~64% from screen left
     // while the orbit pivot stays exactly at avatar center [0,1.2,0]
-    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.22, 0, size.width, size.height);
+    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.14, 0, size.width, size.height);
     orthoCamera.updateProjectionMatrix();
   }, [size.width, size.height, camera]);
   return null;
@@ -351,7 +351,7 @@ function PartLabels({
                   fontFamily: "Proletarian, sans-serif",
                   fontSize: "clamp(15px, 1.87vw, 29px)",
                   lineHeight: 1,
-                  color: LOGO_BLUE,
+                  color: isSelected ? "#003FA3" : LOGO_BLUE,
                   background: "none",
                   border: "none",
                   cursor: "pointer",
