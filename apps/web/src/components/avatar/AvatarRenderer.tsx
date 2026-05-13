@@ -18,8 +18,7 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    // 85% of previous scale
-    const zoom = Math.max(38, Math.min(136, size.width / 11.76));
+    const zoom = Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
     // Shift the frustum so the avatar (at world x=0) sits at ~72% from screen left
     // while the orbit pivot stays exactly at avatar center [0,1.2,0]
@@ -404,9 +403,9 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // 30° elevation, -20° initial Y rotation
-      // horizontal r=4.33: x = r·sin(-20°) = -1.48, z = r·cos(-20°) = 4.07
-      camera={{ position: [-1.48, 3.7, 4.07], zoom: 130, near: -100, far: 100 }}
+      // 30° elevation, -30° initial Y rotation (faces inward on page)
+      // horizontal r=4.33: x = r·sin(-30°) = -2.165, z = r·cos(-30°) = 3.75
+      camera={{ position: [-2.165, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
       style={{ width: "100%", height: "100%" }}
