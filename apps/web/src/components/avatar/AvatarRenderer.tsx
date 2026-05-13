@@ -20,9 +20,9 @@ function CameraController() {
     const orthoCamera = camera as THREE.OrthographicCamera;
     const zoom = Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
-    // Shift the frustum so the avatar sits at ~64% from screen left
+    // Shift the frustum so the avatar sits at ~72% from screen left
     // while the orbit pivot stays exactly at avatar center [0,1.2,0]
-    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.14, 0, size.width, size.height);
+    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.22, 0, size.width, size.height);
     orthoCamera.updateProjectionMatrix();
   }, [size.width, size.height, camera]);
   return null;
@@ -403,9 +403,9 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // 30° elevation, -30° initial Y rotation (faces inward on page)
-      // horizontal r=4.33: x = r·sin(-30°) = -2.165, z = r·cos(-30°) = 3.75
-      camera={{ position: [-2.165, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
+      // 30° elevation, 0° initial Y rotation (front-facing)
+      // horizontal r=4.33: x=0, z=4.33
+      camera={{ position: [0, 3.7, 4.33], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
       style={{ width: "100%", height: "100%" }}

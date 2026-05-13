@@ -330,8 +330,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
       <div
         className="absolute flex lowercase"
         style={{
-          top: S(820),
-          left: S(936),
+          top: S(720),
+          left: S(1008),
           gap: S(28),
           fontSize: S(24),
           color: LOGO_BLUE,
