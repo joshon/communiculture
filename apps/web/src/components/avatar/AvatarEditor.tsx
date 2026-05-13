@@ -88,7 +88,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
   const [colors,   setColors]   = useState<Record<AvatarPart, string>>(openColors.current);
   const [variants, setVariants] = useState<Record<AvatarPart, number>>(openVariants.current);
   const [selectedPart, setSelectedPart] = useState<AvatarPart | null>("hair");
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [, setHistory] = useState<HistoryEntry[]>([]);
 
   const isDirtyRef = useRef(false);
   const onSaveRef  = useRef(onSave);
@@ -184,12 +184,9 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
 
   const selectedPartVariantCount = selectedPart ? (library[selectedPart]?.length ?? 1) : 0;
   const selectedVariantIdx       = selectedPart ? (variants[selectedPart] ?? 0) : 0;
-  const activeColor = selectedPart
-    ? (SKIN_PARTS.includes(selectedPart) ? colors["head"] : colors[selectedPart])
-    : null;
 
   return (
-    <div className="relative h-screen overflow-hidden select-none">
+    <div className="relative overflow-hidden select-none" style={{ width: "100vw", height: "62.5vw" }}>
 
       {/* ── Full-screen canvas ── */}
       <div className="absolute inset-0">
@@ -309,7 +306,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                 }}
               />
               {COLOR_PALETTE.slice(row * 6, row * 6 + 6).map((col) => {
-                const isActive = col === activeColor;
                 return (
                   <button
                     key={col}
