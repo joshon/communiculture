@@ -220,7 +220,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
             alt="communi*culture"
             width={200}
             height={37}
-            style={{ width: S(260), height: "auto" }}
+            style={{ width: S(260), height: "auto", marginLeft: S(100) }}
             priority
           />
           <span
