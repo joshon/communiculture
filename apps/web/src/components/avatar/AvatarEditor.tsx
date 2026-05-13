@@ -240,7 +240,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
             marginTop: S(20),
             gap: S(3),
             fontFamily: PROLETARIAN,
-            fontSize: S(24),
+            fontSize: S(28),
             color: LOGO_BLUE,
             pointerEvents: "auto",
             alignItems: "flex-end",
@@ -257,9 +257,11 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         style={{
           top: S(490),
           left: S(340),
+          width: S(220),
           pointerEvents: "none",
           gap: S(10),
           alignItems: "flex-end",
+          overflow: "visible",
         }}
       >
         {/* Variant selector */}
@@ -333,7 +335,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           top: S(720),
           left: S(1008),
           gap: S(28),
-          fontSize: S(24),
+          fontSize: S(28),
           color: LOGO_BLUE,
           fontFamily: PROLETARIAN,
           pointerEvents: "auto",

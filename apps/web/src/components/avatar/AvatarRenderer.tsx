@@ -403,9 +403,9 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // 30° elevation, 0° initial Y rotation (front-facing)
-      // horizontal r=4.33: x=0, z=4.33
-      camera={{ position: [0, 3.7, 4.33], zoom: 130, near: -100, far: 100 }}
+      // 30° elevation, +30° Y rotation (avatar faces screen-left)
+      // horizontal r=4.33: x = r·sin(30°) = 2.165, z = r·cos(30°) = 3.75
+      camera={{ position: [2.165, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
       style={{ width: "100%", height: "100%" }}
