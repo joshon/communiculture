@@ -220,7 +220,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
             alt="communi*culture"
             width={200}
             height={37}
-            style={{ width: S(260), height: "auto", marginLeft: S(100) }}
+            style={{ width: S(260), height: "auto", marginLeft: S(80) }}
             priority
           />
           <span
@@ -230,7 +230,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
               fontSize: S(12),
               letterSpacing: "0.2em",
               whiteSpace: "nowrap",
-              marginTop: S(5),
+              marginTop: S(0),
             }}
           >
             a division of futurefarmers
@@ -243,7 +243,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
             marginTop: S(20),
             gap: S(3),
             fontFamily: PROLETARIAN,
-            fontSize: S(20),
+            fontSize: S(24),
             color: LOGO_BLUE,
             pointerEvents: "auto",
             alignItems: "flex-end",
@@ -286,7 +286,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         )}
 
         {/* Color palette — 3 rows, line runs exactly behind each row */}
-        <div style={{ pointerEvents: "auto" }}>
+        <div style={{ pointerEvents: "auto", marginTop: S(30) }}>
           {[0, 1, 2].map((row) => (
             <div
               key={row}
@@ -294,7 +294,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                 position: "relative",
                 display: "flex",
                 gap: S(20),
-                marginBottom: row < 2 ? S(10) : 0,
+                marginBottom: row < 2 ? S(30) : 0,
               }}
             >
               {/* Line spans only the width of this row's asterisks */}
@@ -314,15 +314,14 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                   <button
                     key={col}
                     onClick={() => handleColorSelect(col)}
-                    className="flex-shrink-0 transition-transform hover:scale-110"
+                    className="flex-shrink-0 transition-transform"
                     style={{
-                      transform: isActive ? "scale(1.3)" : undefined,
                       position: "relative",
                       zIndex: 1,
                     }}
                     title={col}
                   >
-                    <AsteriskIcon color={col} size={S(28)} />
+                    <AsteriskIcon color={col} size={S(20)} />
                   </button>
                 );
               })}
@@ -335,10 +334,10 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
       <div
         className="absolute flex lowercase"
         style={{
-          bottom: S(55),
-          left: "58%",
+          bottom: S(60),
+          left: "65%",
           gap: S(28),
-          fontSize: S(20),
+          fontSize: S(24),
           color: LOGO_BLUE,
           fontFamily: PROLETARIAN,
           pointerEvents: "auto",
