@@ -20,7 +20,7 @@ function LineInput({
 }) {
   return (
     <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.75rem" }}>
-      <span style={{ fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(11px,1vw,15px)", whiteSpace: "nowrap", minWidth: 120, textAlign: "right" }}>
+      <span style={{ fontFamily: PROLETARIAN, color: DARK_BLUE, fontSize: "clamp(11px,1vw,15px)", whiteSpace: "nowrap", minWidth: 120, textAlign: "right" }}>
         {label}
       </span>
       <input
@@ -131,8 +131,10 @@ export default function LoginPage() {
       body: JSON.stringify({ name: suName, email: suEmail, password: suPassword }),
     });
     if (!res.ok) {
-      const data = await res.json();
-      setSuError(data.error ?? "something went wrong");
+      const text = await res.text();
+      let message = "something went wrong";
+      try { message = JSON.parse(text).error ?? message; } catch {}
+      setSuError(message);
       setSuLoading(false);
       return;
     }
@@ -144,7 +146,7 @@ export default function LoginPage() {
   }
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
-    fontFamily: PIXELIFY,
+    fontFamily: PROLETARIAN,
     fontSize: "clamp(12px,1.1vw,18px)",
     color: active ? DARK_BLUE : `${DARK_BLUE}50`,
     background: "none",
@@ -173,7 +175,7 @@ export default function LoginPage() {
         </div>
 
         {tab === "signup" && (
-          <>
+          <form onSubmit={(e) => { e.preventDefault(); handleSignUp(); }}>
             <LineInput label="name" type="text" value={suName} onChange={setSuName} />
             <LineInput label="email" type="email" value={suEmail} onChange={setSuEmail} />
             <LineInput label="password" type="password" value={suPassword} onChange={setSuPassword} />
@@ -181,17 +183,17 @@ export default function LoginPage() {
             {suError && <p style={{ fontFamily: PROLETARIAN, color: "#c00", fontSize: 12, marginBottom: 8 }}>{suError}</p>}
             <EnterButton onClick={handleSignUp} loading={suLoading} />
             <Divider label="or sign up with" />
-          </>
+          </form>
         )}
 
         {tab === "signin" && (
-          <>
+          <form onSubmit={(e) => { e.preventDefault(); handleSignIn(); }}>
             <LineInput label="email" type="email" value={siEmail} onChange={setSiEmail} />
             <LineInput label="password" type="password" value={siPassword} onChange={setSiPassword} />
             {siError && <p style={{ fontFamily: PROLETARIAN, color: "#c00", fontSize: 12, marginBottom: 8 }}>{siError}</p>}
             <EnterButton onClick={handleSignIn} loading={siLoading} />
             <Divider label="or log in with" />
-          </>
+          </form>
         )}
 
         {/* OAuth buttons */}

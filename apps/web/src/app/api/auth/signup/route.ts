@@ -14,10 +14,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Email already in use" }, { status: 409 });
   }
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  await prisma.user.create({
-    data: { name: name || null, email, passwordHash },
-  });
-
-  return NextResponse.json({ ok: true });
+  try {
+    const passwordHash = await bcrypt.hash(password, 12);
+    await prisma.user.create({
+      data: { name: name || null, email, passwordHash },
+    });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("signup error", err);
+    return NextResponse.json({ error: "server error" }, { status: 500 });
+  }
 }
