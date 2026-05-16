@@ -408,7 +408,7 @@ export function AvatarRenderer({
       camera={{ position: [2.165, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
-      style={{ width: "100%", height: "100%" }}
+      style={{ width: "100%", height: "100%", filter: "contrast(1.1) saturate(1.05)" }}
     >
       {/* White scene background */}
       <color attach="background" args={["#ffffff"]} />
