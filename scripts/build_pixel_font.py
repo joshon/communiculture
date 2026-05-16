@@ -172,16 +172,16 @@ SVG = """<svg width="359" height="12" viewBox="0 0 359 12" fill="none" xmlns="ht
 <rect x="184" y="8" width="8" height="2" fill="black"/>
 <rect x="192" width="10" height="2" transform="rotate(90 192 0)" fill="black"/>
 <rect x="192" width="10" height="2" transform="rotate(90 192 0)" fill="black"/>
-<rect x="194" width="2" height="6" fill="black"/>
-<rect x="194" width="2" height="6" fill="black"/>
-<rect x="196" y="6" width="1.99902" height="2" fill="black"/>
-<rect x="196" y="6" width="1.99902" height="2" fill="black"/>
-<rect x="199.999" y="6" width="1.99902" height="2" fill="black"/>
-<rect x="199.999" y="6" width="1.99902" height="2" fill="black"/>
+<rect x="194" width="2" height="4" fill="black"/>
+<rect x="194" width="2" height="4" fill="black"/>
+<rect x="196.002" y="4" width="1.99902" height="4" fill="black"/>
+<rect x="196.002" y="4" width="1.99902" height="4" fill="black"/>
+<rect x="200.001" y="4" width="1.99902" height="4" fill="black"/>
+<rect x="200.001" y="4" width="1.99902" height="4" fill="black"/>
 <rect x="198" y="8" width="1.99902" height="2" fill="black"/>
 <rect x="198" y="8" width="1.99902" height="2" fill="black"/>
-<rect x="204" width="6" height="2" transform="rotate(90 204 0)" fill="black"/>
-<rect x="204" width="6" height="2" transform="rotate(90 204 0)" fill="black"/>
+<rect x="204" width="4" height="2" transform="rotate(90 204 0)" fill="black"/>
+<rect x="204" width="4" height="2" transform="rotate(90 204 0)" fill="black"/>
 <rect x="206" width="2" height="10" fill="black"/>
 <rect x="206" width="2" height="10" fill="black"/>
 <rect x="214" width="2" height="10" fill="black"/>
@@ -190,50 +190,50 @@ SVG = """<svg width="359" height="12" viewBox="0 0 359 12" fill="none" xmlns="ht
 <rect x="206" y="8" width="10" height="2" fill="black"/>
 <rect x="212" width="10" height="2" transform="rotate(90 212 0)" fill="black"/>
 <rect x="212" width="10" height="2" transform="rotate(90 212 0)" fill="black"/>
-<rect x="223.999" y="6" width="2" height="2" fill="black"/>
-<rect x="223.999" y="6" width="2" height="2" fill="black"/>
-<rect x="219.999" y="6" width="2" height="2" fill="black"/>
-<rect x="219.999" y="6" width="2" height="2" fill="black"/>
-<rect x="225.999" y="8" width="2" height="2" fill="black"/>
-<rect x="225.999" y="8" width="2" height="2" fill="black"/>
+<rect x="224" y="6" width="2" height="2" fill="black"/>
+<rect x="224" y="6" width="2" height="2" fill="black"/>
+<rect x="220" y="6" width="2" height="2" fill="black"/>
+<rect x="220" y="6" width="2" height="2" fill="black"/>
+<rect x="226" y="8" width="2" height="2" fill="black"/>
+<rect x="226" y="8" width="2" height="2" fill="black"/>
 <rect x="218" y="8" width="2" height="2" fill="black"/>
 <rect x="218" y="8" width="2" height="2" fill="black"/>
-<rect x="223.999" y="2" width="2" height="2" fill="black"/>
-<rect x="223.999" y="2" width="2" height="2" fill="black"/>
-<rect x="219.999" y="2" width="2" height="2" fill="black"/>
-<rect x="219.999" y="2" width="2" height="2" fill="black"/>
-<rect x="225.999" width="2" height="2" fill="black"/>
-<rect x="225.999" width="2" height="2" fill="black"/>
+<rect x="224" y="2" width="2" height="2" fill="black"/>
+<rect x="224" y="2" width="2" height="2" fill="black"/>
+<rect x="220" y="2" width="2" height="2" fill="black"/>
+<rect x="220" y="2" width="2" height="2" fill="black"/>
+<rect x="226" width="2" height="2" fill="black"/>
+<rect x="226" width="2" height="2" fill="black"/>
 <rect x="222" y="4" width="2" height="2" fill="black"/>
 <rect x="222" y="4" width="2" height="2" fill="black"/>
 <rect x="218" width="2" height="2" fill="black"/>
 <rect x="218" width="2" height="2" fill="black"/>
-<rect x="229.999" width="2" height="6" fill="black"/>
-<rect x="229.999" width="2" height="6" fill="black"/>
+<rect x="230" width="2" height="6" fill="black"/>
+<rect x="230" width="2" height="6" fill="black"/>
 <rect x="230.001" y="4" width="7.99698" height="2" fill="black"/>
 <rect x="230.001" y="4" width="7.99698" height="2" fill="black"/>
-<rect x="231.999" y="6" width="1.99902" height="4" fill="black"/>
-<rect x="231.999" y="6" width="1.99902" height="4" fill="black"/>
-<rect x="237.998" width="6" height="2" transform="rotate(90 237.998 0)" fill="black"/>
-<rect x="237.998" width="6" height="2" transform="rotate(90 237.998 0)" fill="black"/>
-<rect x="239.998" width="6.00101" height="2" fill="black"/>
-<rect x="239.998" width="6.00101" height="2" fill="black"/>
-<rect x="239.998" y="8" width="6.00101" height="2" fill="black"/>
-<rect x="239.998" y="8" width="6.00101" height="2" fill="black"/>
-<rect x="239.999" y="6" width="2" height="2" fill="black"/>
-<rect x="239.999" y="6" width="2" height="2" fill="black"/>
-<rect x="243.999" y="2" width="2" height="2" fill="black"/>
-<rect x="243.999" y="2" width="2" height="2" fill="black"/>
+<rect x="232" y="6" width="1.99902" height="4" fill="black"/>
+<rect x="232" y="6" width="1.99902" height="4" fill="black"/>
+<rect x="237.999" width="6" height="2" transform="rotate(90 237.999 0)" fill="black"/>
+<rect x="237.999" width="6" height="2" transform="rotate(90 237.999 0)" fill="black"/>
+<rect x="239.999" width="6.00101" height="2" fill="black"/>
+<rect x="239.999" width="6.00101" height="2" fill="black"/>
+<rect x="239.999" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="239.999" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="240" y="6" width="2" height="2" fill="black"/>
+<rect x="240" y="6" width="2" height="2" fill="black"/>
+<rect x="244" y="2" width="2" height="2" fill="black"/>
+<rect x="244" y="2" width="2" height="2" fill="black"/>
 <rect x="242" y="4" width="2" height="2" fill="black"/>
 <rect x="242" y="4" width="2" height="2" fill="black"/>
-<rect x="249.999" width="2" height="10" fill="black"/>
-<rect x="249.999" width="2" height="10" fill="black"/>
-<rect x="247.999" width="4" height="2" fill="black"/>
-<rect x="247.999" width="4" height="2" fill="black"/>
-<rect x="253.999" width="4.00201" height="2" fill="black"/>
-<rect x="253.999" width="4.00201" height="2" fill="black"/>
-<rect x="253.999" y="8" width="6.00101" height="2" fill="black"/>
-<rect x="253.999" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="250" width="2" height="10" fill="black"/>
+<rect x="250" width="2" height="10" fill="black"/>
+<rect x="248" width="4" height="2" fill="black"/>
+<rect x="248" width="4" height="2" fill="black"/>
+<rect x="254" width="4.00201" height="2" fill="black"/>
+<rect x="254" width="4.00201" height="2" fill="black"/>
+<rect x="254" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="254" y="8" width="6.00101" height="2" fill="black"/>
 <rect x="254" y="6" width="2" height="2" fill="black"/>
 <rect x="254" y="6" width="2" height="2" fill="black"/>
 <rect x="258" y="2" width="2" height="2" fill="black"/>
@@ -250,18 +250,18 @@ SVG = """<svg width="359" height="12" viewBox="0 0 359 12" fill="none" xmlns="ht
 <rect x="262" y="8" width="7" height="2" fill="black"/>
 <rect x="271" width="2" height="6" fill="black"/>
 <rect x="271" width="2" height="6" fill="black"/>
-<rect x="271.003" y="4" width="7.99698" height="2" fill="black"/>
-<rect x="271.003" y="4" width="7.99698" height="2" fill="black"/>
-<rect x="278.999" width="10" height="2" transform="rotate(90 278.999 0)" fill="black"/>
-<rect x="278.999" width="10" height="2" transform="rotate(90 278.999 0)" fill="black"/>
-<rect x="280.999" width="6.00101" height="2" fill="black"/>
-<rect x="280.999" width="6.00101" height="2" fill="black"/>
-<rect x="280.999" y="8" width="6.00101" height="2" fill="black"/>
-<rect x="280.999" y="8" width="6.00101" height="2" fill="black"/>
-<rect x="284.999" y="6" width="2" height="2" fill="black"/>
-<rect x="284.999" y="6" width="2" height="2" fill="black"/>
-<rect x="280.999" y="2" width="2" height="2" fill="black"/>
-<rect x="280.999" y="2" width="2" height="2" fill="black"/>
+<rect x="271.002" y="4" width="7.99698" height="2" fill="black"/>
+<rect x="271.002" y="4" width="7.99698" height="2" fill="black"/>
+<rect x="279" width="10" height="2" transform="rotate(90 279 0)" fill="black"/>
+<rect x="279" width="10" height="2" transform="rotate(90 279 0)" fill="black"/>
+<rect x="281" width="6.00101" height="2" fill="black"/>
+<rect x="281" width="6.00101" height="2" fill="black"/>
+<rect x="281" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="281" y="8" width="6.00101" height="2" fill="black"/>
+<rect x="285" y="6" width="2" height="2" fill="black"/>
+<rect x="285" y="6" width="2" height="2" fill="black"/>
+<rect x="281" y="2" width="2" height="2" fill="black"/>
+<rect x="281" y="2" width="2" height="2" fill="black"/>
 <rect x="283.001" y="4" width="2" height="2" fill="black"/>
 <rect x="283.001" y="4" width="2" height="2" fill="black"/>
 <rect x="289" width="2" height="10" fill="black"/>
