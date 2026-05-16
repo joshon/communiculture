@@ -5,8 +5,9 @@ import { signOut } from "next-auth/react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
-const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
-const H = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;
+const S  = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
+const H  = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;
+const H7 = (px: number) => H(px * 0.7); // mobile buttons 30% smaller
 
 function PixelButton({ children, href, onClick, scale }: {
   children: React.ReactNode;
@@ -65,7 +66,7 @@ function PixelButton({ children, href, onClick, scale }: {
 
 export function SiteChrome() {
   const isMobile = useIsMobile();
-  const scale = isMobile ? H : S;
+  const scale = isMobile ? H7 : S;
 
   return (
     <div style={{

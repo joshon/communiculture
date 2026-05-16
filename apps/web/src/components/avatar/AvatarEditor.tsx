@@ -241,21 +241,22 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
     return (
       <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
-        {/* Header — logo+tagline+nav stacked left (nav won't reach fixed buttons) */}
+        {/* Header */}
         <div style={{ flexShrink: 0, padding: `${H(14)} ${H(16)} ${H(8)}` }}>
           <Link href="/dashboard" style={{ display: "block" }}>
+            {/* Logo indented right — same lockup as desktop (tagline aligns left of logo) */}
             <Image
               src="/logo.svg"
               alt="communi*culture"
               width={200}
               height={37}
-              style={{ height: H(26), width: "auto" }}
+              style={{ height: H(23), width: "auto", marginLeft: H(22) }}
               priority
             />
             <span style={{
-              display: "block", fontFamily: PIXELIFY, fontSize: H(9),
+              display: "block", fontFamily: PIXELIFY, fontSize: H(7),
               letterSpacing: "0.2em", textTransform: "uppercase",
-              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap", marginTop: H(3),
+              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap", marginTop: H(2),
             }}>
               a division of futurefarmers
             </span>
@@ -270,10 +271,10 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           </nav>
         </div>
 
-        {/* Variant selector — single scrollable row */}
+        {/* Variant selector — wraps to two lines, never scrolls horizontally */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div style={{
-            flexShrink: 0, display: "flex", overflowX: "auto",
+            flexShrink: 0, display: "flex", flexWrap: "wrap",
             padding: `${H(4)} ${H(16)}`, gap: H(9),
           }}>
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
@@ -283,7 +284,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                 className="flex-shrink-0 transition-all duration-100"
                 style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={H(14)} />
+                <AsteriskIcon color={LOGO_BLUE} size={H(10)} />
               </button>
             ))}
           </div>
@@ -308,7 +309,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         <div style={{ flexShrink: 0, padding: `${H(8)} ${H(16)} ${H(12)}`, display: "flex", justifyContent: "center" }}>
           <div>
             <PaletteRows
-              asteriskSize={H(38)}
+              asteriskSize={H(25)}
               gap={H(14)}
               rowGap={H(16)}
               onSelect={handleColorSelect}
