@@ -250,7 +250,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
               alt="communi*culture"
               width={200}
               height={37}
-              style={{ height: H(23), width: "auto", marginLeft: H(22) }}
+              style={{ height: H(26.5), width: "auto", marginLeft: H(22) }}
               priority
             />
             <span style={{
@@ -271,27 +271,27 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           </nav>
         </div>
 
-        {/* Variant selector — wraps to two lines, never scrolls horizontally */}
-        {selectedPart && selectedPartVariantCount > 1 && (
-          <div style={{
-            flexShrink: 0, display: "flex", flexWrap: "wrap",
-            padding: `${H(4)} ${H(16)}`, gap: H(9),
-          }}>
-            {Array.from({ length: selectedPartVariantCount }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setVariantIndex(selectedPart, i)}
-                className="flex-shrink-0 transition-all duration-100"
-                style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
-              >
-                <AsteriskIcon color={LOGO_BLUE} size={H(10)} />
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Variant selector — always reserves 2-row height to prevent layout jump */}
+        <div style={{
+          flexShrink: 0, display: "flex", flexWrap: "wrap",
+          justifyContent: "center", alignContent: "flex-start",
+          padding: `${H(4)} ${H(16)}`, gap: H(9),
+          minHeight: H(37),
+        }}>
+          {selectedPart && selectedPartVariantCount > 1 && Array.from({ length: selectedPartVariantCount }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setVariantIndex(selectedPart, i)}
+              className="flex-shrink-0 transition-all duration-100"
+              style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
+            >
+              <AsteriskIcon color={LOGO_BLUE} size={H(10)} />
+            </button>
+          ))}
+        </div>
 
-        {/* 3D canvas — fills remaining height */}
-        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {/* 3D canvas — capped height so controls sit higher */}
+        <div style={{ flex: 1, minHeight: 0, maxHeight: "115vw", position: "relative" }}>
           {avatarRenderer}
         </div>
 
@@ -309,7 +309,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         <div style={{ flexShrink: 0, padding: `${H(8)} ${H(16)} ${H(12)}`, display: "flex", justifyContent: "center" }}>
           <div>
             <PaletteRows
-              asteriskSize={H(25)}
+              asteriskSize={H(22.5)}
               gap={H(14)}
               rowGap={H(16)}
               onSelect={handleColorSelect}

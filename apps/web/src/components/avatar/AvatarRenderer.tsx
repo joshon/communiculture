@@ -20,7 +20,7 @@ function CameraController() {
     const orthoCamera = camera as THREE.OrthographicCamera;
     const mobile = size.width < 600;
     const zoom = mobile
-      ? Math.max(40, size.width / 4)
+      ? Math.max(40, size.width / 3.6)
       : Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
     // Mobile: center avatar. Desktop: shift ~72% from left.
@@ -442,7 +442,7 @@ export function AvatarRenderer({
         enableZoom={false}
         minDistance={2}
         maxDistance={8}
-        target={[0, 1.2, 0]}
+        target={[0, 1.35, 0]}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 3}
       />
