@@ -234,87 +234,83 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
     />
   );
 
-  // ─── mobile layout ──────────────────────────────────────────────────────────
+  // ─── mobile layout (no scroll — everything fits in 100svh) ────────────────────
   if (isMobile) {
     return (
-      <div style={{ width: "100vw", minHeight: "100svh", background: "white", display: "flex", flexDirection: "column", userSelect: "none" }}>
+      <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
-        {/* Header: logo + nav */}
-        <div style={{ padding: `${M(24)} ${M(20)} ${M(12)}`, display: "flex", flexDirection: "column" }}>
+        {/* Header — compact row: logo+tagline left, nav right */}
+        <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: `${M(14)} ${M(16)} ${M(8)}` }}>
           <Link href="/dashboard" style={{ display: "block" }}>
             <Image
               src="/logo.svg"
               alt="communi*culture"
               width={200}
               height={37}
-              style={{ width: M(200), height: "auto" }}
+              style={{ width: M(148), height: "auto" }}
               priority
             />
             <span style={{
-              display: "block",
-              fontFamily: PIXELIFY,
-              fontSize: M(11),
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "rgba(0,0,0,0.4)",
-              whiteSpace: "nowrap",
-              marginTop: M(2),
+              display: "block", fontFamily: PIXELIFY, fontSize: M(9),
+              letterSpacing: "0.2em", textTransform: "uppercase",
+              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap",
             }}>
               a division of futurefarmers
             </span>
           </Link>
           <nav style={{
             display: "flex", flexDirection: "column", alignItems: "flex-end",
-            gap: M(2), marginTop: M(12),
-            fontFamily: PROLETARIAN, fontSize: M(22), color: LOGO_BLUE,
+            fontFamily: PROLETARIAN, fontSize: M(18), color: LOGO_BLUE, lineHeight: 1.4,
           }}>
             <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
             <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
           </nav>
         </div>
 
-        {/* Variant selector */}
+        {/* Variant selector — single scrollable row, fixed height */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div style={{
-            display: "flex", justifyContent: "center", flexWrap: "wrap",
-            gap: M(10), padding: `${M(8)} ${M(20)}`,
+            flexShrink: 0, display: "flex", overflowX: "auto",
+            padding: `${M(4)} ${M(16)}`, gap: M(10),
           }}>
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
                 key={i}
                 onClick={() => setVariantIndex(selectedPart, i)}
                 className="flex-shrink-0 transition-all duration-100"
-                style={{ transform: i === selectedVariantIdx ? "translateY(-4px)" : "none" }}
+                style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={M(20)} />
+                <AsteriskIcon color={LOGO_BLUE} size={M(18)} />
               </button>
             ))}
           </div>
         )}
 
-        {/* 3D canvas — square */}
-        <div style={{ width: "100vw", height: "100vw", position: "relative", flexShrink: 0 }}>
+        {/* 3D canvas — fills all remaining space */}
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {avatarRenderer}
         </div>
 
         {/* Reset / Random */}
         <div style={{
-          display: "flex", justifyContent: "center", gap: M(48),
-          fontFamily: PROLETARIAN, fontSize: M(24), color: LOGO_BLUE,
-          padding: `${M(20)} 0`,
+          flexShrink: 0, display: "flex", justifyContent: "center", gap: M(48),
+          fontFamily: PROLETARIAN, fontSize: M(22), color: LOGO_BLUE,
+          padding: `${M(10)} 0`,
         }}>
           <button onClick={handleReset}    className="hover:opacity-60 transition-opacity lowercase">reset</button>
           <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity lowercase">random</button>
         </div>
 
-        {/* Color palette */}
-        <div style={{ padding: `0 ${M(20)} ${M(40)}`, display: "flex", flexDirection: "column", alignItems: "center", gap: M(30) }}>
-          <PaletteRows
-            asteriskSize={M(36)}
-            gap={M(16)}
-            rowGap={M(30)}
-            onSelect={handleColorSelect}
-          />
+        {/* Color palette — compact */}
+        <div style={{ flexShrink: 0, padding: `${M(6)} ${M(16)} ${M(14)}`, display: "flex", justifyContent: "center" }}>
+          <div>
+            <PaletteRows
+              asteriskSize={M(36)}
+              gap={M(13)}
+              rowGap={M(14)}
+              onSelect={handleColorSelect}
+            />
+          </div>
         </div>
       </div>
     );
