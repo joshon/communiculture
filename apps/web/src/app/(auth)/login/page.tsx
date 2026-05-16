@@ -160,7 +160,7 @@ export default function LoginPage() {
     <main style={{ minHeight: "100vh", background: "white", display: "flex", flexDirection: "column", alignItems: "flex-end", justifyContent: "flex-start", padding: "clamp(24px,4vw,60px)" }}>
       {/* Logo top-right */}
       <Link href="/" style={{ display: "block", marginBottom: "clamp(40px,6vw,100px)" }}>
-        <Image src="/logo.svg" alt="communi*culture" width={220} height={40}
+        <Image src="/logo.svg" alt="communi*culture" width={361} height={65}
           style={{ width: "clamp(140px,14vw,220px)", height: "auto" }} priority />
       </Link>
 

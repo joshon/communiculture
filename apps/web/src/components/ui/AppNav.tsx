@@ -19,14 +19,7 @@ export function AppNav({ user }: Props) {
       <div className="flex flex-col gap-0.5">
         <Link href="/dashboard" className="block">
           {/* SVG logo */}
-          <Image src="/logo.svg" alt="communi*culture" width={156} height={29} priority />
-          {/* Tagline — flush left below logo, Pixelify Sans */}
-          <span
-            className="block text-[9px] text-black/50 uppercase tracking-[0.2em] leading-none mt-1"
-            style={{ fontFamily: "var(--font-pixelify)" }}
-          >
-            a division of futurefarmers
-          </span>
+          <Image src="/logo.svg" alt="communi*culture" width={361} height={65} priority style={{ width: 156, height: "auto" }} />
         </Link>
         <div className="flex gap-4 mt-2 text-xs text-[#0083ff] lowercase">
           <Link href="/dashboard" className="hover:underline">continuums</Link>

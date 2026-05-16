@@ -33,22 +33,11 @@ export default async function DashboardPage() {
           <Image
             src="/logo.svg"
             alt="communi*culture"
-            width={200}
-            height={37}
+            width={361}
+            height={65}
             style={{ width: "clamp(100px, 10vw, 180px)", height: "auto" }}
             priority
           />
-          <span
-            className="block text-black/40 uppercase leading-none mt-1"
-            style={{
-              fontFamily: "var(--font-pixelify)",
-              fontSize: "clamp(7px, 0.6vw, 10px)",
-              letterSpacing: "0.2em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            a division of futurefarmers
-          </span>
         </Link>
         <nav
           className="flex flex-col gap-0.5 text-[#0083FF] lowercase"

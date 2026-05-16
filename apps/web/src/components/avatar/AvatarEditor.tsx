@@ -44,7 +44,6 @@ const DEFAULT_VARIANTS = Object.fromEntries(
 
 const LOGO_BLUE = "#0083FF";
 const PROLETARIAN = "Proletarian, sans-serif";
-const PIXELIFY = "var(--font-pixelify)";
 
 // ─── asterisk SVG ─────────────────────────────────────────────────────────────
 
@@ -248,18 +247,11 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
             <Image
               src="/logo.svg"
               alt="communi*culture"
-              width={200}
-              height={37}
-              style={{ height: H(26.5), width: "auto", marginLeft: H(22) }}
+              width={361}
+              height={65}
+              style={{ height: H(31), width: "auto", marginLeft: H(22) }}
               priority
             />
-            <span style={{
-              display: "block", fontFamily: PIXELIFY, fontSize: H(7),
-              letterSpacing: "0.2em", textTransform: "uppercase",
-              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap", marginTop: H(2),
-            }}>
-              a division of futurefarmers
-            </span>
           </Link>
           <nav style={{
             display: "flex", flexDirection: "column",
@@ -338,17 +330,11 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           <Image
             src="/logo.svg"
             alt="communi*culture"
-            width={200}
-            height={37}
+            width={361}
+            height={65}
             style={{ width: S(260), height: "auto", marginLeft: S(80) }}
             priority
           />
-          <span
-            className="block text-black/40 uppercase leading-none"
-            style={{ fontFamily: PIXELIFY, fontSize: S(12), letterSpacing: "0.2em", whiteSpace: "nowrap", marginTop: S(0) }}
-          >
-            a division of futurefarmers
-          </span>
         </Link>
         <nav
           className="flex flex-col lowercase"

@@ -79,11 +79,8 @@ export function ProfileClient({ user }: {
       {/* ── Left nav ── */}
       <div style={{ width: "clamp(120px,12vw,200px)", flexShrink: 0, padding: "clamp(20px,3vw,48px) clamp(16px,2vw,32px)" }}>
         <Link href="/dashboard" style={{ display: "block", marginBottom: "clamp(12px,1.5vw,24px)" }}>
-          <Image src="/logo.svg" alt="communi*culture" width={180} height={33}
+          <Image src="/logo.svg" alt="communi*culture" width={361} height={65}
             style={{ width: "clamp(90px,9vw,160px)", height: "auto" }} priority />
-          <span style={{ display: "block", fontFamily: PIXELIFY, fontSize: "clamp(6px,0.5vw,9px)", letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap", marginTop: 4 }}>
-            a division of futurefarmers
-          </span>
         </Link>
         <nav style={{ display: "flex", flexDirection: "column", gap: 4, color: BLUE, fontFamily: PIXELIFY, fontSize: "clamp(10px,0.9vw,14px)" }}>
           <Link href="/dashboard" className="hover:underline">continuums</Link>
