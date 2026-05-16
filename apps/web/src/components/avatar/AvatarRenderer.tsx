@@ -18,9 +18,9 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    const mobile = size.width < 600;
+    const mobile = size.width < 1024;
     const zoom = mobile
-      ? Math.max(40, size.width / 3.6)
+      ? Math.max(40, Math.min(size.width / 3.6, 150))
       : Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
     // Mobile: center avatar. Desktop: shift ~72% from left.

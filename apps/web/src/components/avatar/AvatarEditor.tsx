@@ -127,7 +127,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
   const [variants,    setVariants]    = useState<Record<AvatarPart, number>>(openVariants.current);
   const [selectedPart, setSelectedPart] = useState<AvatarPart | null>("hair");
   const [, setHistory] = useState<HistoryEntry[]>([]);
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(1024);
 
   const isDirtyRef = useRef(false);
   const onSaveRef  = useRef(onSave);

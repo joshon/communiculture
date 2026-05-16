@@ -65,7 +65,7 @@ function PixelButton({ children, href, onClick, scale }: {
 }
 
 export function SiteChrome() {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(1024);
   const scale = isMobile ? H7 : S;
 
   return (
