@@ -6,17 +6,16 @@ import Image from "next/image";
 import { AvatarRenderer } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
-// ─── vw scale helper (reference width: 1440px) ────────────────────────────────
-const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
+// ─── scale helpers ─────────────────────────────────────────────────────────────
+const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`; // desktop ref
+const M = (px: number) => `${((px / 390) * 100).toFixed(3)}vw`;  // mobile ref
 
 // ─── 18-color palette — ordered by row ────────────────────────────────────────
 export const COLOR_PALETTE: string[] = [
-  // row 1: greens, yellows, earth tones
   "#608E76", "#90994F", "#E2F161", "#F7D45D", "#917143", "#F3BD87",
-  // row 2: teals, blues, purple, coral
   "#6CAE8C", "#659AC7", "#6EBBD9", "#3F58D0", "#93559C", "#E96475",
-  // row 3: pinks, neutrals
   "#EA6BA8", "#EDA5CF", "#EE9181", "#A7A6A4", "#191A1C", "#F5F3F2",
 ];
 
@@ -67,6 +66,46 @@ function AsteriskIcon({ color, size = 24 }: { color: string; size?: number | str
   );
 }
 
+// ─── color palette rows (shared between mobile + desktop) ─────────────────────
+
+function PaletteRows({
+  asteriskSize,
+  gap,
+  rowGap,
+  onSelect,
+}: {
+  asteriskSize: string;
+  gap: string;
+  rowGap: string;
+  onSelect: (col: string) => void;
+}) {
+  return (
+    <>
+      {[0, 1, 2].map((row) => (
+        <div
+          key={row}
+          style={{ position: "relative", display: "flex", gap, marginBottom: row < 2 ? rowGap : 0 }}
+        >
+          <div style={{
+            position: "absolute", top: "50%", left: 0, right: 0,
+            borderTop: "1.5px solid rgba(0,0,0,0.15)", zIndex: 0,
+          }} />
+          {COLOR_PALETTE.slice(row * 6, row * 6 + 6).map((col) => (
+            <button
+              key={col}
+              onClick={() => onSelect(col)}
+              className="flex-shrink-0"
+              style={{ position: "relative", zIndex: 1 }}
+            >
+              <AsteriskIcon color={col} size={asteriskSize} />
+            </button>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+}
+
 // ─── types ────────────────────────────────────────────────────────────────────
 
 type HistoryEntry = { colors: Record<AvatarPart, string>; variants: Record<AvatarPart, number> };
@@ -81,27 +120,27 @@ interface AvatarEditorProps {
 // ─── component ────────────────────────────────────────────────────────────────
 
 export function AvatarEditor({ library, initialColors, initialVariants, onSave }: AvatarEditorProps) {
-  // Capture the state as it was when the page opened (for reset)
-  const openColors  = useRef(initialColors  ?? DEFAULT_COLORS);
+  const openColors   = useRef(initialColors  ?? DEFAULT_COLORS);
   const openVariants = useRef(initialVariants ?? DEFAULT_VARIANTS);
 
-  const [colors,   setColors]   = useState<Record<AvatarPart, string>>(openColors.current);
-  const [variants, setVariants] = useState<Record<AvatarPart, number>>(openVariants.current);
+  const [colors,      setColors]      = useState<Record<AvatarPart, string>>(openColors.current);
+  const [variants,    setVariants]    = useState<Record<AvatarPart, number>>(openVariants.current);
   const [selectedPart, setSelectedPart] = useState<AvatarPart | null>("hair");
   const [, setHistory] = useState<HistoryEntry[]>([]);
+  const isMobile = useIsMobile();
 
   const isDirtyRef = useRef(false);
   const onSaveRef  = useRef(onSave);
   useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
 
-  // ─── auto-save (debounced 1.2 s) ──────────────────────────────────────────
+  // ─── auto-save ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isDirtyRef.current) return;
     const timer = setTimeout(() => { onSaveRef.current(colors, variants); }, 1200);
     return () => clearTimeout(timer);
   }, [colors, variants]);
 
-  // ─── undo ─────────────────────────────────────────────────────────────────
+  // ─── undo ───────────────────────────────────────────────────────────────────
   const pushToHistory = useCallback((c: Record<AvatarPart, string>, v: Record<AvatarPart, number>) => {
     setHistory(prev => [...prev.slice(-29), { colors: c, variants: v }]);
   }, []);
@@ -127,7 +166,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [handleUndo]);
 
-  // ─── actions ──────────────────────────────────────────────────────────────
+  // ─── actions ────────────────────────────────────────────────────────────────
   const cycleVariant = useCallback((part: AvatarPart, dir: 1 | -1) => {
     const count = library[part]?.length ?? 1;
     pushToHistory(colors, variants);
@@ -172,10 +211,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
     const rand = () => COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
     const randVariant = (part: AvatarPart) => Math.floor(Math.random() * (library[part]?.length ?? 1));
     const skinColor = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
-    const skinEntries  = Object.fromEntries(SKIN_PARTS.map(p => [p, skinColor]));
-    const nonSkinEntries = Object.fromEntries(
-      AVATAR_PARTS.filter(p => !SKIN_PARTS.includes(p)).map(p => [p, rand()])
-    );
+    const skinEntries    = Object.fromEntries(SKIN_PARTS.map(p => [p, skinColor]));
+    const nonSkinEntries = Object.fromEntries(AVATAR_PARTS.filter(p => !SKIN_PARTS.includes(p)).map(p => [p, rand()]));
     pushToHistory(colors, variants);
     isDirtyRef.current = true;
     setColors({ ...nonSkinEntries, ...skinEntries } as Record<AvatarPart, string>);
@@ -185,31 +222,117 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
   const selectedPartVariantCount = selectedPart ? (library[selectedPart]?.length ?? 1) : 0;
   const selectedVariantIdx       = selectedPart ? (variants[selectedPart] ?? 0) : 0;
 
+  const avatarRenderer = (
+    <AvatarRenderer
+      library={library}
+      variantIndices={variants}
+      colors={colors}
+      selectedPart={selectedPart}
+      onPartClick={handlePartClick}
+      showOutline={true}
+      showLabels={true}
+    />
+  );
+
+  // ─── mobile layout ──────────────────────────────────────────────────────────
+  if (isMobile) {
+    return (
+      <div style={{ width: "100vw", minHeight: "100svh", background: "white", display: "flex", flexDirection: "column", userSelect: "none" }}>
+
+        {/* Header: logo + nav */}
+        <div style={{ padding: `${M(24)} ${M(20)} ${M(12)}`, display: "flex", flexDirection: "column" }}>
+          <Link href="/dashboard" style={{ display: "block" }}>
+            <Image
+              src="/logo.svg"
+              alt="communi*culture"
+              width={200}
+              height={37}
+              style={{ width: M(200), height: "auto" }}
+              priority
+            />
+            <span style={{
+              display: "block",
+              fontFamily: PIXELIFY,
+              fontSize: M(11),
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: "rgba(0,0,0,0.4)",
+              whiteSpace: "nowrap",
+              marginTop: M(2),
+            }}>
+              a division of futurefarmers
+            </span>
+          </Link>
+          <nav style={{
+            display: "flex", flexDirection: "column", alignItems: "flex-end",
+            gap: M(2), marginTop: M(12),
+            fontFamily: PROLETARIAN, fontSize: M(22), color: LOGO_BLUE,
+          }}>
+            <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
+            <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
+          </nav>
+        </div>
+
+        {/* Variant selector */}
+        {selectedPart && selectedPartVariantCount > 1 && (
+          <div style={{
+            display: "flex", justifyContent: "center", flexWrap: "wrap",
+            gap: M(10), padding: `${M(8)} ${M(20)}`,
+          }}>
+            {Array.from({ length: selectedPartVariantCount }, (_, i) => (
+              <button
+                key={i}
+                onClick={() => setVariantIndex(selectedPart, i)}
+                className="flex-shrink-0 transition-all duration-100"
+                style={{ transform: i === selectedVariantIdx ? "translateY(-4px)" : "none" }}
+              >
+                <AsteriskIcon color={LOGO_BLUE} size={M(20)} />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* 3D canvas — square */}
+        <div style={{ width: "100vw", height: "100vw", position: "relative", flexShrink: 0 }}>
+          {avatarRenderer}
+        </div>
+
+        {/* Reset / Random */}
+        <div style={{
+          display: "flex", justifyContent: "center", gap: M(48),
+          fontFamily: PROLETARIAN, fontSize: M(24), color: LOGO_BLUE,
+          padding: `${M(20)} 0`,
+        }}>
+          <button onClick={handleReset}    className="hover:opacity-60 transition-opacity lowercase">reset</button>
+          <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity lowercase">random</button>
+        </div>
+
+        {/* Color palette */}
+        <div style={{ padding: `0 ${M(20)} ${M(40)}`, display: "flex", flexDirection: "column", alignItems: "center", gap: M(30) }}>
+          <PaletteRows
+            asteriskSize={M(36)}
+            gap={M(16)}
+            rowGap={M(30)}
+            onSelect={handleColorSelect}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ─── desktop layout ─────────────────────────────────────────────────────────
   return (
     <div className="relative overflow-hidden select-none" style={{ width: "100vw", height: "62.5vw" }}>
 
-      {/* ── Full-screen canvas ── */}
+      {/* Full-screen canvas */}
       <div className="absolute inset-0">
-        <AvatarRenderer
-          library={library}
-          variantIndices={variants}
-          colors={colors}
-          selectedPart={selectedPart}
-          onPartClick={handlePartClick}
-          showOutline={true}
-          showLabels={true}
-        />
+        {avatarRenderer}
       </div>
 
-      {/* ── Logo + nav (top-left) ── */}
+      {/* Logo + nav (top-left) */}
       <div
         className="absolute flex flex-col"
-        style={{
-          top: S(120),
-          left: S(60),
-          width: S(280),
-          pointerEvents: "none",
-        }}
+        style={{ top: S(120), left: S(60), width: S(280), pointerEvents: "none" }}
       >
         <Link href="/dashboard" className="block overflow-visible" style={{ pointerEvents: "auto" }}>
           <Image
@@ -222,28 +345,17 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           />
           <span
             className="block text-black/40 uppercase leading-none"
-            style={{
-              fontFamily: PIXELIFY,
-              fontSize: S(12),
-              letterSpacing: "0.2em",
-              whiteSpace: "nowrap",
-              marginTop: S(0),
-            }}
+            style={{ fontFamily: PIXELIFY, fontSize: S(12), letterSpacing: "0.2em", whiteSpace: "nowrap", marginTop: S(0) }}
           >
             a division of futurefarmers
           </span>
         </Link>
-
         <nav
           className="flex flex-col lowercase"
           style={{
-            marginTop: S(20),
-            gap: S(3),
-            fontFamily: PROLETARIAN,
-            fontSize: S(28),
-            color: LOGO_BLUE,
-            pointerEvents: "auto",
-            alignItems: "flex-end",
+            marginTop: S(20), gap: S(3),
+            fontFamily: PROLETARIAN, fontSize: S(28), color: LOGO_BLUE,
+            pointerEvents: "auto", alignItems: "flex-end",
           }}
         >
           <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
@@ -251,32 +363,24 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         </nav>
       </div>
 
-      {/* ── Palette overlay (right-aligned column) ── */}
+      {/* Palette overlay */}
       <div
         className="absolute flex flex-col"
         style={{
-          top: S(490),
-          left: S(374),
-          width: S(242),
-          pointerEvents: "none",
-          gap: S(11),
-          alignItems: "flex-end",
-          overflow: "visible",
+          top: S(490), left: S(374), width: S(242),
+          pointerEvents: "none", gap: S(11),
+          alignItems: "flex-end", overflow: "visible",
         }}
       >
         {/* Variant selector */}
         {selectedPart && selectedPartVariantCount > 1 && (
-          <div
-            className="flex items-end"
-            style={{ gap: S(9), pointerEvents: "auto", overflow: "visible" }}
-          >
+          <div className="flex items-end" style={{ gap: S(9), pointerEvents: "auto", overflow: "visible" }}>
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
                 key={i}
                 onClick={() => setVariantIndex(selectedPart, i)}
                 className="flex-shrink-0 transition-all duration-100"
                 style={{ transform: i === selectedVariantIdx ? "translateY(-5px)" : "none" }}
-                title={`variant ${i + 1}`}
               >
                 <AsteriskIcon color={LOGO_BLUE} size={S(14)} />
               </button>
@@ -284,61 +388,24 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
           </div>
         )}
 
-        {/* Color palette — 3 rows, line runs exactly behind each row */}
+        {/* Color palette rows */}
         <div style={{ pointerEvents: "auto", marginTop: S(33) }}>
-          {[0, 1, 2].map((row) => (
-            <div
-              key={row}
-              style={{
-                position: "relative",
-                display: "flex",
-                gap: S(22),
-                marginBottom: row < 2 ? S(33) : 0,
-              }}
-            >
-              {/* Line spans only the width of this row's asterisks */}
-              <div
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: 0,
-                  right: 0,
-                  borderTop: "1.5px solid rgba(0,0,0,0.15)",
-                  zIndex: 0,
-                }}
-              />
-              {COLOR_PALETTE.slice(row * 6, row * 6 + 6).map((col) => {
-                return (
-                  <button
-                    key={col}
-                    onClick={() => handleColorSelect(col)}
-                    className="flex-shrink-0 transition-transform"
-                    style={{
-                      position: "relative",
-                      zIndex: 1,
-                    }}
-                    title={col}
-                  >
-                    <AsteriskIcon color={col} size={S(22)} />
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+          <PaletteRows
+            asteriskSize={S(22)}
+            gap={S(22)}
+            rowGap={S(33)}
+            onSelect={handleColorSelect}
+          />
         </div>
       </div>
 
-      {/* ── Reset / Random — under avatar ── */}
+      {/* Reset / Random */}
       <div
         className="absolute flex lowercase"
         style={{
-          top: S(720),
-          left: S(1008),
-          gap: S(28),
-          fontSize: S(28),
-          color: LOGO_BLUE,
-          fontFamily: PROLETARIAN,
-          pointerEvents: "auto",
+          top: S(720), left: S(1008), gap: S(28),
+          fontSize: S(28), color: LOGO_BLUE,
+          fontFamily: PROLETARIAN, pointerEvents: "auto",
         }}
       >
         <button onClick={handleReset}    className="hover:opacity-60 transition-opacity">reset</button>

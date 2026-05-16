@@ -18,11 +18,14 @@ function CameraController() {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
-    const zoom = Math.max(55, Math.min(170, size.width / 9));
+    const mobile = size.width < 600;
+    const zoom = mobile
+      ? Math.max(40, size.width / 5)
+      : Math.max(55, Math.min(170, size.width / 9));
     orthoCamera.zoom = zoom;
-    // Shift the frustum so the avatar sits at ~72% from screen left
-    // while the orbit pivot stays exactly at avatar center [0,1.2,0]
-    orthoCamera.setViewOffset(size.width, size.height, -size.width * 0.22, 0, size.width, size.height);
+    // Mobile: center avatar. Desktop: shift ~72% from left.
+    const offsetX = mobile ? 0 : -size.width * 0.22;
+    orthoCamera.setViewOffset(size.width, size.height, offsetX, 0, size.width, size.height);
     orthoCamera.updateProjectionMatrix();
   }, [size.width, size.height, camera]);
   return null;

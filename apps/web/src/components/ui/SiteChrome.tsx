@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
+const M = (px: number) => `${((px / 390) * 100).toFixed(3)}vw`;
 
-function PixelButton({ children, href, onClick }: {
+function PixelButton({ children, href, onClick, scale }: {
   children: React.ReactNode;
   href?: string;
   onClick?: () => void;
+  scale: (px: number) => string;
 }) {
   const [pressed, setPressed] = useState(false);
-  const offset = S(4);
+  const offset = scale(4);
 
   const pressOn  = () => setPressed(true);
   const pressOff = () => setPressed(false);
@@ -24,14 +27,14 @@ function PixelButton({ children, href, onClick }: {
     background: "#3F58D0",
     color: "white",
     fontWeight: "bold",
-    fontSize: S(10),
+    fontSize: scale(10),
     textTransform: "uppercase",
     letterSpacing: "0.2em",
     textAlign: "center",
-    paddingLeft: S(12),
-    paddingRight: S(12),
-    paddingTop: S(5),
-    paddingBottom: S(5),
+    paddingLeft: scale(12),
+    paddingRight: scale(12),
+    paddingTop: scale(5),
+    paddingBottom: scale(5),
     transform: pressed ? `translate(${offset}, ${offset})` : "none",
     userSelect: "none",
     whiteSpace: "nowrap",
@@ -39,7 +42,6 @@ function PixelButton({ children, href, onClick }: {
 
   return (
     <div style={{ position: "relative", paddingRight: offset, paddingBottom: offset }}>
-      {/* Dark shadow offset */}
       <div style={{
         position: "absolute",
         top: offset, left: offset, right: 0, bottom: 0,
@@ -62,18 +64,22 @@ function PixelButton({ children, href, onClick }: {
 }
 
 export function SiteChrome() {
+  const isMobile = useIsMobile();
+  const scale = isMobile ? M : S;
+
   return (
     <div style={{
       position: "fixed",
-      top: S(12),
-      right: S(12),
+      top: scale(12),
+      right: scale(12),
       zIndex: 50,
       display: "flex",
-      gap: S(8),
+      flexDirection: isMobile ? "column" : "row",
+      gap: scale(8),
       fontFamily: "var(--font-pixelify)",
     }}>
-      <PixelButton href="#">about</PixelButton>
-      <PixelButton onClick={() => signOut({ callbackUrl: "/" })}>log out</PixelButton>
+      <PixelButton href="#" scale={scale}>about</PixelButton>
+      <PixelButton onClick={() => signOut({ callbackUrl: "/" })} scale={scale}>log out</PixelButton>
     </div>
   );
 }
