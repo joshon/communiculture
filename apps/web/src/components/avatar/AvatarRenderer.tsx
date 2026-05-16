@@ -303,7 +303,7 @@ function CharacterGroup({
 
 // Label anchor positions in world space (tuned for -20° Y, 30° elevation camera)
 const LABEL_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
-  hair:  [0.1,  3.15, 0.0],
+  hair:  [0.1,  3.31, 0.0],
   head:  [0.7,  2.6,  0.0],
   face:  [-0.7, 2.6,  0.0],
   arms:  [-1.0, 1.55, 0.0],
