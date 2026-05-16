@@ -5,19 +5,19 @@ import { prisma } from "@communiculture/db";
 
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { name, slogan, url } = await req.json();
 
-  const user = await prisma.user.update({
+  await prisma.user.update({
     where: { id: session.user.id },
     data: {
-      name: name?.trim() || null,
-      slogan: slogan?.trim() || null,
-      url: url?.trim() || null,
+      name: name ?? undefined,
+      slogan: slogan ?? undefined,
+      url: url ?? undefined,
+      onboardingComplete: true,
     },
-    select: { id: true, name: true, slogan: true, url: true },
   });
 
-  return NextResponse.json(user);
+  return NextResponse.json({ ok: true });
 }

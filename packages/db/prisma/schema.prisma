@@ -66,16 +66,18 @@ model VerificationToken {
 // ─── Core Models ────────────────────────────────────────────────────────────
 
 model User {
-  id               String    @id @default(cuid())
-  name             String?
-  email            String?   @unique
-  emailVerified    DateTime?
-  image            String?
-  slogan           String?
-  url              String?
-  avatarConfig     Json      @default("{}")
-  stripeCustomerId String?   @unique
-  plan             Plan      @default(FREE)
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  slogan             String?
+  url                String?
+  avatarConfig       Json      @default("{}")
+  onboardingComplete Boolean   @default(false)
+  stripeCustomerId   String?   @unique
+  plan               Plan      @default(FREE)
 
   accounts       Account[]
   sessions       Session[]

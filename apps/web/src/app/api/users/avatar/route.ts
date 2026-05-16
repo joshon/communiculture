@@ -11,7 +11,7 @@ export async function PATCH(req: Request) {
 
   const user = await prisma.user.update({
     where: { id: session.user.id },
-    data: { avatarConfig },
+    data: { avatarConfig, onboardingComplete: true },
     select: { avatarConfig: true },
   });
 
