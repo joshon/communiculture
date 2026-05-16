@@ -11,7 +11,18 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'CommPixel';
+  src: url('/CommPixel.woff2') format('woff2'),
+       url('/CommPixel.woff') format('woff'),
+       url('/CommPixel.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  --font-commixel: 'CommPixel', monospace;
   --comm-blue: #0033cc;
   --comm-red: #cc3300;
   --comm-orange: #ff6600;
