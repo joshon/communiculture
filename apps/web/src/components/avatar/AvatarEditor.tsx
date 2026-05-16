@@ -9,8 +9,8 @@ import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 // ─── scale helpers ─────────────────────────────────────────────────────────────
-const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`; // desktop ref
-const M = (px: number) => `${((px / 390) * 100).toFixed(3)}vw`;  // mobile ref
+const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;  // desktop: scale by width
+const H = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;  // mobile:  scale by height
 
 // ─── 18-color palette — ordered by row ────────────────────────────────────────
 export const COLOR_PALETTE: string[] = [
@@ -234,44 +234,47 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
     />
   );
 
-  // ─── mobile layout (no scroll — everything fits in 100svh) ────────────────────
+  // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
+  // H() refs 844px (iPhone 12 Pro) so everything scales with viewport height.
+  // At 844px: header≈108, variant≈22, reset≈40, palette≈166 → canvas≈508px.
   if (isMobile) {
     return (
       <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
-        {/* Header — compact row: logo+tagline left, nav right */}
-        <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: `${M(14)} ${M(16)} ${M(8)}` }}>
+        {/* Header — logo+tagline+nav stacked left (nav won't reach fixed buttons) */}
+        <div style={{ flexShrink: 0, padding: `${H(14)} ${H(16)} ${H(8)}` }}>
           <Link href="/dashboard" style={{ display: "block" }}>
             <Image
               src="/logo.svg"
               alt="communi*culture"
               width={200}
               height={37}
-              style={{ width: M(148), height: "auto" }}
+              style={{ height: H(26), width: "auto" }}
               priority
             />
             <span style={{
-              display: "block", fontFamily: PIXELIFY, fontSize: M(9),
+              display: "block", fontFamily: PIXELIFY, fontSize: H(9),
               letterSpacing: "0.2em", textTransform: "uppercase",
-              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap",
+              color: "rgba(0,0,0,0.4)", whiteSpace: "nowrap", marginTop: H(3),
             }}>
               a division of futurefarmers
             </span>
           </Link>
           <nav style={{
-            display: "flex", flexDirection: "column", alignItems: "flex-end",
-            fontFamily: PROLETARIAN, fontSize: M(18), color: LOGO_BLUE, lineHeight: 1.4,
+            display: "flex", flexDirection: "column",
+            marginTop: H(8), gap: H(2),
+            fontFamily: PROLETARIAN, fontSize: H(20), color: LOGO_BLUE,
           }}>
             <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
             <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
           </nav>
         </div>
 
-        {/* Variant selector — single scrollable row, fixed height */}
+        {/* Variant selector — single scrollable row */}
         {selectedPart && selectedPartVariantCount > 1 && (
           <div style={{
             flexShrink: 0, display: "flex", overflowX: "auto",
-            padding: `${M(4)} ${M(16)}`, gap: M(10),
+            padding: `${H(4)} ${H(16)}`, gap: H(9),
           }}>
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
@@ -280,34 +283,34 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                 className="flex-shrink-0 transition-all duration-100"
                 style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={M(18)} />
+                <AsteriskIcon color={LOGO_BLUE} size={H(14)} />
               </button>
             ))}
           </div>
         )}
 
-        {/* 3D canvas — fills all remaining space */}
+        {/* 3D canvas — fills remaining height */}
         <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {avatarRenderer}
         </div>
 
         {/* Reset / Random */}
         <div style={{
-          flexShrink: 0, display: "flex", justifyContent: "center", gap: M(48),
-          fontFamily: PROLETARIAN, fontSize: M(22), color: LOGO_BLUE,
-          padding: `${M(10)} 0`,
+          flexShrink: 0, display: "flex", justifyContent: "center", gap: H(40),
+          fontFamily: PROLETARIAN, fontSize: H(20), color: LOGO_BLUE,
+          padding: `${H(10)} 0`,
         }}>
           <button onClick={handleReset}    className="hover:opacity-60 transition-opacity lowercase">reset</button>
           <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity lowercase">random</button>
         </div>
 
-        {/* Color palette — compact */}
-        <div style={{ flexShrink: 0, padding: `${M(6)} ${M(16)} ${M(14)}`, display: "flex", justifyContent: "center" }}>
+        {/* Color palette — H()-sized so rows always fit within any phone width */}
+        <div style={{ flexShrink: 0, padding: `${H(8)} ${H(16)} ${H(12)}`, display: "flex", justifyContent: "center" }}>
           <div>
             <PaletteRows
-              asteriskSize={M(36)}
-              gap={M(13)}
-              rowGap={M(14)}
+              asteriskSize={H(38)}
+              gap={H(14)}
+              rowGap={H(16)}
               onSelect={handleColorSelect}
             />
           </div>

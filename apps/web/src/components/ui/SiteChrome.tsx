@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 
 const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;
-const M = (px: number) => `${((px / 390) * 100).toFixed(3)}vw`;
+const H = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;
 
 function PixelButton({ children, href, onClick, scale }: {
   children: React.ReactNode;
@@ -65,7 +65,7 @@ function PixelButton({ children, href, onClick, scale }: {
 
 export function SiteChrome() {
   const isMobile = useIsMobile();
-  const scale = isMobile ? M : S;
+  const scale = isMobile ? H : S;
 
   return (
     <div style={{
@@ -80,6 +80,7 @@ export function SiteChrome() {
     }}>
       <PixelButton href="#" scale={scale}>about</PixelButton>
       <PixelButton onClick={() => signOut({ callbackUrl: "/" })} scale={scale}>log out</PixelButton>
+
     </div>
   );
 }
