@@ -416,9 +416,9 @@ export function AvatarRenderer({
       {/* Zoom scales with canvas width so avatar maintains visual proportion */}
       <CameraController />
 
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[4, 6, 4]} intensity={1.2} castShadow />
-      <directionalLight position={[-3, 3, -3]} intensity={0.4} />
+      <ambientLight intensity={1.4} />
+      <directionalLight position={[-5, 7, 4]} intensity={1.6} castShadow />
+      <directionalLight position={[3, 2, -2]} intensity={0.15} />
 
       <CharacterGroup
         library={library}
