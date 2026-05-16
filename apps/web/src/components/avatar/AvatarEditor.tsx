@@ -256,10 +256,10 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         className="absolute flex flex-col"
         style={{
           top: S(490),
-          left: S(340),
-          width: S(220),
+          left: S(374),
+          width: S(242),
           pointerEvents: "none",
-          gap: S(10),
+          gap: S(11),
           alignItems: "flex-end",
           overflow: "visible",
         }}
@@ -268,7 +268,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
         {selectedPart && selectedPartVariantCount > 1 && (
           <div
             className="flex items-end"
-            style={{ gap: S(8), pointerEvents: "auto", overflow: "visible" }}
+            style={{ gap: S(9), pointerEvents: "auto", overflow: "visible" }}
           >
             {Array.from({ length: selectedPartVariantCount }, (_, i) => (
               <button
@@ -278,22 +278,22 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                 style={{ transform: i === selectedVariantIdx ? "translateY(-5px)" : "none" }}
                 title={`variant ${i + 1}`}
               >
-                <AsteriskIcon color={LOGO_BLUE} size={S(13)} />
+                <AsteriskIcon color={LOGO_BLUE} size={S(14)} />
               </button>
             ))}
           </div>
         )}
 
         {/* Color palette — 3 rows, line runs exactly behind each row */}
-        <div style={{ pointerEvents: "auto", marginTop: S(30) }}>
+        <div style={{ pointerEvents: "auto", marginTop: S(33) }}>
           {[0, 1, 2].map((row) => (
             <div
               key={row}
               style={{
                 position: "relative",
                 display: "flex",
-                gap: S(20),
-                marginBottom: row < 2 ? S(30) : 0,
+                gap: S(22),
+                marginBottom: row < 2 ? S(33) : 0,
               }}
             >
               {/* Line spans only the width of this row's asterisks */}
@@ -319,7 +319,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
                     }}
                     title={col}
                   >
-                    <AsteriskIcon color={col} size={S(20)} />
+                    <AsteriskIcon color={col} size={S(22)} />
                   </button>
                 );
               })}
