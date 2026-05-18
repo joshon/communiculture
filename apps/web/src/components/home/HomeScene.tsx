@@ -4,14 +4,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
+import { PillButton } from "@/components/ui/PillButton";
 import * as THREE from "three";
 import { CharacterGroup } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 
 const LOGO_BLUE = "#0083FF";
-const PIXELIFY  = "var(--font-pixelify)";
 
 // ─── same palette as AvatarEditor ─────────────────────────────────────────────
 const COLOR_PALETTE = [
@@ -238,7 +237,7 @@ function BouncingAvatar({ library, tRef }: {
   });
 
   return (
-    <group ref={groupRef} scale={0.808}>
+    <group ref={groupRef} scale={0.768}>
       <CharacterGroup library={library} variantIndices={variants} colors={colors} showOutline={true} />
     </group>
   );
@@ -290,16 +289,7 @@ export function HomeScene() {
 
       {/* About button */}
       <div style={{ position: "absolute", top: "clamp(14px,2vw,24px)", right: "clamp(14px,2vw,24px)", zIndex: 10, pointerEvents: "auto" }}>
-        <Link href="/about">
-          <span style={{
-            display: "inline-block", background: LOGO_BLUE, color: "white",
-            fontFamily: PIXELIFY, fontSize: "clamp(8px,0.7vw,11px)",
-            padding: "5px 14px", borderRadius: 99, letterSpacing: "0.08em",
-            textTransform: "lowercase", cursor: "pointer",
-          }}>
-            about communiculture
-          </span>
-        </Link>
+        <PillButton href="/about">about communiculture</PillButton>
       </div>
 
       {/* Animated asterisk — behind everything else (zIndex 0) */}

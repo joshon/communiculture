@@ -249,7 +249,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
               alt="communi*culture"
               width={361}
               height={65}
-              style={{ height: H(31), width: "auto", marginLeft: H(22) }}
+              style={{ height: H(32.5), width: "auto", marginLeft: 0 }}
               priority
             />
           </Link>

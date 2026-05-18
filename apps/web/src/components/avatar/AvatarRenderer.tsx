@@ -246,7 +246,7 @@ function RenderMesh({
 
 // ─── character group ──────────────────────────────────────────────────────────
 
-function CharacterGroup({
+export function CharacterGroup({
   library,
   variantIndices,
   colors,

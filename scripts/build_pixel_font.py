@@ -335,6 +335,20 @@ SVG = """<svg width="359" height="12" viewBox="0 0 359 12" fill="none" xmlns="ht
 # Character order matching left-to-right in the SVG
 CHAR_ORDER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!?:.,'"[:-1]  # 41 glyphs in SVG sheet
 
+# Arrow glyphs (left arrow ← then right arrow →, separated by gap)
+ARROWS_SVG = """<svg width="15" height="10" viewBox="0 0 15 10" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="4" width="2" height="2" fill="black"/>
+<rect x="4" y="8" width="2" height="2" fill="black"/>
+<rect x="2" y="6" width="2" height="2" fill="black"/>
+<rect x="2" y="2" width="2" height="2" fill="black"/>
+<rect y="4" width="2" height="2" fill="black"/>
+<rect x="9" width="2" height="2" fill="black"/>
+<rect x="9" y="8" width="2" height="2" fill="black"/>
+<rect x="11" y="6" width="2" height="2" fill="black"/>
+<rect x="11" y="2" width="2" height="2" fill="black"/>
+<rect x="13" y="4" width="2" height="2" fill="black"/>
+</svg>"""
+
 # Font metrics (SVG coords: y=0 top, y=10 bottom; font: y=0 baseline, up is positive)
 UPM        = 1000
 SCALE      = 100    # 1 SVG unit = 100 font units
@@ -427,7 +441,7 @@ def build_font(out_path_ttf):
     puncts  = list("!?:.,")
     space_w = 4 * SCALE + 2 * SIDE_BEAR
 
-    glyph_names = ['.notdef', 'space'] + upper + lower + digits + puncts
+    glyph_names = ['.notdef', 'space'] + upper + lower + digits + puncts + ['arrowleft', 'arrowright']
     fb.setupGlyphOrder(glyph_names)
 
     # cmap: map Unicode codepoints → glyph name
@@ -438,14 +452,11 @@ def build_font(out_path_ttf):
         cmap[ord(c)] = c.upper()   # lowercase → same glyph as uppercase
     for c in digits:
         cmap[ord(c)] = c
-    punct_map = {'!': 'exclam', '?': 'question', ':': 'colon',
-                 '.': 'period', ',': 'comma'}
-    # Use character names that match our glyph names
     for c in puncts:
         cmap[ord(c)] = c
+    cmap[0x2190] = 'arrowleft'
+    cmap[0x2192] = 'arrowright'
 
-    # Override glyph name list to use actual chars as names where safe
-    # (fonttools accepts single-char names for ASCII glyphs)
     fb.setupCharacterMap(cmap)
 
     # Build each glyph
@@ -497,6 +508,21 @@ def build_font(out_path_ttf):
             lower_name = ch.lower()
             glyph_data[lower_name] = g
             metrics[lower_name]    = (adv, SIDE_BEAR)
+
+    # Arrow glyphs
+    arrow_groups = group_chars(parse_rects(ARROWS_SVG))
+    arrow_names  = ['arrowleft', 'arrowright']
+    for i, aname in enumerate(arrow_names):
+        if i >= len(arrow_groups):
+            break
+        grp   = arrow_groups[i]
+        min_x = min(r[0] for r in grp)
+        max_x = max(r[0] + r[2] for r in grp)
+        adv   = round((max_x - min_x) * SCALE + 2 * SIDE_BEAR)
+        pen   = TTGlyphPen(None)
+        draw_glyph(pen, grp, min_x)
+        glyph_data[aname] = pen.glyph()
+        metrics[aname]    = (adv, SIDE_BEAR)
 
     # Fill any missing glyphs
     for name in glyph_names:
