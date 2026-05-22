@@ -114,11 +114,12 @@ interface AvatarEditorProps {
   initialColors?: Record<AvatarPart, string>;
   initialVariants?: Record<AvatarPart, number>;
   onSave: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => Promise<void>;
+  onChange?: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => void;
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-export function AvatarEditor({ library, initialColors, initialVariants, onSave }: AvatarEditorProps) {
+export function AvatarEditor({ library, initialColors, initialVariants, onSave, onChange }: AvatarEditorProps) {
   const openColors   = useRef(initialColors  ?? DEFAULT_COLORS);
   const openVariants = useRef(initialVariants ?? DEFAULT_VARIANTS);
 
@@ -128,16 +129,37 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave }
   const [, setHistory] = useState<HistoryEntry[]>([]);
   const isMobile = useIsMobile(1024);
 
-  const isDirtyRef = useRef(false);
-  const onSaveRef  = useRef(onSave);
+  const isDirtyRef  = useRef(false);
+  const onSaveRef   = useRef(onSave);
+  const onChangeRef = useRef(onChange);
+  const colorsRef   = useRef(colors);
+  const variantsRef = useRef(variants);
   useEffect(() => { onSaveRef.current = onSave; }, [onSave]);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { colorsRef.current = colors; }, [colors]);
+  useEffect(() => { variantsRef.current = variants; }, [variants]);
 
-  // ─── auto-save ──────────────────────────────────────────────────────────────
+  // ─── auto-save (debounced) ──────────────────────────────────────────────────
   useEffect(() => {
     if (!isDirtyRef.current) return;
     const timer = setTimeout(() => { onSaveRef.current(colors, variants); }, 1200);
     return () => clearTimeout(timer);
   }, [colors, variants]);
+
+  // ─── notify parent of every change (for Zustand caching) ───────────────────
+  useEffect(() => {
+    if (!isDirtyRef.current) return;
+    onChangeRef.current?.(colors, variants);
+  }, [colors, variants]);
+
+  // ─── flush save on unmount so navigating away never loses changes ───────────
+  useEffect(() => {
+    return () => {
+      if (isDirtyRef.current) {
+        onSaveRef.current(colorsRef.current, variantsRef.current);
+      }
+    };
+  }, []);
 
   // ─── undo ───────────────────────────────────────────────────────────────────
   const pushToHistory = useCallback((c: Record<AvatarPart, string>, v: Record<AvatarPart, number>) => {

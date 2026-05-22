@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
+import { useAvatarStore } from "@/store/avatarStore";
 
 interface V2Config {
   format: "v2";
@@ -30,9 +31,18 @@ interface Props {
 }
 
 export function AvatarEditorClient({ user }: Props) {
+  const setEditingConfig = useAvatarStore((s) => s.setEditingConfig);
+  const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
+  const editingColors = useAvatarStore((s) => s.editingColors);
+  const editingVariants = useAvatarStore((s) => s.editingVariants);
+
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
 
   const parsed = parseAvatarConfig(user.avatarConfig);
+
+  // Prefer in-memory Zustand edits over (possibly stale) server DB value
+  const initialColors  = editingColors  ?? parsed?.colors;
+  const initialVariants = editingVariants ?? parsed?.variants;
 
   useEffect(() => {
     fetch("/api/dev/avatar-library")
@@ -43,17 +53,26 @@ export function AvatarEditorClient({ user }: Props) {
       .catch(() => {});
   }, []);
 
-  const handleSave = async (
+  const handleSave = useCallback(async (
     colors: Record<AvatarPart, string>,
     variants: Record<AvatarPart, number>
   ) => {
+    // Queue capture immediately — independent of the avatar save succeeding
+    setPendingCapture({ colors, variants });
     const avatarConfig: V2Config = { format: "v2", colors, variants };
     await fetch("/api/users/avatar", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ avatarConfig }),
-    });
-  };
+    }).catch(() => {});
+  }, [setPendingCapture]);
+
+  const handleChange = useCallback((
+    colors: Record<AvatarPart, string>,
+    variants: Record<AvatarPart, number>
+  ) => {
+    setEditingConfig(colors, variants);
+  }, [setEditingConfig]);
 
   if (!library) {
     return (
@@ -66,9 +85,10 @@ export function AvatarEditorClient({ user }: Props) {
   return (
     <AvatarEditor
       library={library}
-      initialColors={parsed?.colors}
-      initialVariants={parsed?.variants}
+      initialColors={initialColors}
+      initialVariants={initialVariants}
       onSave={handleSave}
+      onChange={handleChange}
     />
   );
 }

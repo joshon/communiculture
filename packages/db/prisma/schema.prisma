@@ -75,6 +75,7 @@ model User {
   slogan             String?
   url                String?
   avatarConfig       Json      @default("{}")
+  avatarThumbnail    String?   @db.Text
   onboardingComplete Boolean   @default(false)
   stripeCustomerId   String?   @unique
   plan               Plan      @default(FREE)

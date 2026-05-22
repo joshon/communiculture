@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PillButton } from "@/components/ui/PillButton";
 
 interface Props {
   canCreate: boolean;
@@ -62,12 +63,7 @@ export function CreateContinuumButton({ canCreate, count }: Props) {
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="bg-comm-blue text-white px-4 py-2 text-xs lowercase hover:bg-blue-800"
-      >
-        + new continuum
-      </button>
+      <PillButton onClick={() => setOpen(true)} label="+ new continuum" />
 
       {open && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">

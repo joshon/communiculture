@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,9 +23,22 @@
   font-display: swap;
 }
 
+@font-face {
+  font-family: 'CommPixelNarrow';
+  src: url('/CommPixelNarrow.woff2') format('woff2'),
+       url('/CommPixelNarrow.woff') format('woff'),
+       url('/CommPixelNarrow.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  --scale: 1;                              /* overridden by ScaleProvider on client */
   --font-commixel: 'CommPixel', monospace;
   --font-pixelify: 'CommPixel', monospace;
+  --font-commixel-narrow: 'CommPixelNarrow', monospace;
+  --font-inter: 'Inter', sans-serif;
   --comm-blue: #0033cc;
   --comm-red: #cc3300;
   --comm-orange: #ff6600;
@@ -35,6 +50,12 @@ body {
   font-family: 'Proletarian', sans-serif;
 }
 
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.25); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.4); }
+* { scrollbar-color: rgba(0,0,0,0.25) transparent; scrollbar-width: thin; }
+
 /* Original-style uppercase link text */
 .comm-link {
   @apply text-comm-blue lowercase tracking-tight hover:underline;
@@ -43,4 +64,14 @@ body {
 /* Continuum bar navigation arrows */
 .continuum-arrow {
   @apply text-comm-blue font-bold text-lg;
+}
+
+/* Kill browser autofill background tint */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: #1a1a1a !important;
 }

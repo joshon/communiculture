@@ -1,6 +1,7 @@
 import { create } from "zustand";
+import type { AvatarPart } from "@/components/avatar-builder/types";
 
-export type AvatarPart = "hair" | "head" | "face" | "neck" | "arms" | "body" | "pants" | "legs" | "shoes";
+export type { AvatarPart };
 
 export interface AvatarConfig {
   hair: string;
@@ -35,18 +36,37 @@ export const COLOR_PALETTE = [
   "#3b6bcc", "#cc3b6b", "#cc9b3b", "#6bcc3b", "#3bcccc", "#9b3bcc",
 ];
 
+interface PendingCapture {
+  colors: Record<AvatarPart, string>;
+  variants: Record<AvatarPart, number>;
+}
+
 interface AvatarStore {
   config: AvatarConfig;
   selectedPart: AvatarPart | null;
+  thumbnailUrl: string | null;
+  // Editing state — persists across client-side navigation so the editor can restore unsaved changes
+  editingColors: Record<AvatarPart, string> | null;
+  editingVariants: Record<AvatarPart, number> | null;
+  // Queued thumbnail generation — read by the layout-level GlobalAvatarCapture
+  pendingCapture: PendingCapture | null;
+
   setColor: (part: AvatarPart, color: string) => void;
   setSelectedPart: (part: AvatarPart | null) => void;
   setConfig: (config: AvatarConfig) => void;
+  setThumbnailUrl: (url: string | null) => void;
+  setEditingConfig: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => void;
+  setPendingCapture: (capture: PendingCapture | null) => void;
   randomize: () => void;
 }
 
 export const useAvatarStore = create<AvatarStore>((set) => ({
   config: DEFAULT_AVATAR,
   selectedPart: null,
+  thumbnailUrl: null,
+  editingColors: null,
+  editingVariants: null,
+  pendingCapture: null,
 
   setColor: (part, color) =>
     set((state) => ({ config: { ...state.config, [part]: color } })),
@@ -54,6 +74,12 @@ export const useAvatarStore = create<AvatarStore>((set) => ({
   setSelectedPart: (part) => set({ selectedPart: part }),
 
   setConfig: (config) => set({ config }),
+
+  setThumbnailUrl: (url) => set({ thumbnailUrl: url }),
+
+  setEditingConfig: (colors, variants) => set({ editingColors: colors, editingVariants: variants }),
+
+  setPendingCapture: (capture) => set({ pendingCapture: capture }),
 
   randomize: () =>
     set({

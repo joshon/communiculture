@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { ScaleProvider } from "@/components/layout/ScaleProvider";
 
 export const metadata: Metadata = {
   title: "Communiculture",
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ScaleProvider>{children}</ScaleProvider>
+        </Providers>
       </body>
     </html>
   );
