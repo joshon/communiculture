@@ -6,7 +6,8 @@ import { CharacterGroup } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 
-const HEAD_CENTER_Y = 2.59;
+// Camera target: eye/face level of the head (avatar y≈2.64 = midpoint of head cube)
+const HEAD_CENTER_Y = 2.64;
 const HEAD_PARTS: AvatarPart[] = ["hair", "head", "face", "neck"];
 
 function buildHeadIndices(variantIndices: Record<AvatarPart, number>): Record<AvatarPart, number> {
@@ -56,10 +57,12 @@ export function AvatarHeadCapture({ library, variantIndices, colors, onCapture }
   return (
     <Canvas
       orthographic
-      camera={{ position: [2.165, 3.7, 3.75], zoom: 100, near: -100, far: 100 }}
-      gl={{ preserveDrawingBuffer: true, alpha: true }}
+      // Lowered Y from 3.7 → 2.0 for a face-level angle so eyes are visible
+      camera={{ position: [2.165, 2.0, 3.75], zoom: 115, near: -100, far: 100 }}
+      gl={{ preserveDrawingBuffer: true, stencil: true }}
       style={{ width: 200, height: 200 }}
     >
+      <color attach="background" args={["#ffffff"]} />
       <ambientLight intensity={1.2} />
       <directionalLight position={[5, 8, 5]} intensity={0.8} />
       <group position={[0, -HEAD_CENTER_Y, 0]}>
@@ -67,7 +70,7 @@ export function AvatarHeadCapture({ library, variantIndices, colors, onCapture }
           library={library}
           variantIndices={headIndices}
           colors={colors}
-          showOutline={false}
+          showOutline={true}
         />
       </group>
       <Capturer colorsKey={colorsKey} onCapture={onCapture} />

@@ -15,16 +15,6 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
 
   return (
     <Link href="/profile/avatar" style={{ display: "block", flexShrink: 0, position: "relative" }}>
-      {/* Outline ring drawn behind the avatar */}
-      <div style={{
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        border: "2px solid rgba(0,0,0,0.18)",
-        position: "absolute",
-        inset: 0,
-      }} />
-
       {thumbnailUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
