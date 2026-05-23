@@ -331,7 +331,7 @@ export function HomeScene() {
         <Image
           src="/logo-no-asterisk.svg"
           alt="communi*culture"
-          width={361} height={65}
+          width={200} height={44}
           style={{ width: "100%", height: "auto", display: "block" }}
           priority
         />
