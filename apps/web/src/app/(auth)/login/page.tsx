@@ -5,16 +5,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { useIsMobile } from "@/hooks/useIsMobile";
-import { H, U } from "@/lib/scale";
-import { Scene } from "@/components/layout/Scene";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { FormField } from "@/components/ui/FormField";
 import { SectionDivider } from "@/components/ui/SectionDivider";
 import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
 
-const LIGHT_BLUE = "#0083FF";
+const BLUE = "#0083FF";
 const PRO = "Proletarian, sans-serif";
 
 export default function LoginPage() {
@@ -22,7 +19,6 @@ export default function LoginPage() {
   const router = useRouter();
   const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const mobile = useIsMobile(768);
 
   const [siEmail,    setSiEmail]    = useState("");
   const [siPassword, setSiPassword] = useState("");
@@ -81,144 +77,118 @@ export default function LoginPage() {
 
   const isSignIn = mode === "signin";
 
-  // Responsive sizing — desktop uses U() (scales with min of width/height)
-  const pagePadTop  = mobile ? `clamp(20px, ${H(32)}, 40px)`  : `clamp(12px, ${U(50)}, 60px)`;
-  const pageLeftPad = mobile ? `clamp(16px, 5vw, 24px)`        : `clamp(16px, ${U(38)}, 48px)`;
-  const logoW       = mobile ? `clamp(160px, 42vw, 220px)`     : `clamp(180px, ${U(475)}, 600px)`;
-  const titleFs     = mobile ? `clamp(10px, ${H(10)}, 48px)`   : `clamp(16px, ${U(58)}, 80px)`;
-  const logoMb      = mobile ? `clamp(16px, ${H(22)}, 28px)`   : `clamp(14px, ${U(32)}, 48px)`;
-  const titleMb     = mobile ? `clamp(20px, ${H(32)}, 40px)`   : `clamp(20px, ${U(40)}, 56px)`;
-  const dividerMy   = mobile ? `clamp(16px, ${H(22)}, 28px)`   : `clamp(14px, ${U(30)}, 44px)`;
-  const formML      = mobile ? "0"                              : `clamp(60px, ${U(240)}, 320px)`;
-  const formMaxW    = mobile ? "100%"                           : `clamp(280px, ${U(580)}, 720px)`;
-  const btnFs       = mobile ? `clamp(13px, ${H(15)}, 17px)`   : `clamp(13px, ${U(16)}, 20px)`;
-
   return (
-    <Scene style={{ background: "white" }}>
-    <main style={{ height: "100%", paddingTop: pagePadTop, paddingLeft: pageLeftPad, paddingRight: pageLeftPad, display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", background: "white" }}>
 
-      {/* Logo — pinned to left edge, fixed */}
-      <Link href="/" style={{ display: "block", marginBottom: logoMb, flexShrink: 0 }}>
+      {/* Logo — fixed, top right */}
+      <Link href="/" style={{ position: "fixed", top: 32, right: 40, zIndex: 10, display: "block" }}>
         <Image src="/logo.svg" alt="communi*culture" width={361} height={65}
-          style={{ width: logoW, height: "auto" }} priority />
+          style={{ width: 260, height: "auto", display: "block" }} priority />
       </Link>
 
-      {/* Title — pinned to left edge, fixed */}
-      <div style={{ marginBottom: titleMb, flexShrink: 0 }}>
-        <PageTitle fontSize={titleFs}>{isSignIn ? "log in" : "sign up"}</PageTitle>
-      </div>
+      {/* Centered content column */}
+      <main style={{
+        display: "flex",
+        justifyContent: "center",
+        paddingTop: 96,
+        paddingBottom: 80,
+        paddingLeft: 24,
+        paddingRight: 24,
+      }}>
+        <div style={{ width: "100%", maxWidth: 400 }}>
 
-      {/* Scrollable form content */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", justifyContent: "center" }}>
-      <div style={{ width: "100%", maxWidth: `clamp(320px, ${U(860)}, 1040px)` }}>
-
-      {/* Form section — indented on desktop */}
-      <div style={{ marginLeft: formML, maxWidth: formMaxW }}>
-
-        <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
-          {!isSignIn && (
-            <FormField label="name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
-          )}
-          <FormField
-            label="email" type="email"
-            value={isSignIn ? siEmail : suEmail}
-            onChange={isSignIn ? setSiEmail : setSuEmail}
-            autoComplete="email"
-          />
-          <FormField
-            label="password" type="password"
-            value={isSignIn ? siPassword : suPass}
-            onChange={isSignIn ? setSiPassword : setSuPass}
-            autoComplete={isSignIn ? "current-password" : "new-password"}
-          />
-          {!isSignIn && (
-            <FormField
-              label="confirm password" type="password"
-              value={suConfirm} onChange={setSuConfirm}
-              autoComplete="new-password"
-            />
-          )}
-
-          {(isSignIn ? siError : suError) && (
-            <p style={{ fontFamily: PRO, color: "#c00", fontSize: "clamp(11px, 0.9vw, 13px)", margin: "-8px 0 12px" }}>
-              {isSignIn ? siError : suError}
-            </p>
-          )}
-
-          {/* Action row */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-            gap: "clamp(12px, 1.5vw, 22px)",
-          }}>
-            <button
-              type="button"
-              onClick={() => setMode(isSignIn ? "signup" : "signin")}
-              style={{
-                fontFamily: PRO,
-                fontSize: btnFs,
-                color: LIGHT_BLUE,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                textDecoration: "underline",
-                padding: 0,
-                lineHeight: 1,
-              }}
-            >
-              {isSignIn ? "create a new account" : "existing account? log in"}
-            </button>
-            <PillButton
-              type="submit"
-              arrow
-              label={isSignIn ? "log in" : "sign up"}
-              loading={isSignIn ? siLoading : suLoading}
-              onClick={isSignIn ? handleSignIn : handleSignUp}
-              fontSize={btnFs}
-            />
+          <div style={{ marginBottom: 36 }}>
+            <PageTitle fontSize="44px">{isSignIn ? "log in" : "sign up"}</PageTitle>
           </div>
-        </form>
 
-        {/* Divider */}
-        <div style={{ margin: `${dividerMy} 0` }}>
-          <SectionDivider label={isSignIn ? "or log in with" : "or sign up with"} />
-        </div>
+          {/* Credentials form */}
+          <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
+            {!isSignIn && (
+              <FormField label="name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
+            )}
+            <FormField
+              label="email" type="email"
+              value={isSignIn ? siEmail : suEmail}
+              onChange={isSignIn ? setSiEmail : setSuEmail}
+              autoComplete="email"
+            />
+            <FormField
+              label="password" type="password"
+              value={isSignIn ? siPassword : suPass}
+              onChange={isSignIn ? setSiPassword : setSuPass}
+              autoComplete={isSignIn ? "current-password" : "new-password"}
+            />
+            {!isSignIn && (
+              <FormField
+                label="confirm password" type="password"
+                value={suConfirm} onChange={setSuConfirm}
+                autoComplete="new-password"
+              />
+            )}
 
-        {/* OAuth */}
-        <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
-        <OAuthButton onClick={() => signIn("azure-ad", { callbackUrl })} icon={<MicrosoftIcon />} label="Microsoft" />
-        <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
-
-        {/* Email magic link */}
-        <div style={{ margin: `${dividerMy} 0` }}>
-          <SectionDivider label="or sign in with email link" />
-        </div>
-
-        {mlSent ? (
-          <p style={{ fontFamily: PRO, color: LIGHT_BLUE, fontSize: btnFs, lineHeight: 1.5 }}>
-            check your email — we sent a sign-in link to {mlEmail}
-          </p>
-        ) : (
-          <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
-            <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
-            {mlError && (
-              <p style={{ fontFamily: PRO, color: "#c00", fontSize: "clamp(11px, 0.9vw, 13px)", margin: "-8px 0 12px" }}>
-                {mlError}
+            {(isSignIn ? siError : suError) && (
+              <p style={{ fontFamily: PRO, color: "#c00", fontSize: 12, margin: "-8px 0 12px" }}>
+                {isSignIn ? siError : suError}
               </p>
             )}
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <PillButton type="submit" arrow label="send link" loading={mlLoading} fontSize={btnFs} />
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => setMode(isSignIn ? "signup" : "signin")}
+                style={{
+                  fontFamily: PRO, fontSize: 13, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer",
+                  textDecoration: "underline", padding: 0, lineHeight: 1,
+                }}
+              >
+                {isSignIn ? "create a new account" : "existing account? log in"}
+              </button>
+              <PillButton
+                type="submit" arrow
+                label={isSignIn ? "log in" : "sign up"}
+                loading={isSignIn ? siLoading : suLoading}
+                onClick={isSignIn ? handleSignIn : handleSignUp}
+                fontSize="13px"
+              />
             </div>
           </form>
-        )}
 
-      </div>
+          {/* OAuth */}
+          <div style={{ margin: "28px 0" }}>
+            <SectionDivider label={isSignIn ? "or log in with" : "or sign up with"} />
+          </div>
 
-      </div>
-      </div>
-    </main>
-    </Scene>
+          <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
+          <OAuthButton onClick={() => signIn("azure-ad", { callbackUrl })} icon={<MicrosoftIcon />} label="Microsoft" />
+          <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
+
+          {/* Email magic link */}
+          <div style={{ margin: "28px 0" }}>
+            <SectionDivider label="or sign in with email link" />
+          </div>
+
+          {mlSent ? (
+            <p style={{ fontFamily: PRO, color: BLUE, fontSize: 13, lineHeight: 1.6 }}>
+              check your email — we sent a sign-in link to {mlEmail}
+            </p>
+          ) : (
+            <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
+              <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
+              {mlError && (
+                <p style={{ fontFamily: PRO, color: "#c00", fontSize: 12, margin: "-8px 0 12px" }}>
+                  {mlError}
+                </p>
+              )}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <PillButton type="submit" arrow label="send link" loading={mlLoading} fontSize="13px" />
+              </div>
+            </form>
+          )}
+
+        </div>
+      </main>
+    </div>
   );
 }
 
