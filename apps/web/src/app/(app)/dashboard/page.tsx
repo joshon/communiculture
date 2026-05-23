@@ -78,13 +78,9 @@ export default async function DashboardPage() {
           <DashboardAvatarHead thumbnailUrl={userRecord?.avatarThumbnail ?? null} size={avatarSize} />
         </div>
 
-        {/* Row 2: "home" title (left) + "about" button (right) */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: titleMb, flexShrink: 0 }}>
+        {/* Row 2: "home" title */}
+        <div style={{ marginBottom: titleMb, flexShrink: 0 }}>
           <PageTitle fontSize={titleFs}>home</PageTitle>
-          <PillButton href="/about" label="about communiculture"
-            fontSize={`clamp(10px, ${U(18)}, 9999px)`}
-            style={{ paddingTop: U(7), paddingBottom: U(7), paddingLeft: U(20), paddingRight: U(20) }}
-          />
         </div>
 
         {/* Scrollable content */}
