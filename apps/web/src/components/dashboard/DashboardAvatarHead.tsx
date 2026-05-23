@@ -44,7 +44,6 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
     padding: `${sc(9)} ${sc(18)}`,
     fontFamily: INTER,
     fontSize: sc(14),
-    color: DARK,
     background: "none",
     border: "none",
     textAlign: "left",
@@ -75,11 +74,12 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
           // Position dropdown so the arrow (top: sc(10), height: 4.5*tile) is
           // centered at 2/3 of the avatar height — roughly the mouth area.
           // arrow_center_from_dropdown_top = sc(10) + ARROW_H/2 = scale*10 + tile*2.25
-          top: `calc(${size} * 2/3 - var(--scale, 1) * 26px - var(--tile, 3px) * 4.5)`,
+          top: `calc(${size} * 2/3 - var(--scale, 1) * 18px - var(--tile, 3px) * 4.5)`,
           right: `calc(100% + var(--tile, 3px) * 4)`,
           zIndex: 100,
         }}>
           <PixelBox shadowDir="bottom-left" style={{ minWidth: sc(160) }}>
+            <style>{`.cc-mi{color:rgba(0,0,0,0.8)}.cc-mi:hover{color:#000}`}</style>
 
             {/*
               Arrow tab: pixel-art arrow, flipped so the connector bar aligns with
@@ -162,12 +162,12 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
               <rect x="34" y="12" width="4" height="2" fill="#DA5F44" />
             </svg>
 
-            <Link href="/profile" onClick={() => setOpen(false)} style={itemStyle}>Edit profile</Link>
-            <Link href="/profile/avatar" onClick={() => setOpen(false)} style={itemStyle}>Edit avatar</Link>
-            <div style={{ borderTop: `1px solid ${BLUE}20` }} />
-            <button onClick={() => signOut({ callbackUrl: "/login" })} style={itemStyle}>Log out</button>
-            <div style={{ borderTop: `1px solid ${BLUE}20` }} />
-            <Link href="/about" onClick={() => setOpen(false)} style={itemStyle}>About Communiculture</Link>
+            <Link href="/profile" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit profile</Link>
+            <Link href="/profile/avatar" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit avatar</Link>
+            <div style={{ borderTop: `1px solid ${BLUE}` }} />
+            <button onClick={() => signOut({ callbackUrl: "/login" })} className="cc-mi" style={itemStyle}>Log out</button>
+            <div style={{ borderTop: `1px solid ${BLUE}` }} />
+            <Link href="/about" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>About Communiculture</Link>
           </PixelBox>
         </div>
       )}
