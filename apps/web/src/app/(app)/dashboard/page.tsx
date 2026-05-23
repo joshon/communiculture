@@ -89,7 +89,7 @@ export default async function DashboardPage() {
 
             {/* Section header */}
             <p style={{
-              fontFamily: PIXEL,
+              fontFamily: PRO,
               fontSize: `clamp(10px, ${U(13)}, 15px)`,
               color: BLUE,
               marginBottom: `clamp(8px, ${U(16)}, 22px)`,
