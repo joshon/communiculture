@@ -29,12 +29,25 @@ export default function LoginPage() {
   const [siError,    setSiError]    = useState("");
   const [siLoading,  setSiLoading]  = useState(false);
 
+  const [mlEmail,   setMlEmail]   = useState("");
+  const [mlLoading, setMlLoading] = useState(false);
+  const [mlSent,    setMlSent]    = useState(false);
+  const [mlError,   setMlError]   = useState("");
+
   const [suName,    setSuName]    = useState("");
   const [suEmail,   setSuEmail]   = useState("");
   const [suPass,    setSuPass]    = useState("");
   const [suConfirm, setSuConfirm] = useState("");
   const [suError,   setSuError]   = useState("");
   const [suLoading, setSuLoading] = useState(false);
+
+  async function handleMagicLink() {
+    setMlError(""); setMlLoading(true);
+    const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
+    setMlLoading(false);
+    if (res?.error) { setMlError("could not send link — try again"); return; }
+    setMlSent(true);
+  }
 
   async function handleSignIn() {
     setSiError(""); setSiLoading(true);
@@ -176,6 +189,29 @@ export default function LoginPage() {
         <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
         <OAuthButton onClick={() => signIn("azure-ad", { callbackUrl })} icon={<MicrosoftIcon />} label="Microsoft" />
         <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
+
+        {/* Email magic link */}
+        <div style={{ margin: `${dividerMy} 0` }}>
+          <SectionDivider label="or sign in with email link" />
+        </div>
+
+        {mlSent ? (
+          <p style={{ fontFamily: PRO, color: LIGHT_BLUE, fontSize: btnFs, lineHeight: 1.5 }}>
+            check your email — we sent a sign-in link to {mlEmail}
+          </p>
+        ) : (
+          <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
+            <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
+            {mlError && (
+              <p style={{ fontFamily: PRO, color: "#c00", fontSize: "clamp(11px, 0.9vw, 13px)", margin: "-8px 0 12px" }}>
+                {mlError}
+              </p>
+            )}
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <PillButton type="submit" arrow label="send link" loading={mlLoading} fontSize={btnFs} />
+            </div>
+          </form>
+        )}
 
       </div>
 

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
-import { signIn, signOut } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
 import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
@@ -116,6 +117,7 @@ export function ProfileClient({ user }: {
     connectedProviders: string[]; hasPassword: boolean;
   };
 }) {
+  const params = useSearchParams();
   const [name, setName]       = useState(user.name);
   const [slogan, setSlogan]   = useState(user.slogan);
   const [url, setUrl]         = useState(user.url);
@@ -123,6 +125,26 @@ export function ProfileClient({ user }: {
   const [saved, setSaved]     = useState(false);
   const [error, setError]     = useState("");
   const [connected, setConnected] = useState(user.connectedProviders);
+  const [linkMsg, setLinkMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    const linked = params?.get("linked");
+    const reauth = params?.get("reauth");
+    const err = params?.get("link_error");
+    if (linked) {
+      if (reauth) setLinkMsg("Account linked! Sign in again to continue with your main account.");
+      else setLinkMsg("Account linked successfully.");
+    }
+    if (err) {
+      const msgs: Record<string, string> = {
+        expired: "Link request expired. Please try again.",
+        already_linked: "That account is already linked.",
+        invalid: "Invalid link token.",
+        no_session: "Session expired during linking. Please try again.",
+      };
+      setLinkMsg(msgs[err] ?? "Could not link account. Please try again.");
+    }
+  }, [params]);
 
   async function handleUpdate() {
     setSaving(true); setSaved(false); setError("");
@@ -138,7 +160,21 @@ export function ProfileClient({ user }: {
   async function handleDisconnect(provider: string) {
     const res = await fetch(`/api/users/accounts?provider=${provider}`, { method: "DELETE" });
     if (res.ok) setConnected((c) => c.filter((p) => p !== provider));
-    else alert("cannot remove only auth method");
+    else alert("cannot remove your only sign-in method");
+  }
+
+  async function handleConnect(provider: string) {
+    // Start a link session so the OAuth result is attached to THIS user,
+    // even if the provider uses a different email address.
+    const res = await fetch("/api/users/accounts/link-start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider }),
+    });
+    if (!res.ok) { setLinkMsg("Could not start linking. Please try again."); return; }
+    const { token } = await res.json();
+    const callbackUrl = `/api/users/accounts/link-complete?t=${token}`;
+    signIn(provider, { callbackUrl });
   }
 
   return (
@@ -189,6 +225,11 @@ export function ProfileClient({ user }: {
             {/* Accounts */}
             <div style={{ borderTop: `1px solid ${DARK_BLUE}15`, paddingTop: "clamp(16px, 2vw, 32px)", marginBottom: "clamp(16px, 2vw, 32px)" }}>
               <SectionHeading>accounts</SectionHeading>
+              {linkMsg && (
+                <p style={{ fontFamily: PRO, fontSize: 11, color: linkMsg.includes("successfully") || linkMsg.includes("linked!") ? BLUE : "#c00", marginBottom: 12 }}>
+                  {linkMsg}
+                </p>
+              )}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {ALL_PROVIDERS.map((provider) => {
                   const isConnected = connected.includes(provider);
@@ -215,7 +256,7 @@ export function ProfileClient({ user }: {
                   ) : (
                     <OAuthButton
                       key={provider}
-                      onClick={() => signIn(provider, { callbackUrl: "/profile" })}
+                      onClick={() => handleConnect(provider)}
                       icon={PROVIDER_ICONS[provider]}
                       label={PROVIDER_LABELS[provider]}
                     />

@@ -5,7 +5,9 @@ import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import CredentialsProvider from "next-auth/providers/credentials";
+import EmailProvider from "next-auth/providers/email";
 import bcrypt from "bcryptjs";
+import { createTransport } from "nodemailer";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -19,6 +21,7 @@ export const authOptions: NextAuthOptions = {
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID!,
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET!,
+      allowDangerousEmailAccountLinking: true,
     }),
     AzureADProvider({
       clientId: process.env.AZURE_AD_CLIENT_ID!,
@@ -26,6 +29,34 @@ export const authOptions: NextAuthOptions = {
       tenantId: process.env.AZURE_AD_TENANT_ID ?? "common",
       allowDangerousEmailAccountLinking: true,
     }),
+    ...(process.env.EMAIL_SERVER ? [EmailProvider({
+      server: process.env.EMAIL_SERVER,
+      from: process.env.EMAIL_FROM ?? "Communiculture <noreply@communiculture.com>",
+      sendVerificationRequest: async ({ identifier, url, provider }) => {
+        const transport = createTransport(provider.server as string);
+        await transport.sendMail({
+          to: identifier,
+          from: provider.from,
+          subject: "sign in to communiculture",
+          text: `sign in to communiculture\n\n${url}\n\nthis link expires in 24 hours and can only be used once.`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:40px 24px">
+              <p style="font-size:13px;color:#0083FF;letter-spacing:0.05em;margin:0 0 24px">COMMUNICULTURE</p>
+              <h1 style="font-size:28px;font-weight:400;color:#1a1a1a;margin:0 0 24px;line-height:1.2">sign in</h1>
+              <p style="font-size:14px;color:#555;margin:0 0 32px;line-height:1.6">
+                click the button below to sign in. this link expires in 24 hours.
+              </p>
+              <a href="${url}" style="display:inline-block;background:#0083FF;color:white;text-decoration:none;padding:10px 24px;border-radius:999px;font-size:14px;letter-spacing:0.04em">
+                sign in →
+              </a>
+              <p style="font-size:12px;color:#999;margin:32px 0 0;line-height:1.6">
+                if you didn't request this, you can ignore this email.
+              </p>
+            </div>
+          `,
+        });
+      },
+    })] : []),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -46,8 +77,9 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // For OAuth providers, link account to existing user by email
-      if (account?.provider !== "credentials" && user.email) {
+      // For OAuth providers only (not credentials or email magic link),
+      // link the new account to an existing user with the same email.
+      if (account?.provider !== "credentials" && account?.provider !== "email" && user.email) {
         const existing = await prisma.user.findUnique({
           where: { email: user.email },
           include: { accounts: true },
