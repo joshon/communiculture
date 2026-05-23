@@ -121,27 +121,27 @@ export default function LoginPage() {
 
           {/* ── Left column: credentials + OAuth ── */}
           <div>
-            <SectionHeader>{isSignIn ? "log in" : "sign up"}</SectionHeader>
+            <SectionHeader>{isSignIn ? "Log in" : "Sign up"}</SectionHeader>
 
             <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
               {!isSignIn && (
-                <FormField label="name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
+                <FormField label="Name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
               )}
               <FormField
-                label="email" type="email"
+                label="Email" type="email"
                 value={isSignIn ? siEmail : suEmail}
                 onChange={isSignIn ? setSiEmail : setSuEmail}
                 autoComplete="email"
               />
               <FormField
-                label="password" type="password"
+                label="Password" type="password"
                 value={isSignIn ? siPassword : suPass}
                 onChange={isSignIn ? setSiPassword : setSuPass}
                 autoComplete={isSignIn ? "current-password" : "new-password"}
               />
               {!isSignIn && (
                 <FormField
-                  label="confirm" type="password"
+                  label="Confirm" type="password"
                   value={suConfirm} onChange={setSuConfirm}
                   autoComplete="new-password"
                 />
@@ -163,11 +163,11 @@ export default function LoginPage() {
                     textDecoration: "underline", padding: 0,
                   }}
                 >
-                  {isSignIn ? "create a new account" : "existing account? log in"}
+                  {isSignIn ? "Create a new account" : "Existing account? Log in"}
                 </button>
                 <PillButton
                   type="submit" arrow variant="secondary"
-                  label={isSignIn ? "log in" : "sign up"}
+                  label={isSignIn ? "Log in" : "Sign up"}
                   loading={isSignIn ? siLoading : suLoading}
                 />
               </div>
@@ -194,14 +194,14 @@ export default function LoginPage() {
               </p>
             ) : (
               <form onSubmit={(e) => { e.preventDefault(); void handleMagicLink(); }}>
-                <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
+                <FormField label="Email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
                 {mlError && (
                   <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
                     {mlError}
                   </p>
                 )}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <PillButton type="submit" arrow label="send link" loading={mlLoading} />
+                  <PillButton type="submit" arrow label="Send link" loading={mlLoading} />
                 </div>
               </form>
             )}
