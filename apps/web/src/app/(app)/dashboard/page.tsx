@@ -15,6 +15,7 @@ import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR } from "@/store/avatarStore";
 
 const PRO = "Proletarian, sans-serif";
+const INTER = "var(--font-inter), Inter, sans-serif";
 const PIXEL = "CommPixel, monospace";
 const BLUE = "#0083FF";
 
@@ -110,23 +111,23 @@ export default async function DashboardPage() {
                   <Link key={c.id} href={`/continuum/${c.id}`} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
                     {/* Date + response count */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: `clamp(2px, ${U(4)}, 6px)` }}>
-                      <span style={{ fontFamily: PRO, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
                         {formatDate(c.createdAt)}
                       </span>
-                      <span style={{ fontFamily: PRO, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
                         {c._count.participants} Response{c._count.participants !== 1 ? "s" : ""}
                       </span>
                     </div>
 
                     {/* Title */}
-                    <p style={{ fontFamily: PRO, fontWeight: "bold", fontSize: `clamp(14px, ${U(18)}, 22px)`, color: "#111", margin: `0 0 clamp(4px, ${U(5)}, 7px)` }}>
+                    <p style={{ fontFamily: INTER, fontWeight: "bold", fontSize: `clamp(14px, ${U(18)}, 22px)`, color: "#111", margin: `0 0 clamp(4px, ${U(5)}, 7px)` }}>
                       {c.title}
                     </p>
 
                     {/* Labels */}
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontFamily: PRO, fontSize: `clamp(12px, ${U(15)}, 18px)`, color: "#111" }}>{c.leftLabel}</span>
-                      <span style={{ fontFamily: PRO, fontSize: `clamp(12px, ${U(15)}, 18px)`, color: "#111" }}>{c.rightLabel}</span>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(12px, ${U(15)}, 18px)`, color: "#111" }}>{c.leftLabel}</span>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(12px, ${U(15)}, 18px)`, color: "#111" }}>{c.rightLabel}</span>
                     </div>
 
                     {/* Spectrum bar */}
