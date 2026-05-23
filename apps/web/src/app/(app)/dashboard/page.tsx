@@ -82,7 +82,7 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: titleMb, flexShrink: 0 }}>
           <PageTitle fontSize={titleFs}>home</PageTitle>
           <PillButton href="/about" label="about communiculture"
-            fontSize={`clamp(14px, ${U(18)}, 9999px)`}
+            fontSize={`clamp(10px, ${U(18)}, 9999px)`}
             style={{ paddingTop: U(7), paddingBottom: U(7), paddingLeft: U(20), paddingRight: U(20) }}
           />
         </div>
@@ -155,14 +155,18 @@ export default async function DashboardPage() {
               gap: `clamp(12px, ${U(18)}, 24px)`,
               paddingBottom: `clamp(16px, ${U(24)}, 32px)`,
             }}>
-              <Link href="/continuums" style={{
-                fontFamily: PRO,
-                fontSize: `clamp(12px, ${U(14)}, 16px)`,
-                color: BLUE,
-                textDecoration: "underline",
-              }}>
-                see all your continuums
-              </Link>
+              <PillButton href="/continuums"
+                fontSize={`clamp(10px, ${U(18)}, 9999px)`}
+                style={{
+                  background: "none",
+                  color: BLUE,
+                  textDecoration: "underline",
+                  paddingTop: U(7),
+                  paddingBottom: U(7),
+                  paddingLeft: 0,
+                  paddingRight: 0,
+                }}
+              >see all your continuums</PillButton>
               <CreateContinuumButton canCreate={canCreate} count={continuums.length} />
             </div>
 
