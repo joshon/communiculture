@@ -48,10 +48,12 @@ export function AvatarEditorClient({ user }: Props) {
     fetch("/api/dev/avatar-library")
       .then((r) => r.json())
       .then((data: { library: AvatarVariantLibrary } | null) => {
-        if (data?.library) setLibrary(data.library);
+        if (!data?.library) return;
+        setLibrary(data.library);
+        // autoSpin is handled inside AvatarEditor when autoSpin prop is true
       })
       .catch(() => {});
-  }, []);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = useCallback(async (
     colors: Record<AvatarPart, string>,
@@ -82,11 +84,14 @@ export function AvatarEditorClient({ user }: Props) {
     );
   }
 
+  const autoSpin = !parsed && !editingColors;
+
   return (
     <AvatarEditor
       library={library}
       initialColors={initialColors}
       initialVariants={initialVariants}
+      autoSpin={autoSpin}
       onSave={handleSave}
       onChange={handleChange}
     />

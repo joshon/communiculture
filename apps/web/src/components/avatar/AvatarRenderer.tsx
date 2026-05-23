@@ -1,8 +1,8 @@
 "use client";
 
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, RoundedBox, Html, Line } from "@react-three/drei";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useRef } from "react";
 import * as THREE from "three";
 import type { AvatarVariantLibrary, AvatarPart, MeshElement } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS, isSymmetric } from "@/components/avatar-builder/types";
@@ -384,6 +384,26 @@ function PartLabels({
 
 // ─── exported canvas component ────────────────────────────────────────────────
 
+// Spins the avatar 2 full rotations and eases to default (y=0) over 2 seconds.
+// Locks on first active=true frame so prop changes don't interrupt the animation.
+function SpinWrapper({ active, children }: { active: boolean; children: React.ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  const startRef = useRef<number | null>(null);
+  const DURATION = 2.0;
+  const TOTAL_ANGLE = Math.PI * 4; // 2 full rotations
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    if (active && startRef.current === null) startRef.current = clock.elapsedTime;
+    if (startRef.current === null) return;
+    const t = Math.min((clock.elapsedTime - startRef.current) / DURATION, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
+    ref.current.rotation.y = TOTAL_ANGLE * (1 - eased);
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
+
 export interface AvatarRendererProps {
   library: AvatarVariantLibrary;
   variantIndices: Record<AvatarPart, number>;
@@ -392,6 +412,7 @@ export interface AvatarRendererProps {
   onPartClick?: (part: AvatarPart) => void;
   showOutline?: boolean;
   showLabels?: boolean;
+  spinning?: boolean;
 }
 
 export function AvatarRenderer({
@@ -402,6 +423,7 @@ export function AvatarRenderer({
   onPartClick,
   showOutline = true,
   showLabels = false,
+  spinning = false,
 }: AvatarRendererProps) {
   return (
     <Canvas
@@ -423,14 +445,16 @@ export function AvatarRenderer({
       <directionalLight position={[-5, 7, 4]} intensity={1.6} castShadow />
       <directionalLight position={[3, 2, -2]} intensity={0.15} />
 
-      <CharacterGroup
-        library={library}
-        variantIndices={variantIndices}
-        colors={colors}
-        selectedPart={selectedPart}
-        onPartClick={onPartClick}
-        showOutline={showOutline}
-      />
+      <SpinWrapper active={spinning}>
+        <CharacterGroup
+          library={library}
+          variantIndices={variantIndices}
+          colors={colors}
+          selectedPart={selectedPart}
+          onPartClick={onPartClick}
+          showOutline={showOutline}
+        />
+      </SpinWrapper>
 
       {showLabels && (
         <PartLabels selectedPart={selectedPart} onPartClick={onPartClick} />

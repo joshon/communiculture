@@ -33,8 +33,9 @@ export const authOptions: NextAuthOptions = {
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM ?? "Communiculture <noreply@communiculture.com>",
       sendVerificationRequest: async ({ identifier, url, provider }) => {
+        console.log("[magic-link] sending to:", identifier, "server:", provider.server);
         const transport = createTransport(provider.server as string);
-        await transport.sendMail({
+        const result = await transport.sendMail({
           to: identifier,
           from: provider.from,
           subject: "sign in to communiculture",
@@ -55,6 +56,7 @@ export const authOptions: NextAuthOptions = {
             </div>
           `,
         });
+        console.log("[magic-link] sent OK, messageId:", result.messageId);
       },
     })] : []),
     CredentialsProvider({
@@ -141,5 +143,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    error: "/auth-error",
   },
 };

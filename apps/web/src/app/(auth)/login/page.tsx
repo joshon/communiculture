@@ -27,7 +27,7 @@ function Rule() {
 export default function LoginPage() {
   const params = useSearchParams();
   const router = useRouter();
-  const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
+  const callbackUrl = params.get("callbackUrl") ?? "/profile/avatar";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const [siEmail,    setSiEmail]    = useState("");

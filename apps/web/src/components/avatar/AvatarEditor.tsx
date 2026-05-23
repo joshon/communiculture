@@ -19,11 +19,11 @@ export const COLOR_PALETTE: string[] = [
   "#EA6BA8", "#EDA5CF", "#EE9181", "#A7A6A4", "#191A1C", "#F5F3F2",
 ];
 
-const SKIN_TONES: string[] = [
+export const SKIN_TONES: string[] = [
   "#F5F3F2", "#F3BD87", "#EE9181", "#917143", "#191A1C",
 ];
 
-const SKIN_PARTS: AvatarPart[] = ["head", "neck", "arms", "legs"];
+export const SKIN_PARTS: AvatarPart[] = ["head", "neck", "arms", "legs"];
 const DEFAULT_SKIN = "#F3BD87";
 
 const DEFAULT_COLORS: Record<AvatarPart, string> = {
@@ -113,13 +113,14 @@ interface AvatarEditorProps {
   library: AvatarVariantLibrary;
   initialColors?: Record<AvatarPart, string>;
   initialVariants?: Record<AvatarPart, number>;
+  autoSpin?: boolean;
   onSave: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => Promise<void>;
   onChange?: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => void;
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-export function AvatarEditor({ library, initialColors, initialVariants, onSave, onChange }: AvatarEditorProps) {
+export function AvatarEditor({ library, initialColors, initialVariants, autoSpin, onSave, onChange }: AvatarEditorProps) {
   const openColors   = useRef(initialColors  ?? DEFAULT_COLORS);
   const openVariants = useRef(initialVariants ?? DEFAULT_VARIANTS);
 
@@ -127,6 +128,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave, 
   const [variants,    setVariants]    = useState<Record<AvatarPart, number>>(openVariants.current);
   const [selectedPart, setSelectedPart] = useState<AvatarPart | null>("hair");
   const [, setHistory] = useState<HistoryEntry[]>([]);
+  // Freeze at mount — prop may change to false after first spin frame
+  const [isSpinning] = useState(() => autoSpin ?? false);
   const isMobile = useIsMobile(1024);
 
   const isDirtyRef  = useRef(false);
@@ -160,6 +163,22 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave, 
       }
     };
   }, []);
+
+  // ─── auto-spin on first visit (no saved avatar) ─────────────────────────────
+  useEffect(() => {
+    if (!autoSpin) return;
+    const rand = () => COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+    const randV = (part: AvatarPart) => Math.floor(Math.random() * (library[part]?.length ?? 1));
+    let count = 0;
+    const spin = () => {
+      const skin = SKIN_TONES[Math.floor(Math.random() * SKIN_TONES.length)];
+      isDirtyRef.current = true;
+      setColors(Object.fromEntries(AVATAR_PARTS.map((p) => [p, SKIN_PARTS.includes(p) ? skin : rand()])) as Record<AvatarPart, string>);
+      setVariants(Object.fromEntries(AVATAR_PARTS.map((p) => [p, randV(p)])) as Record<AvatarPart, number>);
+      if (++count < 5) setTimeout(spin, 250);
+    };
+    spin();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── undo ───────────────────────────────────────────────────────────────────
   const pushToHistory = useCallback((c: Record<AvatarPart, string>, v: Record<AvatarPart, number>) => {
@@ -252,6 +271,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave, 
       onPartClick={handlePartClick}
       showOutline={true}
       showLabels={true}
+      spinning={isSpinning}
     />
   );
 
