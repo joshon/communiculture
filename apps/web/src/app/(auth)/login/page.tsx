@@ -47,6 +47,11 @@ export default function LoginPage() {
       setMlSentState(true);
       setMlSentTo(sessionStorage.getItem("mlSentTo") ?? "");
     }
+    // Clear when the user leaves this page (navigates away, logs in, etc.)
+    return () => {
+      sessionStorage.removeItem("mlSent");
+      sessionStorage.removeItem("mlSentTo");
+    };
   }, []);
 
   function markMlSent(email: string) {
