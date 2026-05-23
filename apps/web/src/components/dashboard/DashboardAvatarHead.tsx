@@ -79,7 +79,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
           zIndex: 100,
         }}>
           <PixelBox shadowDir="bottom-left" style={{ minWidth: sc(160) }}>
-            <style>{`.cc-mi{color:rgba(0,0,0,0.8)}.cc-mi:hover{color:#000}`}</style>
+            <style>{`.cc-mi{color:rgba(0,0,0,0.6)}.cc-mi:hover{color:#000}`}</style>
 
             {/*
               Arrow tab: pixel-art arrow, flipped so the connector bar aligns with
