@@ -93,7 +93,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
                 top: sc(10),
                 // Position so the SVG left edge is at the outer right border edge.
                 // The tip (SVG x=0) sits flush with the border; arrow body extends right.
-                right: `calc(var(--tile, 3px) * -23)`,
+                right: `calc(var(--tile, 3px) * -17)`,
                 width: ARROW_W,
                 height: ARROW_H,
                 display: "block",
