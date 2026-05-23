@@ -72,7 +72,15 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
       </button>
 
       {open && (
-        <div style={{ position: "absolute", top: `calc(100% + ${sc(8)})`, right: 0, zIndex: 100 }}>
+        <div style={{
+          position: "absolute",
+          // Position dropdown so the arrow (top: sc(10), height: 4.5*tile) is
+          // centered at 2/3 of the avatar height — roughly the mouth area.
+          // arrow_center_from_dropdown_top = sc(10) + ARROW_H/2 = scale*10 + tile*2.25
+          top: `calc(${size} * 2/3 - var(--scale, 1) * 10px - var(--tile, 6px) * 2.25)`,
+          right: "100%",
+          zIndex: 100,
+        }}>
           <PixelBox shadowDir="bottom-left" style={{ minWidth: sc(160) }}>
 
             {/*
