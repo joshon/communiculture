@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FormField } from "@/components/ui/FormField";
 import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
@@ -39,9 +39,22 @@ export default function LoginPage() {
   const [mlLoading, setMlLoading] = useState(false);
   const [mlError,   setMlError]   = useState("");
 
-  // Persist sent state in URL so it survives any NextAuth navigation
-  const mlSent  = params.get("emailSent") === "1";
-  const mlSentTo = params.get("emailTo") ?? mlEmail;
+  // sessionStorage survives NextAuth soft-navigations within the same tab
+  const [mlSent,   setMlSentState] = useState(false);
+  const [mlSentTo, setMlSentTo]    = useState("");
+  useEffect(() => {
+    if (sessionStorage.getItem("mlSent") === "1") {
+      setMlSentState(true);
+      setMlSentTo(sessionStorage.getItem("mlSentTo") ?? "");
+    }
+  }, []);
+
+  function markMlSent(email: string) {
+    sessionStorage.setItem("mlSent", "1");
+    sessionStorage.setItem("mlSentTo", email);
+    setMlSentState(true);
+    setMlSentTo(email);
+  }
 
   const [suName,    setSuName]    = useState("");
   const [suEmail,   setSuEmail]   = useState("");
@@ -55,7 +68,7 @@ export default function LoginPage() {
     try {
       const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
       if (res?.error) { setMlError("could not send link — try again"); return; }
-      router.push(`/login?emailSent=1&emailTo=${encodeURIComponent(mlEmail)}`);
+      markMlSent(mlEmail);
     } catch {
       setMlError("could not send link — try again");
     } finally {
