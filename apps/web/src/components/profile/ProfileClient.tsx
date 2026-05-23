@@ -13,7 +13,7 @@ import { U } from "@/lib/scale";
 
 const BLUE = "#0083FF";
 const DARK_BLUE = "#3F58D0";
-const PRO = "Proletarian, sans-serif";
+const PRO = "Inter, sans-serif";
 const INTER = "var(--font-inter), Inter, sans-serif";
 
 // Match dashboard sizing exactly

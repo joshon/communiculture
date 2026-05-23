@@ -35,7 +35,7 @@ export function PillButton({
     alignItems: "center",
     background: BLUE,
     color: "white",
-    fontFamily: "Proletarian, sans-serif",
+    fontFamily: "Inter, sans-serif",
     fontSize: fs,
     lineHeight: 1,
     paddingTop: "6px",

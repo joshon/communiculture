@@ -11,7 +11,7 @@ export function PageTitle({ children, fontSize }: { children: React.ReactNode; f
 
   return (
     <h1 style={{
-      fontFamily: "Proletarian, sans-serif",
+      fontFamily: "Inter, sans-serif",
       fontWeight: "regular",
       fontSize: fs,
       color: "#1A1A1A",

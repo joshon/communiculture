@@ -14,7 +14,7 @@ import type { AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR } from "@/store/avatarStore";
 
-const PRO = "Proletarian, sans-serif";
+const PRO = "Inter, sans-serif";
 const INTER = "var(--font-inter), Inter, sans-serif";
 const PIXEL = "CommPixel, monospace";
 const BLUE = "#0083FF";

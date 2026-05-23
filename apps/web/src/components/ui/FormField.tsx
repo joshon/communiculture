@@ -6,7 +6,7 @@ import { S, H } from "@/lib/scale";
 const DARK_BLUE = "#3F58D0";
 const LIGHT_BLUE = "#0083FF";
 const INTER = "var(--font-inter)";
-const PRO = "Proletarian, sans-serif";
+const PRO = "Inter, sans-serif";
 
 interface FormFieldProps {
   label: string;

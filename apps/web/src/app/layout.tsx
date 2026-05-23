@@ -4,7 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { ScaleProvider } from "@/components/layout/ScaleProvider";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Communiculture",

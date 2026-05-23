@@ -43,7 +43,7 @@ const DEFAULT_VARIANTS = Object.fromEntries(
 ) as Record<AvatarPart, number>;
 
 const LOGO_BLUE = "#0083FF";
-const PROLETARIAN = "Proletarian, sans-serif";
+const PROLETARIAN = "Inter, sans-serif";
 
 // ─── asterisk SVG ─────────────────────────────────────────────────────────────
 

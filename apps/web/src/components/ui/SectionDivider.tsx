@@ -3,7 +3,7 @@
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { S, H } from "@/lib/scale";
 
-const PRO = "Proletarian, sans-serif";
+const PRO = "Inter, sans-serif";
 
 export function SectionDivider({ label }: { label: string }) {
   const mobile = useIsMobile(768);

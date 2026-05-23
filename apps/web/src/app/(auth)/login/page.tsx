@@ -12,7 +12,7 @@ import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
 
 const BLUE = "#0083FF";
-const PRO = "Proletarian, sans-serif";
+const PRO = "Inter, sans-serif";
 
 export default function LoginPage() {
   const params = useSearchParams();
