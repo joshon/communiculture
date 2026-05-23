@@ -134,7 +134,7 @@ export default async function DashboardPage() {
                     <ContinuumPreviewBar
                       positions={allPositions}
                       userPosition={myPosition}
-                      colors={avatarColors}
+                      thumbnailUrl={userRecord?.avatarThumbnail ?? null}
                     />
 
                     {/* Divider */}
