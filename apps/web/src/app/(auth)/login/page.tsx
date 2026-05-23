@@ -196,7 +196,7 @@ export default function LoginPage() {
                   </p>
                 )}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <PillButton type="submit" arrow variant="secondary" label="send link" loading={mlLoading} />
+                  <PillButton type="submit" arrow label="send link" loading={mlLoading} />
                 </div>
               </form>
             )}
