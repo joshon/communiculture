@@ -86,13 +86,13 @@ export default async function DashboardPage() {
 
         {/* Scrollable content */}
         <div style={{ flex: 1, overflowY: "auto" }}>
-          <div style={{ marginLeft: continuumML }}>
+          <div style={{ width: "40%", minWidth: 280, maxWidth: 640, margin: "0 auto" }}>
 
             {/* Section header */}
             <p style={{
               fontFamily: PRO,
-              fontSize: `clamp(10px, ${U(13)}, 15px)`,
-              color: BLUE,
+              fontSize: `clamp(10px, ${U(18)}, 9999px)`,
+              color: "#111",
               marginBottom: `clamp(8px, ${U(16)}, 22px)`,
             }}>
               continuums you own
@@ -111,10 +111,10 @@ export default async function DashboardPage() {
                   <Link key={c.id} href={`/continuum/${c.id}`} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
                     {/* Date + response count */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: `clamp(2px, ${U(4)}, 6px)` }}>
-                      <span style={{ fontFamily: INTER, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(9px, ${U(10)}, 12px)`, color: "#111" }}>
                         {formatDate(c.createdAt)}
                       </span>
-                      <span style={{ fontFamily: INTER, fontSize: `clamp(11px, ${U(13)}, 15px)`, color: "#111" }}>
+                      <span style={{ fontFamily: INTER, fontSize: `clamp(9px, ${U(10)}, 12px)`, color: "#111" }}>
                         {c._count.participants} Response{c._count.participants !== 1 ? "s" : ""}
                       </span>
                     </div>
@@ -135,6 +135,7 @@ export default async function DashboardPage() {
                       positions={allPositions}
                       userPosition={myPosition}
                       thumbnailUrl={userRecord?.avatarThumbnail ?? null}
+                      avatarSize={avatarSize}
                     />
 
                     {/* Divider */}

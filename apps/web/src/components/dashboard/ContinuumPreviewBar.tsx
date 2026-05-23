@@ -1,19 +1,18 @@
 "use client";
 
 const DOT_COUNT = 25;
-const AVATAR_W = 34;
-const AVATAR_H = 44;
 const BAR_H = 14;
 
 interface Props {
   positions: number[];
   userPosition: number | null;
   thumbnailUrl: string | null;
+  avatarSize: string; // CSS value e.g. "clamp(60px, ...)"
 }
 
-export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl }: Props) {
+export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl, avatarSize }: Props) {
   return (
-    <div style={{ position: "relative", width: "100%", height: AVATAR_H + BAR_H }}>
+    <div style={{ position: "relative", width: "100%", height: `calc(${avatarSize} + ${BAR_H}px)` }}>
       {/* Dots bar */}
       <div style={{
         position: "absolute",
@@ -24,8 +23,8 @@ export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl }: P
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingLeft: AVATAR_W / 2,
-        paddingRight: AVATAR_W / 2,
+        paddingLeft: `calc(${avatarSize} / 2)`,
+        paddingRight: `calc(${avatarSize} / 2)`,
         boxSizing: "border-box",
       }}>
         {Array.from({ length: DOT_COUNT }).map((_, i) => {
@@ -58,9 +57,9 @@ export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl }: P
           style={{
             position: "absolute",
             bottom: BAR_H - 6,
-            left: `calc(${userPosition * 100}% - ${AVATAR_W / 2}px)`,
-            width: AVATAR_W,
-            height: AVATAR_H,
+            left: `calc(${userPosition * 100}% - calc(${avatarSize} / 2))`,
+            width: avatarSize,
+            height: avatarSize,
             objectFit: "contain",
             pointerEvents: "none",
           }}
