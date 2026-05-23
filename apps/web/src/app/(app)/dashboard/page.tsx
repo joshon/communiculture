@@ -82,8 +82,8 @@ export default async function DashboardPage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: titleMb, flexShrink: 0 }}>
           <PageTitle fontSize={titleFs}>home</PageTitle>
           <PillButton href="/about" label="about communiculture"
-            fontSize={U(14)}
-            style={{ paddingTop: U(5.5), paddingBottom: U(5.5), paddingLeft: U(16), paddingRight: U(16) }}
+            fontSize={U(18)}
+            style={{ paddingTop: U(7), paddingBottom: U(7), paddingLeft: U(20), paddingRight: U(20) }}
           />
         </div>
 
