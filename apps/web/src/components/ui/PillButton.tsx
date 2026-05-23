@@ -29,7 +29,7 @@ export function PillButton({
   children, href, onClick, type = "button",
   loading, arrow, label, fontSize, style, variant = "primary",
 }: PillButtonProps) {
-  const fs = fontSize ?? "16px";
+  const fs = fontSize ?? "clamp(13px, 3vw, 16px)";
   const isPrimary = variant === "primary";
 
   const base: CSSProperties = {

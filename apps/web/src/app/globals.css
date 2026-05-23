@@ -56,6 +56,33 @@ body {
   @apply text-comm-blue font-bold text-lg;
 }
 
+/* ── Login page responsive layout ───────────────────────────────────────── */
+.login-grid {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0 48px;
+  width: 100%;
+  max-width: 900px;
+}
+
+.login-divider {
+  background: #D8D8D8;
+}
+
+@media (max-width: 640px) {
+  .login-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .login-divider {
+    height: 1px;
+    width: 100%;
+    margin: 32px 0;
+    background: #D8D8D8;
+  }
+}
+
 /* Kill browser autofill background tint */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

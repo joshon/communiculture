@@ -24,12 +24,12 @@ export function OAuthButton({ onClick, icon, label }: OAuthButtonProps) {
         paddingLeft: 20,
         paddingRight: 20,
         fontFamily: INTER,
-        fontSize: 16,
+        fontSize: "clamp(13px, 3vw, 16px)",
         fontWeight: 600,
         color: BLUE,
         background: "white",
         cursor: "pointer",
-        marginBottom: 12,
+        marginBottom: 10,
       }}
     >
       <span style={{ display: "flex", width: 20, height: 20, flexShrink: 0, alignItems: "center", justifyContent: "center" }}>

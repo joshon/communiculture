@@ -14,7 +14,7 @@ const INTER = "Inter, sans-serif";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontFamily: INTER, fontSize: 22, fontWeight: 500, color: "#1a1a1a", marginBottom: 28 }}>
+    <div style={{ fontFamily: INTER, fontSize: "clamp(18px, 4vw, 22px)", fontWeight: 500, color: "#1a1a1a", marginBottom: 28 }}>
       {children}
     </div>
   );
@@ -112,28 +112,22 @@ export default function LoginPage() {
     <div style={{ minHeight: "100vh", background: "white" }}>
 
       {/* Logo — fixed top left */}
-      <Link href="/" style={{ position: "fixed", top: 24, left: 32, zIndex: 10, display: "block" }}>
+      <Link href="/" style={{ position: "fixed", top: 24, left: "clamp(16px, 4vw, 32px)", zIndex: 10, display: "block" }}>
         <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-          style={{ width: 208, height: "auto", display: "block" }} priority />
+          style={{ width: "clamp(140px, 30vw, 208px)", height: "auto", display: "block" }} priority />
       </Link>
 
-      {/* Two-column layout */}
+      {/* Responsive layout */}
       <main style={{
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        paddingTop: 140,
+        paddingTop: "clamp(100px, 16vw, 140px)",
         paddingBottom: 80,
-        paddingLeft: 24,
-        paddingRight: 24,
+        paddingLeft: "clamp(16px, 5vw, 48px)",
+        paddingRight: "clamp(16px, 5vw, 48px)",
       }}>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1px 1fr",
-          gap: "0 48px",
-          width: "100%",
-          maxWidth: 900,
-        }}>
+        <div className="login-grid">
 
           {/* ── Left column: credentials + OAuth ── */}
           <div>
@@ -197,8 +191,8 @@ export default function LoginPage() {
             <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
           </div>
 
-          {/* ── Vertical divider ── */}
-          <div style={{ background: "#D8D8D8" }} />
+          {/* ── Divider (vertical on desktop, horizontal on mobile) ── */}
+          <div className="login-divider" />
 
           {/* ── Right column: magic link ── */}
           <div>
