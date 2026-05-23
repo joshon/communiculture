@@ -5,13 +5,14 @@ import type { CSSProperties, ReactNode } from "react";
 
 const BLUE = "#0083FF";
 
-function makeTileSvg(tile: number): string {
-  const half = tile / 2;
+// sq = square size in px (1, 2, or 3). SVG pattern tile = sq * 2.
+function makeTileSvg(sq: number): string {
+  const tile = sq * 2;
   return (
     `url("data:image/svg+xml,` +
     `%3Csvg xmlns='http://www.w3.org/2000/svg' width='${tile}' height='${tile}'%3E` +
-    `%3Crect x='0' y='0' width='${half}' height='${half}' fill='%230083FF'/%3E` +
-    `%3Crect x='${half}' y='${half}' width='${half}' height='${half}' fill='%230083FF'/%3E` +
+    `%3Crect x='0' y='0' width='${sq}' height='${sq}' fill='%230083FF'/%3E` +
+    `%3Crect x='${sq}' y='${sq}' width='${sq}' height='${sq}' fill='%230083FF'/%3E` +
     `%3C/svg%3E")`
   );
 }
@@ -27,12 +28,11 @@ interface PixelBoxProps {
 /**
  * White box with solid blue border and a pixel-checkerboard offset shadow.
  *
- * Shadow strips are exactly ONE square (tile/2 = border width) deep — the same
- * weight as the border — giving a compact offset-shadow look.
- *
- * Corner phase alignment: side strip anchored to bottom with height = floor(H/tile)*tile
- * so the last tile ends flush at the corner; bottom strip anchored from the corner
- * side. Both strips use backgroundPosition "0 0" so phase 0 (blue) sits at the corner.
+ * --tile is the square size (1/2/3 px). The SVG pattern tile = sq*2.
+ * Shadow strips are one full pattern tile (2 squares) deep.
+ * Corner phase: side strip anchored to bottom with height = floor(H/tile)*tile
+ * so the last tile ends flush at the corner; both strips use backgroundPosition
+ * "0 0" so phase 0 (blue) sits at the corner.
  */
 export function PixelBox({
   children,
@@ -41,26 +41,23 @@ export function PixelBox({
   shadowDir = "bottom-left",
 }: PixelBoxProps) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const [m, setM] = useState({ tile: 6, borderPx: 3, sideH: 0, bottomW: 0 });
+  const [m, setM] = useState({ sq: 3, sideH: 0, bottomW: 0 });
 
   useEffect(() => {
     const measure = () => {
       if (!boxRef.current) return;
-      const tile =
+      const sq =
         parseInt(
           getComputedStyle(document.documentElement)
             .getPropertyValue("--tile")
             .trim()
-        ) || 6;
-      const borderPx = tile / 2;
+        ) || 3;
+      const tile = sq * 2; // SVG pattern repeat size
       const H = boxRef.current.offsetHeight;
       const W = boxRef.current.offsetWidth;
       setM({
-        tile,
-        borderPx,
-        // Whole tiles only — no partial tile at top of side strip.
+        sq,
         sideH: Math.floor(H / tile) * tile,
-        // Covers W + one full tile; rounds up to tile boundary for clean right end.
         bottomW: Math.ceil((W + tile) / tile) * tile,
       });
     };
@@ -75,18 +72,17 @@ export function PixelBox({
     };
   }, []);
 
-  const { tile, borderPx, sideH, bottomW } = m;
+  const { sq, sideH, bottomW } = m;
+  const tile = sq * 2;
   const isLeft = shadowDir === "bottom-left";
-  const svg = makeTileSvg(tile);
+  const svg = makeTileSvg(sq);
   const tileStr = `${tile}px`;
-  const negT = `-${tile}px`;
+  const negTile = `-${tile}px`;
 
-  // Bottom strip: one TILE tall (two squares), extends one tile under the side strip
-  // corner so the L-shape is complete.
   const bottomStrip: CSSProperties = {
     position: "absolute",
-    bottom: negT,
-    ...(isLeft ? { left: negT } : { right: negT }),
+    bottom: negTile,
+    ...(isLeft ? { left: negTile } : { right: negTile }),
     width: `${bottomW}px`,
     height: tileStr,
     backgroundImage: svg,
@@ -97,13 +93,11 @@ export function PixelBox({
     zIndex: 0,
   };
 
-  // Side strip: one TILE wide (two squares), height = floor(H/tile)*tile so
-  // it ends on a tile boundary at the corner — phase 0 (blue) aligns with bottom strip.
   const sideStrip: CSSProperties = {
     position: "absolute",
     bottom: 0,
     top: "auto",
-    ...(isLeft ? { left: negT } : { right: negT }),
+    ...(isLeft ? { left: negTile } : { right: negTile }),
     width: tileStr,
     height: sideH > 0 ? `${sideH}px` : 0,
     backgroundImage: svg,

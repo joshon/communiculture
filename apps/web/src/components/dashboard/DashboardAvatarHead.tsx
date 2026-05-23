@@ -14,11 +14,9 @@ const INTER = "var(--font-inter), Inter, sans-serif";
 const sc = (px: number) => `calc(var(--scale, 1) * ${px}px)`;
 
 // SVG is 44×18 at 2px/design-pixel (22×9 design pixels).
-// Rendered size: width = 11 * tile, height = 4.5 * tile.
-// scaleX(-1) flips it so the connector bar (originally at SVG right) sits at the
-// box border, and the arrow tip extends to the right toward the avatar button.
-const ARROW_W = "calc(var(--tile, 6px) * 11)";
-const ARROW_H = "calc(var(--tile, 6px) * 4.5)";
+// --tile is now square size (1/2/3 px); scale factor = tile/2 per SVG unit → tile*22 wide, tile*9 tall.
+const ARROW_W = "calc(var(--tile, 3px) * 22)";
+const ARROW_H = "calc(var(--tile, 3px) * 9)";
 
 interface Props {
   thumbnailUrl: string | null;
@@ -77,8 +75,8 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
           // Position dropdown so the arrow (top: sc(10), height: 4.5*tile) is
           // centered at 2/3 of the avatar height — roughly the mouth area.
           // arrow_center_from_dropdown_top = sc(10) + ARROW_H/2 = scale*10 + tile*2.25
-          top: `calc(${size} * 2/3 - var(--scale, 1) * 10px - var(--tile, 6px) * 2.25)`,
-          right: `calc(100% + var(--tile, 6px) * 2)`,
+          top: `calc(${size} * 2/3 - var(--scale, 1) * 10px - var(--tile, 3px) * 4.5)`,
+          right: `calc(100% + var(--tile, 3px) * 4)`,
           zIndex: 100,
         }}>
           <PixelBox shadowDir="bottom-left" style={{ minWidth: sc(160) }}>
@@ -95,7 +93,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
                 top: sc(10),
                 // Position so the SVG left edge is at the outer right border edge.
                 // The tip (SVG x=0) sits flush with the border; arrow body extends right.
-                right: `calc(var(--tile, 6px) * -10)`,
+                right: `calc(var(--tile, 3px) * -20)`,
                 width: ARROW_W,
                 height: ARROW_H,
                 display: "block",
