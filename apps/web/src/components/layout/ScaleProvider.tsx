@@ -12,9 +12,9 @@ export function ScaleProvider({ children }: { children: React.ReactNode }) {
       document.documentElement.style.setProperty("--scale", String(scale));
 
       // --tile: 3 discrete sizes (1px squares=2px tile, 2px=4px, 3px=6px)
-      // 2px at scale < 0.9 (most laptops/phones), 4px at 0.9–1.5, 6px at 4K+
+      // 2px at scale < 1.2 (laptops up to ~1730px wide), 4px at 1.2–2.0, 6px at 4K+
       const tileRaw = scale * 6; // kept for reference
-      const tile = scale < 0.9 ? 2 : scale < 1.5 ? 4 : 6;
+      const tile = scale < 1.2 ? 2 : scale < 2.0 ? 4 : 6;
 
       // --border: same size as one checkerboard square (tile / 2)
       const border = tile / 2;
