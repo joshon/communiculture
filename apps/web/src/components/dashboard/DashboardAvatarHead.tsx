@@ -75,7 +75,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
           // Position dropdown so the arrow (top: sc(10), height: 4.5*tile) is
           // centered at 2/3 of the avatar height — roughly the mouth area.
           // arrow_center_from_dropdown_top = sc(10) + ARROW_H/2 = scale*10 + tile*2.25
-          top: `calc(${size} * 2/3 - var(--scale, 1) * 10px - var(--tile, 3px) * 4.5)`,
+          top: `calc(${size} * 2/3 - var(--scale, 1) * 26px - var(--tile, 3px) * 4.5)`,
           right: `calc(100% + var(--tile, 3px) * 4)`,
           zIndex: 100,
         }}>
