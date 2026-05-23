@@ -83,8 +83,8 @@ const SPIN_BURST   = 1800;
 // ─── logo sizing ─────────────────────────────────────────────────────────────
 const LOGO_WORLD_WIDTH  = 4.5;
 const LOGO_ASPECT       = 208 / 41;
-const LOGO_ASTERISK_X   = 135.75 / 208;   // asterisk centre X in new SVG
-const LOGO_ASTERISK_TOP = 5.69   / 41;    // asterisk centre Y in new SVG
+const LOGO_ANCHOR_X     = 136.815 / 208;  // N second vertical stem centre (= avatar world x=0)
+const LOGO_ASTERISK_TOP = 5.69    / 41;   // asterisk centre Y in new SVG
 
 // ─── responsive camera ────────────────────────────────────────────────────────
 function responsiveZoom(w: number) { return Math.max(48, Math.min(100, w / 20)); }
@@ -269,7 +269,7 @@ export function HomeScene() {
     const h = w / LOGO_ASPECT;
     el.style.width      = `${w}px`;
     el.style.height     = `${h}px`;
-    el.style.left       = `${sx - LOGO_ASTERISK_X * w}px`;
+    el.style.left       = `${sx - LOGO_ANCHOR_X * w}px`;
     el.style.top        = `${sy - LOGO_ASTERISK_TOP * h}px`;
     el.style.visibility = "visible";
 
@@ -278,7 +278,7 @@ export function HomeScene() {
       const size = 0.058 * w;
       ov.style.width      = `${size}px`;
       ov.style.height     = `${size}px`;
-      ov.style.left       = `${sx + 0.008 * w}px`;
+      ov.style.left       = `${sx}px`;
       ov.style.top        = `${sy}px`;
       ov.style.visibility = "visible";
     }
