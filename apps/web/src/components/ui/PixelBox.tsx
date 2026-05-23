@@ -57,8 +57,8 @@ export function PixelBox({
       const W = boxRef.current.offsetWidth;
       setM({
         sq,
-        sideH: Math.floor(H / tile) * tile,
-        bottomW: Math.ceil((W + tile) / tile) * tile,
+        sideH: Math.max(0, Math.floor(H / tile) * tile - sq * 2),
+        bottomW: Math.max(0, Math.ceil((W + tile) / tile) * tile - sq * 2),
       });
     };
 
