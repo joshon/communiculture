@@ -90,8 +90,8 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
 
-      {/* Logo — fixed top right */}
-      <Link href="/" style={{ position: "fixed", top: 24, right: 32, zIndex: 10, display: "block" }}>
+      {/* Logo — fixed top left */}
+      <Link href="/" style={{ position: "fixed", top: 24, left: 32, zIndex: 10, display: "block" }}>
         <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
           style={{ width: 208, height: "auto", display: "block" }} priority />
       </Link>
@@ -161,7 +161,7 @@ export default function LoginPage() {
                   {isSignIn ? "create a new account" : "existing account? log in"}
                 </button>
                 <PillButton
-                  type="submit" arrow
+                  type="submit" arrow variant="secondary"
                   label={isSignIn ? "log in" : "sign up"}
                   loading={isSignIn ? siLoading : suLoading}
                 />
@@ -196,7 +196,7 @@ export default function LoginPage() {
                   </p>
                 )}
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <PillButton type="submit" arrow label="send link" loading={mlLoading} />
+                  <PillButton type="submit" arrow variant="secondary" label="send link" loading={mlLoading} />
                 </div>
               </form>
             )}
