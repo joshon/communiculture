@@ -269,8 +269,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave, 
             <Image
               src="/logo.svg"
               alt="communi*culture"
-              width={200}
-              height={44}
+              width={208}
+              height={41}
               style={{ height: H(32.5), width: "auto", marginLeft: 0 }}
               priority
             />
@@ -352,8 +352,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, onSave, 
           <Image
             src="/logo.svg"
             alt="communi*culture"
-            width={200}
-            height={44}
+            width={208}
+            height={41}
             style={{ width: S(260), height: "auto", marginLeft: S(80) }}
             priority
           />

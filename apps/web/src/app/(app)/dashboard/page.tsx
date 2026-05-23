@@ -73,7 +73,7 @@ export default async function DashboardPage() {
         {/* Row 1: Logo (left) + Avatar (right) */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: logoMb, flexShrink: 0 }}>
           <Link href="/dashboard" style={{ display: "block" }}>
-            <Image src="/logo.svg" alt="communi*culture" width={200} height={44}
+            <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
               style={{ width: logoW, height: "auto" }} priority />
           </Link>
           <DashboardAvatarHead thumbnailUrl={userRecord?.avatarThumbnail ?? null} size={avatarSize} />

@@ -19,7 +19,7 @@ export function AppNav({ user }: Props) {
       <div className="flex flex-col gap-0.5">
         <Link href="/dashboard" className="block">
           {/* SVG logo */}
-          <Image src="/logo.svg" alt="communi*culture" width={200} height={44} priority style={{ width: 156, height: "auto" }} />
+          <Image src="/logo.svg" alt="communi*culture" width={208} height={41} priority style={{ width: 156, height: "auto" }} />
         </Link>
         <div className="flex gap-4 mt-2 text-xs text-[#0083ff] lowercase">
           <Link href="/dashboard" className="hover:underline">continuums</Link>

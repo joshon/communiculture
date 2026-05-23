@@ -192,7 +192,7 @@ export function ProfileClient({ user }: {
         {/* Row 1: Logo + Avatar head */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: logoMb, flexShrink: 0 }}>
           <Link href="/dashboard" style={{ display: "block" }}>
-            <Image src="/logo.svg" alt="communi*culture" width={200} height={44}
+            <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
               style={{ width: logoW, height: "auto" }} priority />
           </Link>
           <DashboardAvatarHead thumbnailUrl={user.avatarThumbnail} size={avatarSize} />

@@ -82,7 +82,7 @@ export default function LoginPage() {
 
       {/* Logo — fixed, top right */}
       <Link href="/" style={{ position: "fixed", top: 32, right: 40, zIndex: 10, display: "block" }}>
-        <Image src="/logo.svg" alt="communi*culture" width={200} height={44}
+        <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
           style={{ width: 260, height: "auto", display: "block" }} priority />
       </Link>
 
