@@ -49,10 +49,15 @@ export default function LoginPage() {
 
   async function handleMagicLink() {
     setMlError(""); setMlLoading(true);
-    const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
-    setMlLoading(false);
-    if (res?.error) { setMlError("could not send link — try again"); return; }
-    setMlSent(true);
+    try {
+      const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
+      if (res?.error) { setMlError("could not send link — try again"); return; }
+      setMlSent(true);
+    } catch {
+      setMlError("could not send link — try again");
+    } finally {
+      setMlLoading(false);
+    }
   }
 
   async function handleSignIn() {
@@ -188,7 +193,7 @@ export default function LoginPage() {
                 check your email — we sent a sign-in link to {mlEmail}
               </p>
             ) : (
-              <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
+              <form onSubmit={(e) => { e.preventDefault(); void handleMagicLink(); }}>
                 <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
                 {mlError && (
                   <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
