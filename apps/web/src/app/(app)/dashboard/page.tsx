@@ -52,7 +52,7 @@ export default async function DashboardPage() {
   const pagePadTop   = `clamp(12px, ${U(50)}, 60px)`;
   const pageLeftPad  = `clamp(16px, ${U(38)}, 48px)`;
   const logoW        = `clamp(180px, ${U(475)}, 600px)`;
-  const titleFs      = `clamp(16px, ${U(58)}, 80px)`;
+  const titleFs      = `clamp(11px, ${U(41)}, 56px)`;
   const logoMb       = `clamp(14px, ${U(32)}, 48px)`;
   const titleMb      = `clamp(20px, ${U(40)}, 56px)`;
   const continuumML  = `clamp(60px, ${U(240)}, 320px)`;
