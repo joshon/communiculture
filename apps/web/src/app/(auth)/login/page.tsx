@@ -37,8 +37,11 @@ export default function LoginPage() {
 
   const [mlEmail,   setMlEmail]   = useState("");
   const [mlLoading, setMlLoading] = useState(false);
-  const [mlSent,    setMlSent]    = useState(false);
   const [mlError,   setMlError]   = useState("");
+
+  // Persist sent state in URL so it survives any NextAuth navigation
+  const mlSent  = params.get("emailSent") === "1";
+  const mlSentTo = params.get("emailTo") ?? mlEmail;
 
   const [suName,    setSuName]    = useState("");
   const [suEmail,   setSuEmail]   = useState("");
@@ -52,7 +55,7 @@ export default function LoginPage() {
     try {
       const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
       if (res?.error) { setMlError("could not send link — try again"); return; }
-      setMlSent(true);
+      router.push(`/login?emailSent=1&emailTo=${encodeURIComponent(mlEmail)}`);
     } catch {
       setMlError("could not send link — try again");
     } finally {
@@ -190,7 +193,7 @@ export default function LoginPage() {
 
             {mlSent ? (
               <p style={{ fontFamily: INTER, color: BLUE, fontSize: 16, lineHeight: 1.6 }}>
-                check your email — we sent a sign-in link to {mlEmail}
+                check your email — we sent a sign-in link to {mlSentTo}
               </p>
             ) : (
               <form onSubmit={(e) => { e.preventDefault(); void handleMagicLink(); }}>
