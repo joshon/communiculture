@@ -4,6 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
+import { PillButton } from "@/components/ui/PillButton";
+import { PageTitle } from "@/components/ui/PageTitle";
+import { U } from "@/lib/scale";
 
 const BLUE = "#0083FF";
 const DARK_BLUE = "#3F58D0";
@@ -45,7 +49,8 @@ const ALL_PROVIDERS = ["google", "azure-ad", "facebook"];
 export function ProfileClient({ user }: {
   user: {
     name: string; email: string; slogan: string; url: string;
-    avatarConfig: object; connectedProviders: string[]; hasPassword: boolean;
+    avatarConfig: object; avatarThumbnail: string | null;
+    connectedProviders: string[]; hasPassword: boolean;
   };
 }) {
   const [name, setName] = useState(user.name);
@@ -73,52 +78,48 @@ export function ProfileClient({ user }: {
     else alert("cannot remove only auth method");
   }
 
+  const pagePadTop  = `clamp(12px, ${U(50)}, 60px)`;
+  const pageLeftPad = `clamp(16px, ${U(38)}, 48px)`;
+  const logoW       = `clamp(180px, ${U(475)}, 600px)`;
+  const logoMb      = `clamp(14px, ${U(32)}, 48px)`;
+  const titleMb     = `clamp(20px, ${U(40)}, 56px)`;
+  const avatarSize  = `clamp(60px, ${U(100)}, 130px)`;
+  const contentGap  = `clamp(32px, ${U(80)}, 120px)`;
+
   return (
-    <div style={{ minHeight: "100vh", background: "white", display: "flex", fontFamily: PROLETARIAN }}>
+    <div style={{ minHeight: "100vh", background: "white", fontFamily: PROLETARIAN }}>
+      <main style={{
+        paddingTop: pagePadTop,
+        paddingLeft: pageLeftPad,
+        paddingRight: pageLeftPad,
+        display: "flex",
+        flexDirection: "column",
+      }}>
 
-      {/* ── Left nav ── */}
-      <div style={{ width: "clamp(120px,12vw,200px)", flexShrink: 0, padding: "clamp(20px,3vw,48px) clamp(16px,2vw,32px)" }}>
-        <Link href="/dashboard" style={{ display: "block", marginBottom: "clamp(12px,1.5vw,24px)" }}>
-          <Image src="/logo.svg" alt="communi*culture" width={361} height={65}
-            style={{ width: "clamp(90px,9vw,160px)", height: "auto" }} priority />
-        </Link>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4, color: BLUE, fontFamily: PIXELIFY, fontSize: "clamp(10px,0.9vw,14px)" }}>
-          <Link href="/dashboard" className="hover:underline">continuums</Link>
-          <Link href="/dashboard" className="hover:underline">view others</Link>
-          <Link href="/profile" className="hover:underline" style={{ color: DARK_BLUE, fontWeight: "bold" }}>edit yourself</Link>
-        </nav>
-      </div>
+        {/* Row 1: Logo (left) + Avatar head (right) */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: logoMb, flexShrink: 0 }}>
+          <Link href="/dashboard" style={{ display: "block" }}>
+            <Image src="/logo.svg" alt="communi*culture" width={361} height={65}
+              style={{ width: logoW, height: "auto" }} priority />
+          </Link>
+          <DashboardAvatarHead thumbnailUrl={user.avatarThumbnail} size={avatarSize} />
+        </div>
 
-      {/* ── Main content ── */}
-      <div style={{ flex: 1, padding: "clamp(32px,4vw,64px) clamp(24px,4vw,64px)", maxWidth: 680 }}>
+        {/* Row 2: back + title */}
+        <div style={{ display: "flex", alignItems: "center", gap: `clamp(10px, ${U(20)}, 28px)`, marginBottom: titleMb, flexShrink: 0 }}>
+          <PillButton href="/dashboard" label="← home" fontSize="clamp(11px, 0.85vw, 14px)" />
+          <PageTitle>profile</PageTitle>
+        </div>
 
-        {/* Avatar preview + edit link */}
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "clamp(16px,2vw,32px)", marginBottom: "clamp(24px,3vw,48px)" }}>
-          <div>
-            <Link href="/profile/avatar">
-              {/* Placeholder — replace with actual avatar thumbnail when available */}
-              <div style={{
-                width: "clamp(80px,8vw,130px)", height: "clamp(80px,8vw,130px)",
-                background: "#f0f4ff", border: `1.5px solid ${DARK_BLUE}20`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                cursor: "pointer",
-              }}>
-                <span style={{ fontFamily: PIXELIFY, color: `${DARK_BLUE}60`, fontSize: 11 }}>avatar</span>
-              </div>
-            </Link>
-            <Link href="/profile/avatar" style={{ display: "block", marginTop: 6, fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(9px,0.75vw,12px)", textAlign: "center", textDecoration: "underline" }}>
-              edit
-            </Link>
-          </div>
+        {/* Content: form left, avatar preview right */}
+        <div style={{ display: "flex", gap: contentGap, alignItems: "flex-start" }}>
 
-          {/* User info form */}
-          <div style={{ flex: 1 }}>
+          {/* Left: form */}
+          <div style={{ flex: 1, maxWidth: 480 }}>
             <LineInput label="name" value={name} onChange={setName} />
             <LineInput label="email" value={user.email} readOnly />
-            <LineInput label="slogan" value={slogan} onChange={setSlogan} />
-            <LineInput label="url" value={url} onChange={setUrl} />
             {error && <p style={{ color: "#c00", fontSize: 11, marginBottom: 6 }}>{error}</p>}
-            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 4 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginTop: 4, marginBottom: "clamp(16px,2vw,32px)" }}>
               {saved && <span style={{ fontFamily: PIXELIFY, color: BLUE, fontSize: 11 }}>saved</span>}
               <button onClick={handleUpdate} disabled={saving} style={{
                 fontFamily: PIXELIFY, color: DARK_BLUE, background: "none", border: "none",
@@ -127,43 +128,77 @@ export function ProfileClient({ user }: {
                 {saving ? "saving..." : "update"}
               </button>
             </div>
-          </div>
-        </div>
 
-        {/* Connected accounts */}
-        <div style={{ borderTop: `1px solid ${DARK_BLUE}15`, paddingTop: "clamp(16px,2vw,32px)" }}>
-          <h3 style={{ fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(11px,1vw,16px)", marginBottom: "clamp(10px,1.2vw,20px)", letterSpacing: "0.05em" }}>
-            connected accounts
-          </h3>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {ALL_PROVIDERS.map((provider) => {
-              const isConnected = connected.includes(provider);
-              return (
-                <div key={provider} style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span style={{ fontFamily: PROLETARIAN, color: DARK_BLUE, fontSize: "clamp(10px,0.85vw,13px)", minWidth: 90 }}>
-                    {PROVIDER_LABELS[provider] ?? provider}
-                  </span>
-                  {isConnected ? (
-                    <button onClick={() => handleDisconnect(provider)} style={{
-                      fontFamily: PIXELIFY, fontSize: "clamp(9px,0.7vw,11px)", color: `${DARK_BLUE}60`,
-                      background: "none", border: "none", cursor: "pointer", textDecoration: "underline",
-                    }}>
-                      disconnect
-                    </button>
-                  ) : (
-                    <button onClick={() => signIn(provider, { callbackUrl: "/profile" })} style={{
-                      fontFamily: PIXELIFY, fontSize: "clamp(9px,0.7vw,11px)", color: BLUE,
-                      background: "none", border: "none", cursor: "pointer", textDecoration: "underline",
-                    }}>
-                      connect
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+            {/* Connected accounts */}
+            <div style={{ borderTop: `1px solid ${DARK_BLUE}15`, paddingTop: "clamp(16px,2vw,32px)", marginBottom: "clamp(16px,2vw,32px)" }}>
+              <h3 style={{ fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(11px,1vw,16px)", marginBottom: "clamp(10px,1.2vw,20px)", letterSpacing: "0.05em" }}>
+                accounts
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {ALL_PROVIDERS.map((provider) => {
+                  const isConnected = connected.includes(provider);
+                  return (
+                    <div key={provider} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <span style={{ fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(10px,0.85vw,13px)", minWidth: 90 }}>
+                        {PROVIDER_LABELS[provider] ?? provider}
+                      </span>
+                      {isConnected ? (
+                        <button onClick={() => handleDisconnect(provider)} style={{
+                          fontFamily: PIXELIFY, fontSize: "clamp(9px,0.7vw,11px)", color: `${DARK_BLUE}60`,
+                          background: "none", border: "none", cursor: "pointer", textDecoration: "underline",
+                        }}>
+                          disconnect
+                        </button>
+                      ) : (
+                        <button onClick={() => signIn(provider, { callbackUrl: "/profile" })} style={{
+                          fontFamily: PIXELIFY, fontSize: "clamp(9px,0.7vw,11px)", color: BLUE,
+                          background: "none", border: "none", cursor: "pointer", textDecoration: "underline",
+                        }}>
+                          connect
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Details */}
+            <div style={{ borderTop: `1px solid ${DARK_BLUE}15`, paddingTop: "clamp(16px,2vw,32px)" }}>
+              <h3 style={{ fontFamily: PIXELIFY, color: DARK_BLUE, fontSize: "clamp(11px,1vw,16px)", marginBottom: "clamp(10px,1.2vw,20px)", letterSpacing: "0.05em" }}>
+                details
+              </h3>
+              <LineInput label="slogan" value={slogan} onChange={setSlogan} />
+              <LineInput label="url" value={url} onChange={setUrl} />
+            </div>
+
           </div>
+
+          {/* Right: avatar preview */}
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <Link href="/profile/avatar" style={{ display: "block" }}>
+              {user.avatarThumbnail ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={user.avatarThumbnail}
+                  alt="your avatar"
+                  style={{ width: `clamp(80px, ${U(180)}, 240px)`, height: "auto", display: "block" }}
+                />
+              ) : (
+                <div style={{
+                  width: `clamp(80px, ${U(180)}, 240px)`, height: `clamp(80px, ${U(180)}, 240px)`,
+                  background: "#f0f4ff", border: `1.5px solid ${DARK_BLUE}20`,
+                  display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                }}>
+                  <span style={{ fontFamily: PIXELIFY, color: `${DARK_BLUE}60`, fontSize: 11 }}>avatar</span>
+                </div>
+              )}
+            </Link>
+            <PillButton href="/profile/avatar" label="✎ edit" fontSize="clamp(10px, 0.8vw, 13px)" />
+          </div>
+
         </div>
-      </div>
+      </main>
     </div>
   );
 }

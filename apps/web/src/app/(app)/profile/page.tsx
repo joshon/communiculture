@@ -9,6 +9,7 @@ export default async function ProfilePage() {
     where: { id: session!.user.id },
     select: {
       name: true, email: true, slogan: true, url: true, avatarConfig: true,
+      avatarThumbnail: true,
       accounts: { select: { provider: true, id: true } },
       passwordHash: true,
     },
@@ -22,6 +23,7 @@ export default async function ProfilePage() {
         slogan: user?.slogan ?? "",
         url: user?.url ?? "",
         avatarConfig: (user?.avatarConfig ?? {}) as object,
+        avatarThumbnail: user?.avatarThumbnail ?? null,
         connectedProviders: (user?.accounts ?? []).map((a) => a.provider),
         hasPassword: !!user?.passwordHash,
       }}
