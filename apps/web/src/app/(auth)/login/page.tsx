@@ -101,7 +101,7 @@ export default function LoginPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "flex-start",
-        paddingTop: 80,
+        paddingTop: 140,
         paddingBottom: 80,
         paddingLeft: 24,
         paddingRight: 24,
