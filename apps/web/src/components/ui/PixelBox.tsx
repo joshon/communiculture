@@ -60,8 +60,8 @@ export function PixelBox({
         borderPx,
         // Whole tiles only — no partial tile at top of side strip.
         sideH: Math.floor(H / tile) * tile,
-        // Covers W + one shadow square; rounds up to tile boundary for clean right end.
-        bottomW: Math.ceil((W + borderPx) / tile) * tile,
+        // Covers W + one full tile; rounds up to tile boundary for clean right end.
+        bottomW: Math.ceil((W + tile) / tile) * tile,
       });
     };
 
@@ -79,17 +79,16 @@ export function PixelBox({
   const isLeft = shadowDir === "bottom-left";
   const svg = makeTileSvg(tile);
   const tileStr = `${tile}px`;
-  const bStr = `${borderPx}px`;
-  const negB = `-${borderPx}px`;
+  const negT = `-${tile}px`;
 
-  // Bottom strip: one SQUARE tall (borderPx = tile/2), extends one square under the
-  // side strip corner so the L-shape is complete.
+  // Bottom strip: one TILE tall (two squares), extends one tile under the side strip
+  // corner so the L-shape is complete.
   const bottomStrip: CSSProperties = {
     position: "absolute",
-    bottom: negB,
-    ...(isLeft ? { left: negB } : { right: negB }),
+    bottom: negT,
+    ...(isLeft ? { left: negT } : { right: negT }),
     width: `${bottomW}px`,
-    height: bStr,
+    height: tileStr,
     backgroundImage: svg,
     backgroundRepeat: "repeat-x",
     backgroundSize: `${tileStr} ${tileStr}`,
@@ -98,14 +97,14 @@ export function PixelBox({
     zIndex: 0,
   };
 
-  // Side strip: one SQUARE wide (borderPx = tile/2), height = floor(H/tile)*tile so
+  // Side strip: one TILE wide (two squares), height = floor(H/tile)*tile so
   // it ends on a tile boundary at the corner — phase 0 (blue) aligns with bottom strip.
   const sideStrip: CSSProperties = {
     position: "absolute",
     bottom: 0,
     top: "auto",
-    ...(isLeft ? { left: negB } : { right: negB }),
-    width: bStr,
+    ...(isLeft ? { left: negT } : { right: negT }),
+    width: tileStr,
     height: sideH > 0 ? `${sideH}px` : 0,
     backgroundImage: svg,
     backgroundRepeat: "repeat-y",
