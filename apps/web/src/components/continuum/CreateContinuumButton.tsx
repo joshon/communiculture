@@ -65,7 +65,7 @@ export function CreateContinuumButton({ canCreate, count }: Props) {
   return (
     <>
       <PillButton onClick={() => setOpen(true)} label="+ new continuum"
-        fontSize={U(18)}
+        fontSize={`clamp(14px, ${U(18)}, 9999px)`}
         style={{ paddingTop: U(7), paddingBottom: U(7), paddingLeft: U(20), paddingRight: U(20) }}
       />
 

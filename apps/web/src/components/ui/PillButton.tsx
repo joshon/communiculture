@@ -53,12 +53,12 @@ export function PillButton({
 
   const content = loading ? "…" : (
     <>
-      <span style={{ transform: "translateY(2px)" }}>{label ?? children}</span>
+      <span style={{ transform: "translateY(0.12em)" }}>{label ?? children}</span>
       {arrow && <ArrowIcon />}
     </>
   );
 
-  if (href) return <Link href={href} style={base}><span style={{ transform: "translateY(2px)" }}>{label ?? children}</span></Link>;
+  if (href) return <Link href={href} style={base}><span style={{ transform: "translateY(0.12em)" }}>{label ?? children}</span></Link>;
 
   return (
     <button type={type} onClick={onClick} disabled={loading} style={base}>
