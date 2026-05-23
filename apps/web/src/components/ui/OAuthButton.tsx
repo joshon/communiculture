@@ -1,11 +1,5 @@
-"use client";
-
-import { useIsMobile } from "@/hooks/useIsMobile";
-import { S, H } from "@/lib/scale";
-
 const BLUE = "#0083FF";
-const DARK_BLUE = "#3F58D0";
-const INTER = "var(--font-inter)";
+const INTER = "Inter, sans-serif";
 
 interface OAuthButtonProps {
   onClick: () => void;
@@ -14,11 +8,6 @@ interface OAuthButtonProps {
 }
 
 export function OAuthButton({ onClick, icon, label }: OAuthButtonProps) {
-  const mobile = useIsMobile(768);
-  const fs = mobile ? `clamp(13px, ${H(15)}, 18px)` : `clamp(13px, ${S(16)}, 20px)`;
-  const py = mobile ? `clamp(9px, ${H(11)}, 14px)`  : `clamp(9px, ${S(12)}, 16px)`;
-  const mb = mobile ? `clamp(8px, ${H(10)}, 14px)`  : `clamp(8px, ${S(12)}, 16px)`;
-
   return (
     <button
       onClick={onClick}
@@ -26,24 +15,24 @@ export function OAuthButton({ onClick, icon, label }: OAuthButtonProps) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "clamp(8px, 1vw, 12px)",
+        gap: 10,
         width: "100%",
         border: `1.5px solid ${BLUE}`,
         borderRadius: 10,
-        paddingTop: py,
-        paddingBottom: py,
-        paddingLeft: "20px",
-        paddingRight: "20px",
+        paddingTop: 13,
+        paddingBottom: 13,
+        paddingLeft: 20,
+        paddingRight: 20,
         fontFamily: INTER,
-        fontSize: fs,
-        color: "#1a1a1a",
+        fontSize: 18,
+        fontWeight: 600,
+        color: BLUE,
         background: "white",
         cursor: "pointer",
-        marginBottom: mb,
-        letterSpacing: "0.02em",
+        marginBottom: 12,
       }}
     >
-      <span style={{ display: "flex", width: 16, height: 16, flexShrink: 0, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <span style={{ display: "flex", width: 20, height: 20, flexShrink: 0, alignItems: "center", justifyContent: "center" }}>
         {icon}
       </span>
       {label}

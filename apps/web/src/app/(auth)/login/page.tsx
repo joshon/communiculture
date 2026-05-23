@@ -5,14 +5,24 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { PageTitle } from "@/components/ui/PageTitle";
 import { FormField } from "@/components/ui/FormField";
-import { SectionDivider } from "@/components/ui/SectionDivider";
 import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
 
 const BLUE = "#0083FF";
-const PRO = "Inter, sans-serif";
+const INTER = "Inter, sans-serif";
+
+function SectionHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ fontFamily: INTER, fontSize: 24, fontWeight: 500, color: "#1a1a1a", marginBottom: 28 }}>
+      {children}
+    </div>
+  );
+}
+
+function Rule() {
+  return <div style={{ borderTop: "1px solid #D8D8D8", margin: "24px 0" }} />;
+}
 
 export default function LoginPage() {
   const params = useSearchParams();
@@ -80,111 +90,117 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
 
-      {/* Logo — fixed, top right */}
-      <Link href="/" style={{ position: "fixed", top: 32, right: 40, zIndex: 10, display: "block" }}>
+      {/* Logo — fixed top right */}
+      <Link href="/" style={{ position: "fixed", top: 24, right: 32, zIndex: 10, display: "block" }}>
         <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-          style={{ width: 260, height: "auto", display: "block" }} priority />
+          style={{ width: 208, height: "auto", display: "block" }} priority />
       </Link>
 
-      {/* Centered content column */}
+      {/* Two-column layout */}
       <main style={{
         display: "flex",
         justifyContent: "center",
-        paddingTop: 96,
+        alignItems: "flex-start",
+        paddingTop: 80,
         paddingBottom: 80,
         paddingLeft: 24,
         paddingRight: 24,
       }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1px 1fr",
+          gap: "0 48px",
+          width: "100%",
+          maxWidth: 900,
+        }}>
 
-          <div style={{ marginBottom: 36 }}>
-            <PageTitle fontSize="44px">{isSignIn ? "log in" : "sign up"}</PageTitle>
-          </div>
+          {/* ── Left column: credentials + OAuth ── */}
+          <div>
+            <SectionHeader>{isSignIn ? "log in" : "sign up"}</SectionHeader>
 
-          {/* Credentials form */}
-          <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
-            {!isSignIn && (
-              <FormField label="name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
-            )}
-            <FormField
-              label="email" type="email"
-              value={isSignIn ? siEmail : suEmail}
-              onChange={isSignIn ? setSiEmail : setSuEmail}
-              autoComplete="email"
-            />
-            <FormField
-              label="password" type="password"
-              value={isSignIn ? siPassword : suPass}
-              onChange={isSignIn ? setSiPassword : setSuPass}
-              autoComplete={isSignIn ? "current-password" : "new-password"}
-            />
-            {!isSignIn && (
+            <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
+              {!isSignIn && (
+                <FormField label="name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
+              )}
               <FormField
-                label="confirm password" type="password"
-                value={suConfirm} onChange={setSuConfirm}
-                autoComplete="new-password"
+                label="email" type="email"
+                value={isSignIn ? siEmail : suEmail}
+                onChange={isSignIn ? setSiEmail : setSuEmail}
+                autoComplete="email"
               />
-            )}
-
-            {(isSignIn ? siError : suError) && (
-              <p style={{ fontFamily: PRO, color: "#c00", fontSize: 12, margin: "-8px 0 12px" }}>
-                {isSignIn ? siError : suError}
-              </p>
-            )}
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
-              <button
-                type="button"
-                onClick={() => setMode(isSignIn ? "signup" : "signin")}
-                style={{
-                  fontFamily: PRO, fontSize: 13, color: BLUE,
-                  background: "none", border: "none", cursor: "pointer",
-                  textDecoration: "underline", padding: 0, lineHeight: 1,
-                }}
-              >
-                {isSignIn ? "create a new account" : "existing account? log in"}
-              </button>
-              <PillButton
-                type="submit" arrow
-                label={isSignIn ? "log in" : "sign up"}
-                loading={isSignIn ? siLoading : suLoading}
-                onClick={isSignIn ? handleSignIn : handleSignUp}
-                fontSize="13px"
+              <FormField
+                label="password" type="password"
+                value={isSignIn ? siPassword : suPass}
+                onChange={isSignIn ? setSiPassword : setSuPass}
+                autoComplete={isSignIn ? "current-password" : "new-password"}
               />
-            </div>
-          </form>
+              {!isSignIn && (
+                <FormField
+                  label="confirm" type="password"
+                  value={suConfirm} onChange={setSuConfirm}
+                  autoComplete="new-password"
+                />
+              )}
 
-          {/* OAuth */}
-          <div style={{ margin: "28px 0" }}>
-            <SectionDivider label={isSignIn ? "or log in with" : "or sign up with"} />
-          </div>
-
-          <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
-          <OAuthButton onClick={() => signIn("azure-ad", { callbackUrl })} icon={<MicrosoftIcon />} label="Microsoft" />
-          <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
-
-          {/* Email magic link */}
-          <div style={{ margin: "28px 0" }}>
-            <SectionDivider label="or sign in with email link" />
-          </div>
-
-          {mlSent ? (
-            <p style={{ fontFamily: PRO, color: BLUE, fontSize: 13, lineHeight: 1.6 }}>
-              check your email — we sent a sign-in link to {mlEmail}
-            </p>
-          ) : (
-            <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
-              <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
-              {mlError && (
-                <p style={{ fontFamily: PRO, color: "#c00", fontSize: 12, margin: "-8px 0 12px" }}>
-                  {mlError}
+              {(isSignIn ? siError : suError) && (
+                <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
+                  {isSignIn ? siError : suError}
                 </p>
               )}
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <PillButton type="submit" arrow label="send link" loading={mlLoading} fontSize="13px" />
+
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setMode(isSignIn ? "signup" : "signin")}
+                  style={{
+                    fontFamily: INTER, fontSize: 16, fontWeight: 500, color: BLUE,
+                    background: "none", border: "none", cursor: "pointer",
+                    textDecoration: "underline", padding: 0,
+                  }}
+                >
+                  {isSignIn ? "create a new account" : "existing account? log in"}
+                </button>
+                <PillButton
+                  type="submit" arrow
+                  label={isSignIn ? "log in" : "sign up"}
+                  loading={isSignIn ? siLoading : suLoading}
+                />
               </div>
             </form>
-          )}
+
+            <Rule />
+            <SectionHeader>or log in with</SectionHeader>
+
+            <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
+            <OAuthButton onClick={() => signIn("azure-ad", { callbackUrl })} icon={<MicrosoftIcon />} label="Microsoft" />
+            <OAuthButton onClick={() => signIn("facebook", { callbackUrl })} icon={<FacebookIcon />}  label="Facebook" />
+          </div>
+
+          {/* ── Vertical divider ── */}
+          <div style={{ background: "#D8D8D8" }} />
+
+          {/* ── Right column: magic link ── */}
+          <div>
+            <SectionHeader>or sign in with email link</SectionHeader>
+
+            {mlSent ? (
+              <p style={{ fontFamily: INTER, color: BLUE, fontSize: 16, lineHeight: 1.6 }}>
+                check your email — we sent a sign-in link to {mlEmail}
+              </p>
+            ) : (
+              <form onSubmit={(e) => { e.preventDefault(); handleMagicLink(); }}>
+                <FormField label="email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
+                {mlError && (
+                  <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
+                    {mlError}
+                  </p>
+                )}
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <PillButton type="submit" arrow label="send link" loading={mlLoading} />
+                </div>
+              </form>
+            )}
+          </div>
 
         </div>
       </main>
