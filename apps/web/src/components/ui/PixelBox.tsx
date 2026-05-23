@@ -25,14 +25,14 @@ interface PixelBoxProps {
 }
 
 /**
- * White box with solid blue border and a pixel-checkerboard drop shadow.
+ * White box with solid blue border and a pixel-checkerboard offset shadow.
  *
- * Shadow strips are anchored to the corner so the checkerboard phase is always
- * aligned there — no partial squares at the corner or at strip ends.
+ * Shadow strips are exactly ONE square (tile/2 = border width) deep — the same
+ * weight as the border — giving a compact offset-shadow look.
  *
- * Side strip: anchored to bottom, height = floor(H / tile) * tile (whole tiles only).
- * Bottom strip: anchored from the corner side, width = ceil((W + tile) / tile) * tile.
- * Both use backgroundPosition "0 0" so the corner tile phase is 0 on both strips.
+ * Corner phase alignment: side strip anchored to bottom with height = floor(H/tile)*tile
+ * so the last tile ends flush at the corner; bottom strip anchored from the corner
+ * side. Both strips use backgroundPosition "0 0" so phase 0 (blue) sits at the corner.
  */
 export function PixelBox({
   children,
@@ -41,7 +41,7 @@ export function PixelBox({
   shadowDir = "bottom-left",
 }: PixelBoxProps) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const [m, setM] = useState({ tile: 6, sideH: 0, bottomW: 0 });
+  const [m, setM] = useState({ tile: 6, borderPx: 3, sideH: 0, bottomW: 0 });
 
   useEffect(() => {
     const measure = () => {
@@ -52,14 +52,16 @@ export function PixelBox({
             .getPropertyValue("--tile")
             .trim()
         ) || 6;
+      const borderPx = tile / 2;
       const H = boxRef.current.offsetHeight;
       const W = boxRef.current.offsetWidth;
       setM({
         tile,
-        // Round H *down* to whole tiles — no partial tile visible at top of strip.
+        borderPx,
+        // Whole tiles only — no partial tile at top of side strip.
         sideH: Math.floor(H / tile) * tile,
-        // Round up so the strip fully covers W; last tile may protrude slightly.
-        bottomW: Math.ceil((W + tile) / tile) * tile,
+        // Covers W + one shadow square; rounds up to tile boundary for clean right end.
+        bottomW: Math.ceil((W + borderPx) / tile) * tile,
       });
     };
 
@@ -73,20 +75,21 @@ export function PixelBox({
     };
   }, []);
 
-  const { tile, sideH, bottomW } = m;
+  const { tile, borderPx, sideH, bottomW } = m;
   const isLeft = shadowDir === "bottom-left";
   const svg = makeTileSvg(tile);
   const tileStr = `${tile}px`;
-  const negTile = `-${tile}px`;
+  const bStr = `${borderPx}px`;
+  const negB = `-${borderPx}px`;
 
-  // Bottom strip: one tile tall, extends under the side strip at the corner.
-  // Anchored from the corner side so backgroundPosition "0 0" starts at the corner.
+  // Bottom strip: one SQUARE tall (borderPx = tile/2), extends one square under the
+  // side strip corner so the L-shape is complete.
   const bottomStrip: CSSProperties = {
     position: "absolute",
-    bottom: negTile,
-    ...(isLeft ? { left: negTile } : { right: negTile }),
+    bottom: negB,
+    ...(isLeft ? { left: negB } : { right: negB }),
     width: `${bottomW}px`,
-    height: tileStr,
+    height: bStr,
     backgroundImage: svg,
     backgroundRepeat: "repeat-x",
     backgroundSize: `${tileStr} ${tileStr}`,
@@ -95,14 +98,14 @@ export function PixelBox({
     zIndex: 0,
   };
 
-  // Side strip: anchored to bottom so the last tile ends flush at the corner row.
-  // Height is floor(H/tile)*tile — whole tiles only, clean top edge.
+  // Side strip: one SQUARE wide (borderPx = tile/2), height = floor(H/tile)*tile so
+  // it ends on a tile boundary at the corner — phase 0 (blue) aligns with bottom strip.
   const sideStrip: CSSProperties = {
     position: "absolute",
     bottom: 0,
     top: "auto",
-    ...(isLeft ? { left: negTile } : { right: negTile }),
-    width: tileStr,
+    ...(isLeft ? { left: negB } : { right: negB }),
+    width: bStr,
     height: sideH > 0 ? `${sideH}px` : 0,
     backgroundImage: svg,
     backgroundRepeat: "repeat-y",
