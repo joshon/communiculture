@@ -3,12 +3,11 @@
 import { useEffect } from "react";
 
 const BASE_W = 1440;
-const BASE_H = 900;
 
 export function ScaleProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const update = () => {
-      const scale = Math.min(window.innerWidth / BASE_W, window.innerHeight / BASE_H);
+      const scale = window.innerWidth / BASE_W;
       document.documentElement.style.setProperty("--scale", String(scale));
 
       // --tile: square size in px (1, 2, or 3).
