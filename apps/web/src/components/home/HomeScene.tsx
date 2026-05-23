@@ -82,9 +82,9 @@ const SPIN_BURST   = 1800;
 
 // ─── logo sizing ─────────────────────────────────────────────────────────────
 const LOGO_WORLD_WIDTH  = 4.5;
-const LOGO_ASPECT       = 361 / 65;
-const LOGO_ASTERISK_X   = 246.67 / 361;   // exact centre from SVG path
-const LOGO_ASTERISK_TOP = 8.73   / 65;
+const LOGO_ASPECT       = 208 / 41;
+const LOGO_ASTERISK_X   = 135.75 / 208;   // asterisk centre X in new SVG
+const LOGO_ASTERISK_TOP = 5.69   / 41;    // asterisk centre Y in new SVG
 
 // ─── responsive camera ────────────────────────────────────────────────────────
 function responsiveZoom(w: number) { return Math.max(48, Math.min(100, w / 20)); }
