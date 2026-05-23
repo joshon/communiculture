@@ -204,9 +204,27 @@ export default function LoginPage() {
             <SectionHeader>or sign in with email link</SectionHeader>
 
             {mlSent ? (
-              <p style={{ fontFamily: INTER, color: BLUE, fontSize: 16, lineHeight: 1.6 }}>
-                check your email — we sent a sign-in link to {mlSentTo}
-              </p>
+              <div>
+                <p style={{ fontFamily: INTER, color: BLUE, fontSize: 16, lineHeight: 1.6, marginBottom: 16 }}>
+                  Check your email — we sent a sign-in link to {mlSentTo}
+                </p>
+                <button
+                  onClick={() => {
+                    sessionStorage.removeItem("mlSent");
+                    sessionStorage.removeItem("mlSentTo");
+                    setMlSentState(false);
+                    setMlSentTo("");
+                    setMlEmail("");
+                  }}
+                  style={{
+                    fontFamily: INTER, fontSize: 14, fontWeight: 500, color: BLUE,
+                    background: "none", border: "none", cursor: "pointer",
+                    textDecoration: "underline", padding: 0,
+                  }}
+                >
+                  Try another email
+                </button>
+              </div>
             ) : (
               <form onSubmit={(e) => { e.preventDefault(); void handleMagicLink(); }}>
                 <FormField label="Email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
