@@ -14,7 +14,7 @@ const INTER = "Inter, sans-serif";
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontFamily: INTER, fontSize: 24, fontWeight: 500, color: "#1a1a1a", marginBottom: 28 }}>
+    <div style={{ fontFamily: INTER, fontSize: 22, fontWeight: 500, color: "#1a1a1a", marginBottom: 28 }}>
       {children}
     </div>
   );

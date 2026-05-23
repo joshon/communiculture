@@ -24,7 +24,7 @@ export function OAuthButton({ onClick, icon, label }: OAuthButtonProps) {
         paddingLeft: 20,
         paddingRight: 20,
         fontFamily: INTER,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 600,
         color: BLUE,
         background: "white",

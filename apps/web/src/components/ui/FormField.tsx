@@ -15,7 +15,7 @@ export function FormField({ label, type, value, onChange, autoComplete }: FormFi
     <div style={{ display: "flex", alignItems: "baseline", gap: 20, marginBottom: 24 }}>
       <label style={{
         fontFamily: INTER,
-        fontSize: 18,
+        fontSize: 16,
         fontWeight: 500,
         color: "#1a1a1a",
         width: 110,
@@ -36,7 +36,7 @@ export function FormField({ label, type, value, onChange, autoComplete }: FormFi
           borderBottom: "1.5px solid #AAAAAA",
           outline: "none",
           fontFamily: INTER,
-          fontSize: 18,
+          fontSize: 16,
           fontWeight: 400,
           color: "#1a1a1a",
           background: "transparent",
