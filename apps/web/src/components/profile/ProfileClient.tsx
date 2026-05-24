@@ -9,6 +9,7 @@ import { PillButton } from "@/components/ui/PillButton";
 import { AvatarRenderer } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
+import { useAvatarStore } from "@/store/avatarStore";
 
 const BLUE = "#0083FF";
 const INTER = "Inter, sans-serif";
@@ -22,10 +23,10 @@ function LineInput({ label, type = "text", value, onChange, readOnly }: {
   onChange?: (v: string) => void; readOnly?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "baseline", gap: "clamp(12px, 3vw, 20px)", marginBottom: "clamp(16px, 3vw, 24px)" }}>
+    <div style={{ display: "flex", alignItems: "baseline", gap: "clamp(8px, 2vw, 14px)", marginBottom: "clamp(16px, 3vw, 24px)" }}>
       <label style={{
         fontFamily: INTER, fontSize: 16, fontWeight: 500, color: "#1a1a1a",
-        width: "clamp(80px, 18vw, 110px)", flexShrink: 0,
+        width: "clamp(52px, 10vw, 70px)", flexShrink: 0,
         textAlign: "right", lineHeight: 1,
       }}>
         {label}
@@ -87,6 +88,9 @@ const ALL_PROVIDERS = ["google", "azure-ad", "facebook"];
 function AvatarPreview({ avatarConfig, onClick }: { avatarConfig: object; onClick?: () => void }) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
   const pointerDownRef = useRef<[number, number] | null>(null);
+  // Prefer live store values — updated by the avatar editor without a page reload
+  const storeColors   = useAvatarStore((s) => s.editingColors);
+  const storeVariants = useAvatarStore((s) => s.editingVariants);
 
   useEffect(() => {
     fetch("/api/dev/avatar-library")
@@ -96,8 +100,11 @@ function AvatarPreview({ avatarConfig, onClick }: { avatarConfig: object; onClic
   }, []);
 
   const cfg = avatarConfig as Record<string, unknown>;
-  const colors = (cfg.format === "v2" ? cfg.colors : null) as Record<AvatarPart, string> | null;
-  const variants = (cfg.format === "v2" ? cfg.variants : null) as Record<AvatarPart, number> | null;
+  const serverColors   = (cfg.format === "v2" ? cfg.colors   : null) as Record<AvatarPart, string> | null;
+  const serverVariants = (cfg.format === "v2" ? cfg.variants : null) as Record<AvatarPart, number> | null;
+
+  const colors   = storeColors   ?? serverColors;
+  const variants = storeVariants ?? serverVariants;
 
   const safeColors  = colors  ?? Object.fromEntries(AVATAR_PARTS.map((p) => [p, "#cccccc"])) as Record<AvatarPart, string>;
   const safeVariants = variants ?? Object.fromEntries(AVATAR_PARTS.map((p) => [p, 0])) as Record<AvatarPart, number>;
@@ -189,8 +196,8 @@ export function ProfileClient({ user }: {
     else alert("cannot remove your only sign-in method");
   }
 
-  // Indent accounts to align with form content
-  const FIELD_INDENT = "clamp(92px, 21vw, 130px)";
+  // Indent accounts to align with form content (label width + gap)
+  const FIELD_INDENT = "clamp(60px, 12vw, 84px)";
 
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
@@ -297,15 +304,22 @@ export function ProfileClient({ user }: {
           <div style={{ width: 1, background: "#D8D8D8", alignSelf: "stretch", flexShrink: 0 }} />
 
           {/* ── Right: avatar ── */}
-          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-            <p style={{ fontFamily: INTER, fontSize: 22, fontWeight: 500, color: "#1a1a1a", margin: "0 0 4px" }}>
+          <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0 }}>
+            <p style={{
+              fontFamily: INTER, fontSize: 22, fontWeight: 500, color: "#1a1a1a",
+              margin: 0, position: "relative", zIndex: 1,
+            }}>
               Avatar
             </p>
-            <AvatarPreview
-              avatarConfig={user.avatarConfig}
-              onClick={() => router.push("/profile/avatar")}
-            />
-            <PillButton href="/profile/avatar" fontSize="16px" label="Edit avatar" variant="secondary" arrow />
+            <div style={{ marginTop: -70, position: "relative", zIndex: 0 }}>
+              <AvatarPreview
+                avatarConfig={user.avatarConfig}
+                onClick={() => router.push("/profile/avatar")}
+              />
+            </div>
+            <div style={{ width: 360, display: "flex", justifyContent: "center", marginTop: 16 }}>
+              <PillButton href="/profile/avatar" fontSize="16px" label="Edit avatar" variant="secondary" arrow />
+            </div>
           </div>
 
         </div>
