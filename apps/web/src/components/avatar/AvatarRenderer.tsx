@@ -14,20 +14,25 @@ const LOGO_BLUE = "#0083FF";
 
 // ─── viewport-proportional zoom (scales avatar like a video with page width) ──
 
-function CameraController() {
+function CameraController({ zoomMultiplier = 1, fixedZoom }: { zoomMultiplier?: number; fixedZoom?: number }) {
   const { size, camera } = useThree();
   useEffect(() => {
     const orthoCamera = camera as THREE.OrthographicCamera;
+    if (fixedZoom !== undefined) {
+      orthoCamera.zoom = fixedZoom;
+      orthoCamera.updateProjectionMatrix();
+      return;
+    }
     const mobile = size.width < 1024;
-    const zoom = mobile
+    const base = mobile
       ? Math.max(40, Math.min(size.width / 3.6, 150))
       : Math.max(55, Math.min(170, size.width / 9));
-    orthoCamera.zoom = zoom;
+    orthoCamera.zoom = base * zoomMultiplier;
     // Mobile: center avatar. Desktop: shift ~72% from left.
     const offsetX = mobile ? 0 : -size.width * 0.22;
     orthoCamera.setViewOffset(size.width, size.height, offsetX, 0, size.width, size.height);
     orthoCamera.updateProjectionMatrix();
-  }, [size.width, size.height, camera]);
+  }, [size.width, size.height, camera, zoomMultiplier, fixedZoom]);
   return null;
 }
 
@@ -386,7 +391,8 @@ function PartLabels({
 
 // Spins the avatar 2 full rotations and eases to default (y=0) over 2 seconds.
 // Locks on first active=true frame so prop changes don't interrupt the animation.
-function SpinWrapper({ active, children }: { active: boolean; children: React.ReactNode }) {
+// idleSpin: continuous slow rotation for non-interactive display.
+function SpinWrapper({ active, idleSpin, children }: { active: boolean; idleSpin?: boolean; children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
   const startRef = useRef<number | null>(null);
   const DURATION = 2.0;
@@ -394,6 +400,10 @@ function SpinWrapper({ active, children }: { active: boolean; children: React.Re
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
+    if (idleSpin) {
+      ref.current.rotation.y = clock.elapsedTime * 0.4;
+      return;
+    }
     if (active && startRef.current === null) startRef.current = clock.elapsedTime;
     if (startRef.current === null) return;
     const t = Math.min((clock.elapsedTime - startRef.current) / DURATION, 1);
@@ -413,6 +423,11 @@ export interface AvatarRendererProps {
   showOutline?: boolean;
   showLabels?: boolean;
   spinning?: boolean;
+  disableOrbit?: boolean;
+  idleSpin?: boolean;
+  zoomMultiplier?: number;
+  fixedZoom?: number;
+  cameraTargetY?: number;
 }
 
 export function AvatarRenderer({
@@ -424,6 +439,11 @@ export function AvatarRenderer({
   showOutline = true,
   showLabels = false,
   spinning = false,
+  disableOrbit = false,
+  idleSpin = false,
+  zoomMultiplier = 1,
+  fixedZoom,
+  cameraTargetY = 1.35,
 }: AvatarRendererProps) {
   return (
     <Canvas
@@ -439,13 +459,13 @@ export function AvatarRenderer({
       <color attach="background" args={["#ffffff"]} />
 
       {/* Zoom scales with canvas width so avatar maintains visual proportion */}
-      <CameraController />
+      <CameraController zoomMultiplier={zoomMultiplier} fixedZoom={fixedZoom} />
 
       <ambientLight intensity={1.4} />
       <directionalLight position={[-5, 7, 4]} intensity={1.6} castShadow />
       <directionalLight position={[3, 2, -2]} intensity={0.15} />
 
-      <SpinWrapper active={spinning}>
+      <SpinWrapper active={spinning} idleSpin={idleSpin}>
         <CharacterGroup
           library={library}
           variantIndices={variantIndices}
@@ -462,11 +482,12 @@ export function AvatarRenderer({
 
       <OrbitControls
         makeDefault
+        enabled={!disableOrbit}
         enablePan={false}
         enableZoom={false}
         minDistance={2}
         maxDistance={8}
-        target={[0, 1.35, 0]}
+        target={[0, cameraTargetY, 0]}
         minPolarAngle={Math.PI / 3}
         maxPolarAngle={Math.PI / 3}
       />

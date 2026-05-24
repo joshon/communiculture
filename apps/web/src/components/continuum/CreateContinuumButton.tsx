@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { PillButton } from "@/components/ui/PillButton";
-import { U } from "@/lib/scale";
 
 interface Props {
   canCreate: boolean;
@@ -64,10 +63,7 @@ export function CreateContinuumButton({ canCreate, count }: Props) {
 
   return (
     <>
-      <PillButton onClick={() => setOpen(true)} label="+ new continuum"
-        fontSize={`clamp(10px, ${U(18)}, 9999px)`}
-        style={{ paddingTop: U(7), paddingBottom: U(7), paddingLeft: U(20), paddingRight: U(20) }}
-      />
+      <PillButton onClick={() => setOpen(true)} label="+ new continuum" fontSize="16px" />
 
       {open && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">

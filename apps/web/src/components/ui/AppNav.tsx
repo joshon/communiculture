@@ -29,7 +29,7 @@ export function AppNav({ user, thumbnailUrl = null }: Props) {
       </div>
 
       {/* Right: avatar button with dropdown */}
-      <DashboardAvatarHead thumbnailUrl={thumbnailUrl} size="52px" />
+      <DashboardAvatarHead thumbnailUrl={thumbnailUrl} size="60px" />
     </nav>
   );
 }
