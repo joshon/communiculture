@@ -345,23 +345,29 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
 
         {/* Reset / Random */}
         <div style={{
-          flexShrink: 0, display: "flex", justifyContent: "center", gap: H(40),
-          fontFamily: PROLETARIAN, fontSize: H(20), color: LOGO_BLUE,
-          padding: `${H(10)} 0`,
+          flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: H(28),
+          padding: `${H(8)} 0`,
         }}>
-          <button onClick={handleReset}    className="hover:opacity-60 transition-opacity lowercase">reset</button>
-          <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity lowercase">random</button>
+          <button
+            onClick={handleReset}
+            style={{
+              fontFamily: PROLETARIAN, fontSize: H(14), color: LOGO_BLUE,
+              background: "none", border: "none", cursor: "pointer",
+              textDecoration: "underline", padding: 0,
+            }}
+          >
+            reset
+          </button>
+          <PillButton onClick={handleRandomize} variant="primary" label="random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
         </div>
 
-        {/* Color palette — H()-sized so rows always fit within any phone width */}
-        <div style={{ flexShrink: 0, padding: `${H(8)} ${H(16)} ${H(12)}`, display: "flex", justifyContent: "center" }}>
-          <div>
-            <PaletteRows
-              asteriskSize={H(22.5)}
-              rowGap={H(16)}
-              onSelect={handleColorSelect}
-            />
-          </div>
+        {/* Color palette — wider rows */}
+        <div style={{ flexShrink: 0, padding: `${H(6)} ${H(8)} ${H(10)}` }}>
+          <PaletteRows
+            asteriskSize={H(22.5)}
+            rowGap={H(14)}
+            onSelect={handleColorSelect}
+          />
         </div>
       </div>
     );
