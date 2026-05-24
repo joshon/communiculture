@@ -323,7 +323,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
         <div style={{
           flexShrink: 0, display: "flex", flexWrap: "wrap",
           justifyContent: "center", alignContent: "flex-start",
-          padding: `${H(4)} ${H(16)}`, gap: H(9),
+          padding: `${H(14)} ${H(16)} ${H(4)}`, gap: H(9),
           minHeight: H(37),
         }}>
           {selectedPart && selectedPartVariantCount > 1 && Array.from({ length: selectedPartVariantCount }, (_, i) => (
@@ -358,11 +358,11 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           >
             reset
           </button>
-          <PillButton onClick={handleRandomize} variant="primary" label="random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
+          <PillButton onClick={handleRandomize} variant="secondary" label="random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
         </div>
 
         {/* Color palette — wider rows */}
-        <div style={{ flexShrink: 0, padding: `${H(6)} ${H(8)} ${H(10)}` }}>
+        <div style={{ flexShrink: 0, padding: `${H(6)} ${H(20)} ${H(10)}` }}>
           <PaletteRows
             asteriskSize={H(22.5)}
             rowGap={H(14)}

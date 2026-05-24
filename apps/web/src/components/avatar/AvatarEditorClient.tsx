@@ -107,7 +107,7 @@ export function AvatarEditorClient({ user }: Props) {
             <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
               style={{ width: 140, height: "auto", display: "block" }} priority />
           </Link>
-          <DashboardAvatarHead thumbnailUrl={thumbnailUrl ?? null} size="48px" />
+          <DashboardAvatarHead thumbnailUrl={thumbnailUrl ?? null} size="55px" />
         </div>
         {crumbs(13)}
       </header>

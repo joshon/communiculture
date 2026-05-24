@@ -63,6 +63,34 @@ The logo SVG is at `public/logo.svg` (361×65). It includes both "communi*cultur
 Always use `<Image src="/logo.svg" width={361} height={65} style={{ width: "...", height: "auto" }} />`.
 The asterisk (*) is at approximately x=60% from the left of the SVG.
 
+## Buttons
+
+Use `<PillButton>` from `components/ui/PillButton.tsx` for all call-to-action buttons. Three tiers:
+
+| Tier | `variant` prop | Appearance | When to use |
+|---|---|---|---|
+| **Primary** | `variant="primary"` | Blue fill (`#0083FF`), white text | Main action (e.g. Save, Submit, Send link) |
+| **Secondary** | `variant="secondary"` | White fill, blue border + blue text | Alternative / less-prominent action (e.g. Random, Cancel) |
+| **Tertiary** | *(no PillButton — plain `<button>`)* | No bg/border, blue text, `textDecoration: underline` | Lowest-priority action (e.g. Reset, "Create a new account") |
+
+Tertiary pattern:
+```tsx
+<button
+  onClick={handler}
+  style={{
+    fontFamily: "Inter, sans-serif",
+    color: "#0083FF",
+    background: "none",
+    border: "none",
+    cursor: "pointer",
+    textDecoration: "underline",
+    padding: 0,
+  }}
+>
+  reset
+</button>
+```
+
 ## Stack quick-reference
 
 - **Next.js 14** App Router — server components by default, add `"use client"` when needed
