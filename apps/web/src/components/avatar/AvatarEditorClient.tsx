@@ -132,9 +132,13 @@ export function AvatarEditorClient({ user }: Props) {
     </>
   );
 
+  const wrapperStyle = isMobile
+    ? { background: "white", height: "100svh", display: "flex", flexDirection: "column" as const, overflow: "hidden" }
+    : { background: "white" };
+
   if (!library) {
     return (
-      <div style={{ background: "white" }}>
+      <div style={wrapperStyle}>
         {header}
         <div className="flex items-center justify-center h-64 text-xs text-black/30 lowercase font-mono">
           loading…
@@ -144,7 +148,7 @@ export function AvatarEditorClient({ user }: Props) {
   }
 
   return (
-    <div style={{ background: "white" }}>
+    <div style={wrapperStyle}>
       {header}
       <AvatarEditor
         library={library}

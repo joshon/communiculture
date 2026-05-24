@@ -317,7 +317,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
   // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
+      <div style={{ width: "100vw", flex: 1, minHeight: 0, background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
         {/* Variant selector — always reserves 2-row height to prevent layout jump */}
         <div style={{
@@ -338,15 +338,24 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           ))}
         </div>
 
-        {/* 3D canvas — capped height so controls sit higher */}
-        <div style={{ flex: 1, minHeight: 0, maxHeight: "115vw", position: "relative" }}>
+        {/* 3D canvas — flex fills remaining space, capped so palette+buttons always show */}
+        <div style={{ flex: 1, minHeight: 0, maxHeight: "90vw", position: "relative" }}>
           {avatarRenderer}
+        </div>
+
+        {/* Color palette — wider rows */}
+        <div style={{ flexShrink: 0, padding: `${H(6)} ${H(28)} ${H(10)}` }}>
+          <PaletteRows
+            asteriskSize={H(22.5)}
+            rowGap={H(14)}
+            onSelect={handleColorSelect}
+          />
         </div>
 
         {/* Reset / Random */}
         <div style={{
           flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: H(28),
-          padding: `${H(8)} 0`,
+          padding: `${H(8)} 0 ${H(12)}`,
         }}>
           <button
             onClick={handleReset}
@@ -359,15 +368,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
             reset
           </button>
           <PillButton onClick={handleRandomize} variant="secondary" label="random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
-        </div>
-
-        {/* Color palette — wider rows */}
-        <div style={{ flexShrink: 0, padding: `${H(6)} ${H(20)} ${H(10)}` }}>
-          <PaletteRows
-            asteriskSize={H(22.5)}
-            rowGap={H(14)}
-            onSelect={handleColorSelect}
-          />
         </div>
       </div>
     );
