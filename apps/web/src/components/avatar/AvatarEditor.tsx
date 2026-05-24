@@ -338,8 +338,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           ))}
         </div>
 
-        {/* 3D canvas — flex fills remaining space; palette+buttons are flexShrink:0 below */}
-        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {/* 3D canvas — capped at 60svh so palette+buttons always have room */}
+        <div style={{ flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}>
           {avatarRenderer}
         </div>
 
@@ -355,7 +355,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
         {/* Reset / Random */}
         <div style={{
           flexShrink: 0, display: "flex", justifyContent: "center", alignItems: "center", gap: H(28),
-          padding: `${H(8)} 0 ${H(12)}`,
+          padding: `${H(8)} 0 ${H(26)}`,
         }}>
           <button
             onClick={handleReset}
