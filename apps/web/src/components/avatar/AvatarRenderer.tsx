@@ -357,7 +357,7 @@ function PartLabels({
                 onClick={() => onPartClick?.(part)}
                 style={{
                   fontFamily: "Inter, sans-serif",
-                  fontSize: "clamp(15px, 1.87vw, 29px)",
+                  fontSize: 16,
                   lineHeight: 1,
                   color: isSelected ? "#003FA3" : LOGO_BLUE,
                   background: "none",

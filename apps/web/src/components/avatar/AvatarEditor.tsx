@@ -5,10 +5,37 @@ import { AvatarRenderer } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { useIsMobile } from "@/hooks/useIsMobile";
+import { PillButton } from "@/components/ui/PillButton";
 
 // ─── scale helpers ─────────────────────────────────────────────────────────────
-const S = (px: number) => `${((px / 1440) * 100).toFixed(3)}vw`;  // desktop: scale by width
-const H = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;  // mobile:  scale by height
+const H = (px: number) => `${((px / 844) * 100).toFixed(3)}svh`;  // mobile: scale by height
+
+// ─── editor canvas size — ResizeObserver measures the actual rendered div ─────
+const EDITOR_MAX_H = 560;
+const EDITOR_ASPECT = 500 / 560;
+const EDITOR_BASE_ZOOM = 143;
+// 92px = sticky header height (16px top padding + 60px avatar head + 16px bottom padding)
+const EDITOR_HEADER_H = 92;
+
+function useEditorCanvasSize() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(EDITOR_MAX_H);
+  const [zoom, setZoom] = useState(EDITOR_BASE_ZOOM);
+  const [width, setWidth] = useState(Math.round(EDITOR_MAX_H * EDITOR_ASPECT));
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new ResizeObserver(() => {
+      const h = Math.max(300, Math.min(EDITOR_MAX_H, el.clientHeight || EDITOR_MAX_H));
+      setHeight(h);
+      setZoom(Math.round(EDITOR_BASE_ZOOM * h / EDITOR_MAX_H));
+      setWidth(Math.round(h * EDITOR_ASPECT));
+    });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, zoom, width, height };
+}
 
 // ─── 18-color palette — ordered by row ────────────────────────────────────────
 export const COLOR_PALETTE: string[] = [
@@ -67,12 +94,10 @@ function AsteriskIcon({ color, size = 24 }: { color: string; size?: number | str
 
 function PaletteRows({
   asteriskSize,
-  gap,
   rowGap,
   onSelect,
 }: {
   asteriskSize: string;
-  gap: string;
   rowGap: string;
   onSelect: (col: string) => void;
 }) {
@@ -81,7 +106,7 @@ function PaletteRows({
       {[0, 1, 2].map((row) => (
         <div
           key={row}
-          style={{ position: "relative", display: "flex", gap, marginBottom: row < 2 ? rowGap : 0 }}
+          style={{ position: "relative", display: "flex", justifyContent: "space-between", marginBottom: row < 2 ? rowGap : 0 }}
         >
           <div style={{
             position: "absolute", top: "50%", left: 0, right: 0,
@@ -260,6 +285,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
   const selectedPartVariantCount = selectedPart ? (library[selectedPart]?.length ?? 1) : 0;
   const selectedVariantIdx       = selectedPart ? (variants[selectedPart] ?? 0) : 0;
 
+  const { ref: canvasContainerRef, zoom: canvasZoom, width: canvasW, height: canvasH } = useEditorCanvasSize();
+
   const avatarRenderer = (
     <AvatarRenderer
       library={library}
@@ -273,9 +300,21 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     />
   );
 
+  const desktopAvatarRenderer = (
+    <AvatarRenderer
+      library={library}
+      variantIndices={variants}
+      colors={colors}
+      selectedPart={selectedPart}
+      onPartClick={handlePartClick}
+      showOutline={true}
+      showLabels={true}
+      spinning={isSpinning}
+      fixedZoom={canvasZoom}
+    />
+  );
+
   // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
-  // H() refs 844px (iPhone 12 Pro) so everything scales with viewport height.
-  // At 844px: header≈108, variant≈22, reset≈40, palette≈166 → canvas≈508px.
   if (isMobile) {
     return (
       <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
@@ -319,7 +358,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           <div>
             <PaletteRows
               asteriskSize={H(22.5)}
-              gap={H(14)}
               rowGap={H(16)}
               onSelect={handleColorSelect}
             />
@@ -330,61 +368,77 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
   }
 
   // ─── desktop layout ─────────────────────────────────────────────────────────
+  // Height is driven by CSS (100svh minus header) so the page never overflows.
+  // ResizeObserver on the canvas div feeds back the actual height → correct zoom.
   return (
-    <div className="relative overflow-hidden select-none" style={{ width: "100vw", height: "62.5vw" }}>
+    <div style={{
+      display: "flex",
+      justifyContent: "center",
+      height: `calc(100svh - ${EDITOR_HEADER_H}px)`,
+      boxSizing: "border-box",
+      gap: "clamp(32px, 5vw, 80px)",
+      padding: "clamp(24px, 4vh, 40px) clamp(16px, 4vw, 48px)",
+      userSelect: "none",
+    }}>
 
-      {/* Full-screen canvas */}
-      <div className="absolute inset-0">
-        {avatarRenderer}
-      </div>
+      {/* Left: part name, variant picker, palette — height matches canvas so bottom never exceeds avatar bottom */}
+      <div style={{
+        height: canvasH,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-end",
+        flexShrink: 0,
+        width: "clamp(200px, 25vw, 320px)",
+        paddingBottom: "clamp(24px, 3vh, 40px)",
+      }}>
+        {/* Current part name */}
+        <p style={{ fontFamily: PROLETARIAN, fontSize: 22, fontWeight: 500, color: "#1a1a1a", margin: "0 0 14px" }}>
+          {selectedPart ?? ""}
+        </p>
 
-      {/* Palette overlay */}
-      <div
-        className="absolute flex flex-col"
-        style={{
-          top: S(490), left: S(374), width: S(242),
-          pointerEvents: "none", gap: S(11),
-          alignItems: "flex-end", overflow: "visible",
-        }}
-      >
-        {/* Variant selector */}
-        {selectedPart && selectedPartVariantCount > 1 && (
-          <div className="flex items-end" style={{ gap: S(9), pointerEvents: "auto", overflow: "visible" }}>
-            {Array.from({ length: selectedPartVariantCount }, (_, i) => (
-              <button
-                key={i}
-                onClick={() => setVariantIndex(selectedPart, i)}
-                className="flex-shrink-0 transition-all duration-100"
-                style={{ transform: i === selectedVariantIdx ? "translateY(-5px)" : "none" }}
-              >
-                <AsteriskIcon color={LOGO_BLUE} size={S(14)} />
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Color palette rows */}
-        <div style={{ pointerEvents: "auto", marginTop: S(33) }}>
-          <PaletteRows
-            asteriskSize={S(22)}
-            gap={S(22)}
-            rowGap={S(33)}
-            onSelect={handleColorSelect}
-          />
+        {/* Variant selector — smaller than palette, left-aligned */}
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", gap: "clamp(6px, 0.8vw, 10px)", minHeight: 18, marginBottom: 64 }}>
+          {selectedPart && selectedPartVariantCount > 1 && Array.from({ length: selectedPartVariantCount }, (_, i) => (
+            <button
+              key={i}
+              onClick={() => setVariantIndex(selectedPart, i)}
+              className="flex-shrink-0 transition-all duration-100"
+              style={{ transform: i === selectedVariantIdx ? "translateY(-3px)" : "none" }}
+            >
+              <AsteriskIcon color={LOGO_BLUE} size="clamp(12px, 1.2vw, 16px)" />
+            </button>
+          ))}
         </div>
+
+        {/* Color palette — 15% larger than before, space-between fills row width */}
+        <PaletteRows
+          asteriskSize="clamp(21px, 2.1vw, 28px)"
+          rowGap="clamp(18px, 2vw, 28px)"
+          onSelect={handleColorSelect}
+        />
       </div>
 
-      {/* Reset / Random */}
-      <div
-        className="absolute flex lowercase"
-        style={{
-          top: S(720), left: S(1008), gap: S(28),
-          fontSize: S(28), color: LOGO_BLUE,
-          fontFamily: PROLETARIAN, pointerEvents: "auto",
-        }}
-      >
-        <button onClick={handleReset}    className="hover:opacity-60 transition-opacity">reset</button>
-        <button onClick={handleRandomize} className="hover:opacity-60 transition-opacity">random</button>
+      {/* Right: avatar canvas (flex: 1 within column) + buttons pinned below */}
+      <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", paddingBottom: "clamp(24px, 4vh, 40px)" }}>
+        <div
+          ref={canvasContainerRef}
+          style={{ flex: 1, maxHeight: EDITOR_MAX_H, minHeight: 300, width: canvasW, overflow: "visible" }}
+        >
+          {desktopAvatarRenderer}
+        </div>
+        <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 20, marginTop: 20 }}>
+          <button
+            onClick={handleReset}
+            style={{
+              fontFamily: PROLETARIAN, fontSize: 16, fontWeight: 500, color: LOGO_BLUE,
+              background: "none", border: "none", cursor: "pointer",
+              textDecoration: "underline", padding: 0,
+            }}
+          >
+            Reset
+          </button>
+          <PillButton onClick={handleRandomize} variant="secondary" label="Random" fontSize="16px" />
+        </div>
       </div>
     </div>
   );
