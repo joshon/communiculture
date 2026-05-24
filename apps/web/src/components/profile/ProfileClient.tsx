@@ -1,15 +1,13 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
 import { PillButton } from "@/components/ui/PillButton";
 import { AvatarRenderer } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { useAvatarStore } from "@/store/avatarStore";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 const BLUE = "#0083FF";
 const INTER = "Inter, sans-serif";
@@ -230,29 +228,7 @@ export function ProfileClient({ user }: {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
 
-      <style>{`.profile-home-crumb { color: #aaa; text-decoration: none; transition: color 0.2s; } .profile-home-crumb:hover { color: #1a1a1a; }`}</style>
-
-      {/* Sticky header */}
-      <header style={{
-        position: "sticky", top: 0, zIndex: 10, background: "white",
-        display: "flex", alignItems: "center",
-        padding: "16px clamp(16px, 4vw, 32px)", gap: 16,
-      }}>
-        <Link href="/dashboard" style={{ display: "block", flexShrink: 0 }}>
-          <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-            style={{ width: "clamp(120px, 20vw, 180px)", height: "auto", display: "block" }} priority />
-        </Link>
-
-        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, fontFamily: INTER, fontSize: 16 }}>
-          <Link href="/dashboard" className="profile-home-crumb">home</Link>
-          <span style={{ color: "#ccc" }}>|</span>
-          <span style={{ color: "#1a1a1a", fontWeight: 500 }}>edit profile</span>
-        </div>
-
-        <div style={{ flexShrink: 0 }}>
-          <DashboardAvatarHead thumbnailUrl={user.avatarThumbnail} size="60px" />
-        </div>
-      </header>
+      <AppHeader breadcrumbs={[{ label: "home", href: "/dashboard" }, { label: "edit profile" }]} />
 
       <main style={{
         paddingTop: 48,

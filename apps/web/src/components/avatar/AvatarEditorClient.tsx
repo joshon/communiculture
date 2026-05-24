@@ -1,15 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { useAvatarStore } from "@/store/avatarStore";
-import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
 import { useIsMobile } from "@/hooks/useIsMobile";
-
-const INTER = "Inter, sans-serif";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 interface V2Config {
   format: "v2";
@@ -36,12 +32,17 @@ interface Props {
   };
 }
 
+const BREADCRUMBS = [
+  { label: "home", href: "/dashboard" },
+  { label: "edit profile", href: "/profile" },
+  { label: "edit avatar" },
+];
+
 export function AvatarEditorClient({ user }: Props) {
   const setEditingConfig = useAvatarStore((s) => s.setEditingConfig);
   const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
   const editingColors = useAvatarStore((s) => s.editingColors);
   const editingVariants = useAvatarStore((s) => s.editingVariants);
-  const thumbnailUrl = useAvatarStore((s) => s.thumbnailUrl);
   const isMobile = useIsMobile(1024);
 
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
@@ -84,54 +85,6 @@ export function AvatarEditorClient({ user }: Props) {
 
   const autoSpin = !parsed && !editingColors;
 
-  const crumbs = (fontSize: number) => (
-    <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, fontFamily: INTER, fontSize }}>
-      <Link href="/dashboard" className="ae-crumb">home</Link>
-      <span style={{ color: "#ccc" }}>|</span>
-      <Link href="/profile" className="ae-crumb">edit profile</Link>
-      <span style={{ color: "#ccc" }}>|</span>
-      <span style={{ color: "#1a1a1a", fontWeight: 500 }}>edit avatar</span>
-    </div>
-  );
-
-  const header = isMobile ? (
-    <>
-      <style>{`.ae-crumb { color: #aaa; text-decoration: none; transition: color 0.2s; } .ae-crumb:hover { color: #1a1a1a; }`}</style>
-      <header style={{
-        position: "sticky", top: 0, zIndex: 20, background: "white",
-        display: "flex", flexDirection: "column",
-        padding: "10px 16px 6px", gap: 6,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Link href="/dashboard" style={{ display: "block", flexShrink: 0 }}>
-            <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-              style={{ width: 140, height: "auto", display: "block" }} priority />
-          </Link>
-          <DashboardAvatarHead thumbnailUrl={thumbnailUrl ?? null} size="55px" />
-        </div>
-        {crumbs(13)}
-      </header>
-    </>
-  ) : (
-    <>
-      <style>{`.ae-crumb { color: #aaa; text-decoration: none; transition: color 0.2s; } .ae-crumb:hover { color: #1a1a1a; }`}</style>
-      <header style={{
-        position: "sticky", top: 0, zIndex: 20, background: "white",
-        display: "flex", alignItems: "center",
-        padding: "16px clamp(16px, 4vw, 32px)", gap: 16,
-      }}>
-        <Link href="/dashboard" style={{ display: "block", flexShrink: 0 }}>
-          <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-            style={{ width: "clamp(120px, 20vw, 180px)", height: "auto", display: "block" }} priority />
-        </Link>
-        <div style={{ flex: 1 }}>{crumbs(16)}</div>
-        <div style={{ flexShrink: 0 }}>
-          <DashboardAvatarHead thumbnailUrl={thumbnailUrl ?? null} size="60px" />
-        </div>
-      </header>
-    </>
-  );
-
   const wrapperStyle = isMobile
     ? { background: "white", height: "100svh", display: "flex", flexDirection: "column" as const, overflow: "hidden" }
     : { background: "white" };
@@ -139,7 +92,7 @@ export function AvatarEditorClient({ user }: Props) {
   if (!library) {
     return (
       <div style={wrapperStyle}>
-        {header}
+        <AppHeader breadcrumbs={BREADCRUMBS} />
         <div className="flex items-center justify-center h-64 text-xs text-black/30 lowercase font-mono">
           loading…
         </div>
@@ -149,7 +102,7 @@ export function AvatarEditorClient({ user }: Props) {
 
   return (
     <div style={wrapperStyle}>
-      {header}
+      <AppHeader breadcrumbs={BREADCRUMBS} />
       <AvatarEditor
         library={library}
         initialColors={initialColors}

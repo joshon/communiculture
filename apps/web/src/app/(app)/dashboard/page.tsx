@@ -3,11 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
-import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
 import { ContinuumPreviewBar } from "@/components/dashboard/ContinuumPreviewBar";
 import { CreateContinuumButton } from "@/components/continuum/CreateContinuumButton";
 import { PillButton } from "@/components/ui/PillButton";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 const INTER = "Inter, sans-serif";
 
@@ -45,20 +44,11 @@ export default async function DashboardPage() {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
 
-      {/* Fixed logo — top left */}
-      <Link href="/dashboard" style={{ position: "fixed", top: 24, left: "clamp(16px, 4vw, 32px)", zIndex: 10, display: "block" }}>
-        <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-          style={{ width: "clamp(140px, 30vw, 208px)", height: "auto", display: "block" }} priority />
-      </Link>
-
-      {/* Fixed avatar — top right */}
-      <div style={{ position: "fixed", top: 16, right: "clamp(16px, 4vw, 32px)", zIndex: 10 }}>
-        <DashboardAvatarHead thumbnailUrl={userRecord?.avatarThumbnail ?? null} size={avatarSize} />
-      </div>
+      <AppHeader />
 
       {/* Content — centred column */}
       <main style={{
-        paddingTop: "clamp(100px, 16vw, 140px)",
+        paddingTop: "clamp(32px, 5vw, 56px)",
         paddingBottom: 80,
         paddingLeft: "clamp(16px, 5vw, 48px)",
         paddingRight: "clamp(16px, 5vw, 48px)",
