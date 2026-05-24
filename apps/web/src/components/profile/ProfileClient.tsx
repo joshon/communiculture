@@ -85,7 +85,34 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 const ALL_PROVIDERS = ["google", "azure-ad", "facebook"];
 
-function AvatarPreview({ avatarConfig, onClick }: { avatarConfig: object; onClick?: () => void }) {
+// Max canvas dimensions — zoom and framing are calibrated for these values.
+const PREVIEW_MAX_H = 560;
+const PREVIEW_ASPECT = 360 / 560;
+const PREVIEW_BASE_ZOOM = 143;
+
+function useAvatarPreviewSize() {
+  const [height, setHeight] = useState(PREVIEW_MAX_H);
+  useEffect(() => {
+    const update = () => {
+      // Subtract fixed chrome: sticky header + padding + title + button area + padding-bottom ≈ 221px
+      const h = Math.max(300, Math.min(PREVIEW_MAX_H, window.innerHeight - 221));
+      setHeight(h);
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+  return {
+    height,
+    width: Math.round(height * PREVIEW_ASPECT),
+    zoom:  Math.round(PREVIEW_BASE_ZOOM * height / PREVIEW_MAX_H),
+  };
+}
+
+function AvatarPreview({ avatarConfig, onClick, width, height, zoom }: {
+  avatarConfig: object; onClick?: () => void;
+  width: number; height: number; zoom: number;
+}) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
   const pointerDownRef = useRef<[number, number] | null>(null);
   // Prefer live store values — updated by the avatar editor without a page reload
@@ -109,11 +136,11 @@ function AvatarPreview({ avatarConfig, onClick }: { avatarConfig: object; onClic
   const safeColors  = colors  ?? Object.fromEntries(AVATAR_PARTS.map((p) => [p, "#cccccc"])) as Record<AvatarPart, string>;
   const safeVariants = variants ?? Object.fromEntries(AVATAR_PARTS.map((p) => [p, 0])) as Record<AvatarPart, number>;
 
-  if (!library) return <div style={{ width: 360, height: 560 }} />;
+  if (!library) return <div style={{ width, height }} />;
 
   return (
     <div
-      style={{ width: 360, height: 560, cursor: onClick ? "pointer" : "default" }}
+      style={{ width, height, cursor: onClick ? "pointer" : "default" }}
       onPointerDown={(e) => { pointerDownRef.current = [e.clientX, e.clientY]; }}
       onPointerUp={(e) => {
         if (!pointerDownRef.current || !onClick) return;
@@ -129,7 +156,7 @@ function AvatarPreview({ avatarConfig, onClick }: { avatarConfig: object; onClic
         colors={safeColors}
         showOutline={true}
         showLabels={false}
-        fixedZoom={143}
+        fixedZoom={zoom}
         cameraTargetY={1.85}
       />
     </div>
@@ -143,6 +170,7 @@ export function ProfileClient({ user }: {
     connectedProviders: string[]; hasPassword: boolean;
   };
 }) {
+  const { width: previewW, height: previewH, zoom: previewZoom } = useAvatarPreviewSize();
   const params = useSearchParams();
   const router = useRouter();
   const [name, setName]     = useState(user.name);
@@ -315,9 +343,12 @@ export function ProfileClient({ user }: {
               <AvatarPreview
                 avatarConfig={user.avatarConfig}
                 onClick={() => router.push("/profile/avatar")}
+                width={previewW}
+                height={previewH}
+                zoom={previewZoom}
               />
             </div>
-            <div style={{ width: 360, display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <div style={{ width: previewW, display: "flex", justifyContent: "center", marginTop: 16 }}>
               <PillButton href="/profile/avatar" fontSize="16px" label="Edit avatar" variant="secondary" arrow />
             </div>
           </div>
