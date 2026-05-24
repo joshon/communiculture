@@ -373,13 +373,13 @@ function PartLabels({
               </button>
             </Html>
 
-            {isSelected && ppos && (
-              <Line
-                points={[lpos, ppos]}
-                color={LOGO_BLUE}
-                lineWidth={1.5}
-              />
-            )}
+            {isSelected && ppos && (() => {
+              const dx = ppos[0] - lpos[0], dy = ppos[1] - lpos[1], dz = ppos[2] - lpos[2];
+              const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+              const t = Math.min(0.18 / len, 1);
+              const lineStart: [number, number, number] = [lpos[0] + dx * t, lpos[1] + dy * t, lpos[2] + dz * t];
+              return <Line points={[lineStart, ppos]} color={LOGO_BLUE} lineWidth={1.5} />;
+            })()}
           </group>
         );
       })}
