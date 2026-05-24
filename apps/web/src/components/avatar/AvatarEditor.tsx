@@ -338,8 +338,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           ))}
         </div>
 
-        {/* 3D canvas — flex fills remaining space, capped so palette+buttons always show */}
-        <div style={{ flex: 1, minHeight: 0, maxHeight: "90vw", position: "relative" }}>
+        {/* 3D canvas — flex fills remaining space; palette+buttons are flexShrink:0 below */}
+        <div style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {avatarRenderer}
         </div>
 
