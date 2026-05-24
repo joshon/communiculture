@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import { AvatarRenderer } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
@@ -282,29 +280,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     return (
       <div style={{ width: "100vw", height: "100svh", background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
-        {/* Header */}
-        <div style={{ flexShrink: 0, padding: `${H(14)} ${H(16)} ${H(8)}` }}>
-          <Link href="/dashboard" style={{ display: "block" }}>
-            {/* Logo indented right — same lockup as desktop (tagline aligns left of logo) */}
-            <Image
-              src="/logo.svg"
-              alt="communi*culture"
-              width={208}
-              height={41}
-              style={{ height: H(32.5), width: "auto", marginLeft: 0 }}
-              priority
-            />
-          </Link>
-          <nav style={{
-            display: "flex", flexDirection: "column",
-            marginTop: H(8), gap: H(2),
-            fontFamily: PROLETARIAN, fontSize: H(20), color: LOGO_BLUE,
-          }}>
-            <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
-            <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
-          </nav>
-        </div>
-
         {/* Variant selector — always reserves 2-row height to prevent layout jump */}
         <div style={{
           flexShrink: 0, display: "flex", flexWrap: "wrap",
@@ -361,34 +336,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
       {/* Full-screen canvas */}
       <div className="absolute inset-0">
         {avatarRenderer}
-      </div>
-
-      {/* Logo + nav (top-left) */}
-      <div
-        className="absolute flex flex-col"
-        style={{ top: S(120), left: S(60), width: S(280), pointerEvents: "none" }}
-      >
-        <Link href="/dashboard" className="block overflow-visible" style={{ pointerEvents: "auto" }}>
-          <Image
-            src="/logo.svg"
-            alt="communi*culture"
-            width={208}
-            height={41}
-            style={{ width: S(260), height: "auto", marginLeft: S(80) }}
-            priority
-          />
-        </Link>
-        <nav
-          className="flex flex-col lowercase"
-          style={{
-            marginTop: S(20), gap: S(3),
-            fontFamily: PROLETARIAN, fontSize: S(28), color: LOGO_BLUE,
-            pointerEvents: "auto", alignItems: "flex-end",
-          }}
-        >
-          <Link href="/dashboard" className="hover:opacity-60 transition-opacity">continuums</Link>
-          <Link href="/dashboard" className="hover:opacity-60 transition-opacity">view others</Link>
-        </nav>
       </div>
 
       {/* Palette overlay */}

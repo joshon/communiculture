@@ -1,9 +1,14 @@
 "use client";
 
+import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useCallback } from "react";
 import { AvatarEditor } from "./AvatarEditor";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { useAvatarStore } from "@/store/avatarStore";
+import { DashboardAvatarHead } from "@/components/dashboard/DashboardAvatarHead";
+
+const INTER = "Inter, sans-serif";
 
 interface V2Config {
   format: "v2";
@@ -35,6 +40,7 @@ export function AvatarEditorClient({ user }: Props) {
   const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
   const editingColors = useAvatarStore((s) => s.editingColors);
   const editingVariants = useAvatarStore((s) => s.editingVariants);
+  const thumbnailUrl = useAvatarStore((s) => s.thumbnailUrl);
 
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
 
@@ -50,7 +56,6 @@ export function AvatarEditorClient({ user }: Props) {
       .then((data: { library: AvatarVariantLibrary } | null) => {
         if (!data?.library) return;
         setLibrary(data.library);
-        // autoSpin is handled inside AvatarEditor when autoSpin prop is true
       })
       .catch(() => {});
   }, []);  // eslint-disable-line react-hooks/exhaustive-deps
@@ -59,7 +64,6 @@ export function AvatarEditorClient({ user }: Props) {
     colors: Record<AvatarPart, string>,
     variants: Record<AvatarPart, number>
   ) => {
-    // Queue capture immediately — independent of the avatar save succeeding
     setPendingCapture({ colors, variants });
     const avatarConfig: V2Config = { format: "v2", colors, variants };
     await fetch("/api/users/avatar", {
@@ -76,24 +80,58 @@ export function AvatarEditorClient({ user }: Props) {
     setEditingConfig(colors, variants);
   }, [setEditingConfig]);
 
+  const autoSpin = !parsed && !editingColors;
+
+  const header = (
+    <>
+      <style>{`.ae-crumb { color: #aaa; text-decoration: none; transition: color 0.2s; } .ae-crumb:hover { color: #1a1a1a; }`}</style>
+      <header style={{
+        position: "sticky", top: 0, zIndex: 20, background: "white",
+        display: "flex", alignItems: "center",
+        padding: "16px clamp(16px, 4vw, 32px)", gap: 16,
+      }}>
+        <Link href="/dashboard" style={{ display: "block", flexShrink: 0 }}>
+          <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
+            style={{ width: "clamp(120px, 20vw, 180px)", height: "auto", display: "block" }} priority />
+        </Link>
+
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center", gap: 10, fontFamily: INTER, fontSize: 16 }}>
+          <Link href="/dashboard" className="ae-crumb">home</Link>
+          <span style={{ color: "#ccc" }}>|</span>
+          <Link href="/profile" className="ae-crumb">edit profile</Link>
+          <span style={{ color: "#ccc" }}>|</span>
+          <span style={{ color: "#1a1a1a", fontWeight: 500 }}>edit avatar</span>
+        </div>
+
+        <div style={{ flexShrink: 0 }}>
+          <DashboardAvatarHead thumbnailUrl={thumbnailUrl ?? null} size="60px" />
+        </div>
+      </header>
+    </>
+  );
+
   if (!library) {
     return (
-      <div className="flex items-center justify-center h-64 text-xs text-black/30 lowercase font-mono">
-        loading…
+      <div style={{ background: "white" }}>
+        {header}
+        <div className="flex items-center justify-center h-64 text-xs text-black/30 lowercase font-mono">
+          loading…
+        </div>
       </div>
     );
   }
 
-  const autoSpin = !parsed && !editingColors;
-
   return (
-    <AvatarEditor
-      library={library}
-      initialColors={initialColors}
-      initialVariants={initialVariants}
-      autoSpin={autoSpin}
-      onSave={handleSave}
-      onChange={handleChange}
-    />
+    <div style={{ background: "white" }}>
+      {header}
+      <AvatarEditor
+        library={library}
+        initialColors={initialColors}
+        initialVariants={initialVariants}
+        autoSpin={autoSpin}
+        onSave={handleSave}
+        onChange={handleChange}
+      />
+    </div>
   );
 }
