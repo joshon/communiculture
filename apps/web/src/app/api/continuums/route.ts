@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import { nanoid } from "@/lib/nanoid";
+import bcrypt from "bcryptjs";
 
 const FREE_LIMIT = 3;
 
@@ -25,13 +26,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const { title, leftLabel, rightLabel, description, teamId, visibility } = await req.json();
+  const { title, leftLabel, rightLabel, description, teamId, visibility, category, password } = await req.json();
 
   if (!title?.trim() || !leftLabel?.trim() || !rightLabel?.trim()) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
+  if (visibility === "PUBLIC" && !category?.trim()) {
+    return NextResponse.json({ error: "category_required" }, { status: 400 });
+  }
+  if (visibility === "PASSWORD" && !password?.trim()) {
+    return NextResponse.json({ error: "password_required" }, { status: 400 });
+  }
 
-  const shareToken = visibility === "PUBLIC_LINK" ? nanoid() : null;
+  const needsShareToken = visibility === "PUBLIC_LINK" || visibility === "PASSWORD";
+  const shareToken = needsShareToken ? nanoid() : null;
+  const passwordHash = password ? await bcrypt.hash(password.trim(), 10) : null;
 
   const continuum = await prisma.continuum.create({
     data: {
@@ -41,8 +50,10 @@ export async function POST(req: Request) {
       description: description?.trim() || null,
       ownerId: userId,
       teamId: teamId || null,
-      visibility: visibility ?? "PRIVATE",
+      visibility: visibility ?? "PUBLIC_LINK",
       shareToken,
+      category: category?.trim() || null,
+      passwordHash,
     },
   });
 

@@ -22,9 +22,11 @@ enum TeamRole {
 }
 
 enum Visibility {
-  PRIVATE
-  TEAM
-  PUBLIC_LINK
+  PRIVATE      // legacy
+  TEAM         // legacy
+  PUBLIC_LINK  // unlisted, link only
+  PUBLIC       // publicly listed with category
+  PASSWORD     // link + password required
 }
 
 // ─── Auth (NextAuth Prisma Adapter) ─────────────────────────────────────────
@@ -120,8 +122,10 @@ model Continuum {
   description String?
   ownerId     String
   teamId      String?
-  visibility  Visibility @default(PRIVATE)
-  shareToken  String?    @unique
+  visibility   Visibility @default(PUBLIC_LINK)
+  shareToken   String?    @unique
+  category     String?
+  passwordHash String?
 
   participants ContinuumParticipant[]
   messages     Message[]
