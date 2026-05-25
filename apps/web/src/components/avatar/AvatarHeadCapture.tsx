@@ -6,8 +6,8 @@ import { CharacterGroup } from "./AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 
-// Camera target: eye/face level of the head (avatar y≈2.64 = midpoint of head cube)
-const HEAD_CENTER_Y = 2.64;
+// Camera target: top-of-head level so the face sits in the lower portion of the frame
+const HEAD_CENTER_Y = 2.7;
 const HEAD_PARTS: AvatarPart[] = ["hair", "head", "face", "neck"];
 
 function buildHeadIndices(variantIndices: Record<AvatarPart, number>): Record<AvatarPart, number> {
@@ -58,7 +58,7 @@ export function AvatarHeadCapture({ library, variantIndices, colors, onCapture }
     <Canvas
       orthographic
       // Lowered Y from 3.7 → 2.0 for a face-level angle so eyes are visible
-      camera={{ position: [2.165, 2.0, 3.75], zoom: 115, near: -100, far: 100 }}
+      camera={{ position: [2.165, 2.0, 3.75], zoom: 164, near: -100, far: 100 }}
       gl={{ preserveDrawingBuffer: true, stencil: true }}
       style={{ width: 200, height: 200 }}
     >
