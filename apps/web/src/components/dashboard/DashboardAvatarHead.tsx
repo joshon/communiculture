@@ -5,6 +5,7 @@ import { useRef, useState, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import { useAvatarStore } from "@/store/avatarStore";
 import { PixelBox } from "@/components/ui/PixelBox";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 const BLUE = "#0083FF";
 const DARK = "#1A1A1A";
@@ -28,6 +29,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
   const thumbnailUrl = storeThumbnailUrl ?? serverThumbnailUrl;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile(1024);
 
   useEffect(() => {
     if (!open) return;
@@ -71,14 +73,12 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
       {open && (
         <div style={{
           position: "absolute",
-          // Position dropdown so the arrow (top: sc(10), height: 4.5*tile) is
-          // centered at 2/3 of the avatar height — roughly the mouth area.
-          // arrow_center_from_dropdown_top = sc(10) + ARROW_H/2 = scale*10 + tile*2.25
           top: `calc(${size} * 2/3 - var(--scale, 1) * 18px - var(--tile, 3px) * 4.5)`,
           right: `calc(100% + var(--tile, 3px) * 4)`,
-          zIndex: 100,
+          zIndex: 9999,
+          ...(isMobile && { "--scale": "1.5" } as React.CSSProperties),
         }}>
-          <PixelBox shadowDir="bottom-left" style={{ minWidth: sc(160) }}>
+          <PixelBox shadowDir="bottom-left" style={{ minWidth: isMobile ? "min(calc(var(--scale,1.5) * 160px), calc(100vw - 90px))" : sc(160) }}>
             <style>{`.cc-mi{color:rgba(0,0,0,0.6)}.cc-mi:hover{color:#000}`}</style>
 
             {/*

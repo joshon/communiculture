@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         )}
 
         {/* Footer actions */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 8 }}>
           <PillButton
             href="/continuums"
             fontSize="16px"
