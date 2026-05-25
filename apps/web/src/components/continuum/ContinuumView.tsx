@@ -33,6 +33,7 @@ interface ParticipantData {
     name: string | null;
     image: string | null;
     avatarConfig: AvatarConfig;
+    isSynthetic: boolean;
   };
 }
 
@@ -48,6 +49,7 @@ interface Props {
   participants: ParticipantData[];
   messages: MessageData[];
   sessionToken: string;
+  currentUserAvatarConfig: AvatarConfig;
 }
 
 // ─── drag bar ─────────────────────────────────────────────────────────────────
@@ -243,7 +245,7 @@ function CommentBubble({ name, comment, isSelf, positionFraction, onCommentSubmi
 
 // ─── main view ────────────────────────────────────────────────────────────────
 
-export function ContinuumView({ continuum, participants, messages, sessionToken }: Props) {
+export function ContinuumView({ continuum, participants, messages, sessionToken, currentUserAvatarConfig }: Props) {
   const { data: session } = useSession();
   const {
     setParticipants, setConnected, updatePosition, updateComment,
@@ -252,7 +254,6 @@ export function ContinuumView({ continuum, participants, messages, sessionToken 
 
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentUserId = session?.user?.id ?? "";
-  const currentUserAvatarConfig = (session?.user as any)?.avatarConfig ?? {};
 
   // Local position for real-time drag feedback
   const [localPosition, setLocalPosition] = useState(
@@ -272,6 +273,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken 
         name: p.user.name,
         image: p.user.image,
         avatarConfig: p.user.avatarConfig,
+        isSynthetic: p.user.isSynthetic,
         position: p.position,
         comment: p.comment,
       }))
@@ -293,6 +295,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken 
         name: data.userName,
         image: data.userImage,
         avatarConfig: {} as AvatarConfig,
+        isSynthetic: false,
         position: 0.5,
         comment: null,
       });
@@ -331,9 +334,21 @@ export function ContinuumView({ continuum, participants, messages, sessionToken 
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ position }),
         });
+        // Add self to the store with full data so the crowd renders correctly this session
+        if (currentUserId && !storeParticipants[currentUserId]) {
+          addParticipant({
+            userId: currentUserId,
+            name: session?.user?.name ?? null,
+            image: session?.user?.image ?? null,
+            avatarConfig: currentUserAvatarConfig,
+            isSynthetic: false,
+            position,
+            comment: null,
+          });
+        }
       }, 300);
     },
-    [continuum.id]
+    [continuum.id, currentUserId, storeParticipants, addParticipant, session, currentUserAvatarConfig]
   );
 
   // ── comment handler ──
@@ -405,7 +420,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken 
 
           {selectedParticipant && (
             <CommentBubble
-              name={selectedParticipant.name}
+              name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
               comment={selectedParticipant.comment}
               isSelf={selectedUserId === currentUserId}
               positionFraction={selectedParticipant.position}

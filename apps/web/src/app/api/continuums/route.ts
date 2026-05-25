@@ -5,29 +5,39 @@ import { prisma } from "@communiculture/db";
 import { nanoid } from "@/lib/nanoid";
 import bcrypt from "bcryptjs";
 import OpenAI from "openai";
+import fs from "fs/promises";
+import path from "path";
 
 const FREE_LIMIT = 3;
+const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
+const BOT_BLUE = "#0083FF";
 
-// ─── blue avatar palette ──────────────────────────────────────────────────────
+// ─── synthetic avatar generation ──────────────────────────────────────────────
 
-const BLUE_SHADES = [
-  "#0033CC", "#0055BB", "#0083FF", "#4499DD",
-  "#1166BB", "#003399", "#2266AA", "#335599",
-];
+function seededInt(seed: number, salt: number, max: number): number {
+  // Simple LCG for deterministic randomness without external deps
+  const h = ((seed * 1664525 + salt * 1013904223) >>> 0) % max;
+  return h;
+}
 
-function randomBlueAvatar(seed: number) {
-  const pick = (offset: number) => BLUE_SHADES[(seed + offset) % BLUE_SHADES.length];
-  return {
-    hair:  pick(0),
-    head:  pick(1),
-    face:  "#000033",   // dark blue for eyes/face texture
-    neck:  pick(2),
-    arms:  pick(3),
-    body:  pick(4),
-    pants: pick(5),
-    legs:  pick(6),
-    shoes: pick(7),
-  };
+async function syntheticBotAvatar(botIndex: number) {
+  const colors = Object.fromEntries(AVATAR_PARTS.map((p) => [p, BOT_BLUE]));
+  let variants: Record<string, number> = Object.fromEntries(AVATAR_PARTS.map((p) => [p, 0]));
+
+  try {
+    const raw = await fs.readFile(path.join(process.cwd(), ".avatar-library.json"), "utf-8");
+    const library = JSON.parse(raw).library ?? JSON.parse(raw);
+    variants = Object.fromEntries(
+      AVATAR_PARTS.map((p, partIdx) => {
+        const count = Array.isArray(library[p]) ? library[p].length : 1;
+        return [p, seededInt(botIndex + 1, partIdx + 1, count)];
+      })
+    );
+  } catch {
+    // library not found — fall back to all variant 0
+  }
+
+  return { format: "v2", colors, variants };
 }
 
 // ─── synthetic participant generation ─────────────────────────────────────────
@@ -46,24 +56,23 @@ async function generatePersonas(
 ): Promise<SyntheticPersona[]> {
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const prompt = `You are generating 5 synthetic participant voices for an interactive opinion spectrum tool.
+  const prompt = `Generate 5 short opinion comments for an interactive spectrum tool about: "${title}"
 
-The question/topic is: "${title}"
-The two ends of the spectrum are:
-  - 0% (left end): "${leftLabel}"
-  - 100% (right end): "${rightLabel}"
+Left end (0%): "${leftLabel}"
+Right end (100%): "${rightLabel}"
 
-Generate exactly 5 people at these positions:
-1. 10% — strongly favours "${leftLabel}"
-2. 30% — leans toward "${leftLabel}"
-3. 50% — genuinely neutral or sees merit in both
-4. 70% — leans toward "${rightLabel}"
-5. 90% — strongly favours "${rightLabel}"
+Each comment must directly reference the topic and clearly match the speaker's position. No names, ages, or job titles — just the opinion.
 
-Each person should have a distinct voice and a short, natural 1–2 sentence comment that authentically reflects their position. Vary tone, age, and background.
+1. Position 10%: Strongly prefers "${leftLabel}". Give a vivid, specific reason why they love it.
+2. Position 30%: Leans toward "${leftLabel}" but isn't extreme. A mild preference with a reason.
+3. Position 50%: Genuinely torn, sees real value in both, or has very mixed feelings. Don't favour either side.
+4. Position 70%: Leans toward "${rightLabel}" with a specific reason.
+5. Position 90%: Strongly prefers "${rightLabel}". Give a vivid, specific reason why they love it.
 
-Return ONLY a valid JSON array (no markdown, no explanation):
-[{"name":"...","comment":"..."},{"name":"...","comment":"..."},{"name":"...","comment":"..."},{"name":"...","comment":"..."},{"name":"...","comment":"..."}]`;
+Each comment: 1–2 natural sentences. Distinct voices. Must be clearly about the topic.
+
+Return ONLY valid JSON (no markdown):
+[{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."}]`;
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -95,7 +104,7 @@ async function createSyntheticParticipants(
           name: persona.name,
           email: `synthetic.${continuumId}.${i}@communiculture.bot`,
           isSynthetic: true,
-          avatarConfig: randomBlueAvatar(i * 3),
+          avatarConfig: await syntheticBotAvatar(i),
           onboardingComplete: true,
         },
       });

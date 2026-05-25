@@ -6,6 +6,7 @@ export interface Participant {
   name: string | null;
   image: string | null;
   avatarConfig: AvatarConfig;
+  isSynthetic: boolean;
   position: number; // 0.0 to 1.0
   comment: string | null;
 }
@@ -37,20 +38,26 @@ export const useContinuumStore = create<ContinuumStore>((set) => ({
     }),
 
   updatePosition: (userId, position) =>
-    set((state) => ({
-      participants: {
-        ...state.participants,
-        [userId]: { ...state.participants[userId], position },
-      },
-    })),
+    set((state) => {
+      if (!state.participants[userId]) return state; // never create sparse entries
+      return {
+        participants: {
+          ...state.participants,
+          [userId]: { ...state.participants[userId], position },
+        },
+      };
+    }),
 
   updateComment: (userId, comment) =>
-    set((state) => ({
-      participants: {
-        ...state.participants,
-        [userId]: { ...state.participants[userId], comment },
-      },
-    })),
+    set((state) => {
+      if (!state.participants[userId]) return state;
+      return {
+        participants: {
+          ...state.participants,
+          [userId]: { ...state.participants[userId], comment },
+        },
+      };
+    }),
 
   addParticipant: (p) =>
     set((state) => ({

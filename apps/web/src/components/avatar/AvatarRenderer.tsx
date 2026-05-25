@@ -90,6 +90,7 @@ function RenderMesh({
   isMirror = false,
   highlight = false,
   showOutline = false,
+  overrideOutlineColor,
   onPartClick,
 }: {
   element: MeshElement;
@@ -98,6 +99,7 @@ function RenderMesh({
   isMirror?: boolean;
   highlight?: boolean;
   showOutline?: boolean;
+  overrideOutlineColor?: string;
   onPartClick?: (part: AvatarPart) => void;
 }) {
   const meshColor = useMemo(() => {
@@ -126,7 +128,7 @@ function RenderMesh({
 
   const outlineWidth = element.outlineWidth ?? 0;
   const hasOutline = outlineWidth > 0;
-  const outlineColor = element.outlineColor ?? "#ffffff";
+  const outlineColor = overrideOutlineColor ?? element.outlineColor ?? "#ffffff";
   const frameLocalZ = element.type === "plane" ? 0.001 : 0.501;
   const borderX = hasOutline ? outlineWidth / element.scale[0] : 0;
   const borderY = hasOutline ? outlineWidth / element.scale[1] : 0;
@@ -166,8 +168,10 @@ function RenderMesh({
   };
 
   const handleClick = (e: { stopPropagation: () => void }) => {
-    e.stopPropagation();
-    if (part) onPartClick?.(part);
+    if (part && onPartClick) {
+      e.stopPropagation();
+      onPartClick(part);
+    }
   };
 
   return (
@@ -258,6 +262,7 @@ export function CharacterGroup({
   selectedPart,
   onPartClick,
   showOutline,
+  outlineColor,
 }: {
   library: AvatarVariantLibrary;
   variantIndices: Record<AvatarPart, number>;
@@ -265,6 +270,7 @@ export function CharacterGroup({
   selectedPart?: AvatarPart | null;
   onPartClick?: (part: AvatarPart) => void;
   showOutline?: boolean;
+  outlineColor?: string;
 }) {
   return (
     <group>
@@ -296,6 +302,7 @@ export function CharacterGroup({
                   isMirror={isMirror}
                   highlight={isSelected}
                   showOutline={showOutline}
+                  overrideOutlineColor={outlineColor}
                   onPartClick={onPartClick}
                 />
               );
