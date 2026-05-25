@@ -210,6 +210,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
   const [visibility, setVisibility]   = useState<Visibility>("PUBLIC_LINK");
   const [category, setCategory]       = useState<Option | null>(null);
   const [password, setPassword]       = useState("");
+  const [prepopulate, setPrepopulate]   = useState(false);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
 
@@ -235,6 +236,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
           title, leftLabel, rightLabel, visibility, description: "",
           category: category?.label ?? null,
           password: password || null,
+          prepopulate,
         }),
       });
       if (res.status === 402) {
@@ -360,6 +362,45 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                   />
                 </Field>
               )}
+
+              {/* Prepopulate toggle */}
+              <div style={{
+                display: "flex", alignItems: "flex-start", gap: 12,
+                marginBottom: "clamp(20px, 3vh, 28px)",
+              }}>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={prepopulate}
+                  onClick={() => setPrepopulate((v) => !v)}
+                  style={{
+                    flexShrink: 0,
+                    width: 44, height: 24, borderRadius: 12,
+                    background: prepopulate ? BLUE : "#ccc",
+                    border: "none", cursor: "pointer", padding: 0,
+                    position: "relative", transition: "background 0.15s",
+                  }}
+                >
+                  <span style={{
+                    position: "absolute", top: 3,
+                    left: prepopulate ? 23 : 3,
+                    width: 18, height: 18, borderRadius: "50%",
+                    background: "white",
+                    transition: "left 0.15s",
+                    display: "block",
+                  }} />
+                </button>
+                <div>
+                  <p style={{ fontFamily: INTER, fontSize: 15, color: "#1a1a1a", margin: 0 }}>
+                    Seed with 5 synthetic voices
+                  </p>
+                  {prepopulate && (
+                    <p style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: "4px 0 0", lineHeight: 1.5 }}>
+                      AI will generate 5 participants (10%–90%) with comments reflecting each position. They&apos;ll appear as blue-toned bot avatars.
+                    </p>
+                  )}
+                </div>
+              </div>
 
               {error && (
                 <p style={{ fontFamily: INTER, fontSize: 14, color: "#c00", marginBottom: 16, textAlign: "right" }}>

@@ -81,6 +81,7 @@ model User {
   onboardingComplete Boolean   @default(false)
   stripeCustomerId   String?   @unique
   plan               Plan      @default(FREE)
+  isSynthetic        Boolean   @default(false)
 
   accounts       Account[]
   sessions       Session[]
