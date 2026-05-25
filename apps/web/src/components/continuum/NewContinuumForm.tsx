@@ -76,9 +76,12 @@ function PixelMenu(props: MenuProps<Option, false, GroupBase<Option>>) {
     return () => ro.disconnect();
   }, []);
 
-  // Exact tile multiples — zero partial squares
+  // Mirror PixelBox formula exactly:
+  // - sideH: largest multiple of TILE ≤ (h - TILE), guarantees phase-0 at strip bottom
+  // - bottomW: anchored right at (dims.w + TILE); width = multiple of TILE so phase-0 at corner
+  //   Both strips land on background-position (0,0) = blue at the corner junction.
   const sideH = Math.max(0, Math.floor(dims.h / TILE) * TILE - TILE);
-  const bottomW = Math.ceil(dims.w / TILE) * TILE; // left starts at TILE, covers corner
+  const bottomW = Math.max(0, Math.ceil((dims.w + TILE) / TILE) * TILE - TILE);
 
   const stripe = (s: React.CSSProperties): React.CSSProperties => ({
     position: "absolute", backgroundImage: PIXEL_SVG,
@@ -104,7 +107,7 @@ function PixelMenu(props: MenuProps<Option, false, GroupBase<Option>>) {
       )}
       {/* Bottom strip: 2 squares (TILE) from left, exact tile width, covers corner */}
       {dims.w > 0 && (
-        <div aria-hidden style={stripe({ bottom: -TILE, left: TILE, width: bottomW, height: TILE })} />
+        <div aria-hidden style={stripe({ bottom: -TILE, right: -TILE, width: bottomW, height: TILE })} />
       )}
       {/* Menu box — visual styles only, no absolute positioning */}
       <div
