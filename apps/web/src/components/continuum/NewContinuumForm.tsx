@@ -49,13 +49,10 @@ const TOPICS: Option[] = [
   { value: "work-career", label: "Work & Career" },
 ];
 
-// Pixel-art hamburger indicator (3 bars, no traditional arrow)
-const HamburgerIndicator = (props: DropdownIndicatorProps<Option>) => (
+const ChevronIndicator = (props: DropdownIndicatorProps<Option>) => (
   <components.DropdownIndicator {...props}>
-    <svg width="16" height="11" viewBox="0 0 16 11" fill="none" aria-hidden>
-      <rect x="0" y="0"  width="16" height="2" fill={BLUE} />
-      <rect x="0" y="4.5" width="16" height="2" fill={BLUE} />
-      <rect x="0" y="9"  width="16" height="2" fill={BLUE} />
+    <svg width="20" height="13" viewBox="0 0 20 13" fill="none" aria-hidden>
+      <path d="M2 2L10.0156 10.0156L18.0312 2" stroke="#0083FF" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   </components.DropdownIndicator>
 );
@@ -262,7 +259,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                   onChange={(opt) => opt && setVisibility(opt.value as Visibility)}
                   isSearchable={false}
                   styles={selectStyles}
-                  components={{ DropdownIndicator: HamburgerIndicator }}
+                  components={{ DropdownIndicator: ChevronIndicator }}
                 />
               </Field>
 
@@ -276,7 +273,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                     isSearchable
                     placeholder="Search topics…"
                     styles={selectStyles}
-                    components={{ DropdownIndicator: HamburgerIndicator }}
+                    components={{ DropdownIndicator: ChevronIndicator }}
                   />
                 </Field>
               )}
