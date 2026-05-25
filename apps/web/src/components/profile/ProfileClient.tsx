@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { PillButton } from "@/components/ui/PillButton";
 import { AvatarRenderer } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
@@ -169,6 +170,10 @@ export function ProfileClient({ user }: {
   };
 }) {
   const { width: previewW, height: previewH, zoom: previewZoom } = useAvatarPreviewSize();
+  const isMobile = useIsMobile(1024);
+  const mobilePreviewH = Math.floor(PREVIEW_MAX_H / 2);
+  const mobilePreviewW = Math.round(mobilePreviewH * PREVIEW_ASPECT);
+  const mobilePreviewZoom = Math.round(PREVIEW_BASE_ZOOM * mobilePreviewH / PREVIEW_MAX_H);
   const params = useSearchParams();
   const router = useRouter();
   const [name, setName]     = useState(user.name);
@@ -224,6 +229,71 @@ export function ProfileClient({ user }: {
 
   // Indent accounts to align with form content (label width + gap)
   const FIELD_INDENT = "clamp(60px, 12vw, 84px)";
+  // Mobile indent: label column (52px) + gap (8px)
+  const MOBILE_INDENT = 60;
+
+  if (isMobile) {
+    return (
+      <div style={{ minHeight: "100vh", background: "white" }}>
+        <AppHeader breadcrumbs={[{ label: "home", href: "/dashboard" }, { label: "edit profile" }]} />
+        <main style={{ paddingTop: 24, paddingBottom: 60, paddingLeft: 16, paddingRight: 16 }}>
+
+          {/* Avatar */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 32 }}>
+            <p style={{ fontFamily: INTER, fontSize: 18, fontWeight: 500, color: "#1a1a1a", margin: "0 0 0 0", alignSelf: "flex-start" }}>Avatar</p>
+            <div style={{ marginTop: -52, position: "relative" }}>
+              <AvatarPreview
+                avatarConfig={user.avatarConfig}
+                onClick={() => router.push("/profile/avatar")}
+                width={mobilePreviewW}
+                height={mobilePreviewH}
+                zoom={mobilePreviewZoom}
+              />
+            </div>
+            <PillButton href="/profile/avatar" fontSize="15px" label="Edit avatar" variant="secondary" arrow />
+          </div>
+
+          {/* Profile */}
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <p style={{ fontFamily: INTER, fontSize: 18, fontWeight: 500, color: "#1a1a1a", margin: 0 }}>Profile</p>
+              <span style={{ fontFamily: INTER, fontSize: 13, color: "#bbb", opacity: saveStatus === "saved" ? 1 : 0, transition: "opacity 0.4s" }}>saved</span>
+            </div>
+            <LineInput label="Name"   value={name}       onChange={setName} />
+            <LineInput label="Email"  value={user.email} readOnly />
+            <LineInput label="Slogan" value={slogan}     onChange={setSlogan} />
+            <LineInput label="URL"    value={url}        onChange={setUrl} />
+          </div>
+
+          {/* Accounts */}
+          {connected.length > 0 && (
+            <div>
+              <p style={{ fontFamily: INTER, fontSize: 18, fontWeight: 500, color: "#1a1a1a", marginBottom: 16 }}>Accounts</p>
+              {linkMsg && (
+                <p style={{ fontFamily: INTER, fontSize: 14, color: linkMsg.includes("successfully") || linkMsg.includes("linked!") ? BLUE : "#c00", marginBottom: 16, paddingLeft: MOBILE_INDENT }}>
+                  {linkMsg}
+                </p>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {ALL_PROVIDERS.filter((p) => connected.includes(p)).map((provider) => (
+                  <div key={provider} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", border: `1.5px solid ${BLUE}`, borderRadius: 10 }}>
+                    <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{PROVIDER_ICONS[provider]}</span>
+                    <span style={{ fontFamily: INTER, fontSize: 16, color: "#1a1a1a", flex: 1 }}>{PROVIDER_LABELS[provider]}</span>
+                    <button
+                      onClick={() => handleDisconnect(provider)}
+                      title={`disconnect ${PROVIDER_LABELS[provider]}`}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 22, height: 22, borderRadius: "50%", background: "#0083FF20", border: "none", cursor: "pointer", color: BLUE, fontSize: 14, fontWeight: "bold", lineHeight: 1, flexShrink: 0 }}
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
