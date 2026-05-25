@@ -83,56 +83,7 @@ body {
   }
 }
 
-/* ── React Select pixel shadow (cc-select__menu) ────────────────────────── */
-/*
- * Tile: 6px (sq=3), border: 2px.  Pseudo-elements position relative to the
- * PADDING box, so we offset by (tile + border) to clear the border edge.
- *
- * Side strip  — right: -(tile+border), bottom: -border
- *               left edge  = padding_right + border = box_right_outer  ✓
- *               bottom edge = padding_bottom + border = box_bottom_outer ✓
- *               height     = (border_box_height − tile) so top is tile below box_top_outer
- *
- * Bottom strip — bottom: -(tile+border), left: -border
- *               top edge   = padding_bottom + border = box_bottom_outer  ✓
- *               left edge  = box_left_outer  ✓
- *               width      = padding_width + 2*border + tile = 100% + 10px
- *
- * Both strips meet at (box_right_outer, box_bottom_outer) with no gap/overlap.
- * background-position: 0 100% on the side strip anchors tiles to the bottom
- * so the clean row is always at the corner end.
- */
-.cc-select__menu {
-  overflow: visible !important;
-}
-/* Right side strip */
-.cc-select__menu::before {
-  content: "";
-  position: absolute;
-  right: -8px;               /* -(6 + 2): left edge = box_right_outer */
-  bottom: -2px;              /* -border: bottom edge = box_bottom_outer */
-  width: 6px;
-  height: calc(100% - 2px); /* border_box_height − tile = 100% + 4 − 6 = 100% − 2 */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect x='0' y='0' width='3' height='3' fill='%230083FF'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%230083FF'/%3E%3C/svg%3E");
-  background-size: 6px 6px;
-  background-position: 0 100%; /* anchor tiles to bottom → clean row at corner */
-  pointer-events: none;
-}
-/* Bottom strip — starts 2 squares (6px) right of box_left_outer for drop-shadow offset.
- * background-position: 100% 0 anchors tiles to the right so the corner is always a
- * complete tile; any fractional tile is at the left, hidden under the box edge. */
-.cc-select__menu::after {
-  content: "";
-  position: absolute;
-  bottom: -8px;             /* -(tile + border): top edge = box_bottom_outer */
-  left: 4px;                /* box_left_outer + 2 squares = -border + tile = -2 + 6 */
-  width: calc(100% + 4px);  /* to box_right_outer + tile: padding_width + border + tile - 2squares */
-  height: 6px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect x='0' y='0' width='3' height='3' fill='%230083FF'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%230083FF'/%3E%3C/svg%3E");
-  background-size: 6px 6px;
-  background-position: 100% 0; /* right-anchored: corner always complete tile */
-  pointer-events: none;
-}
+/* React Select pixel shadow is handled by the PixelMenu JS component in NewContinuumForm.tsx */
 
 /* Kill browser autofill background tint */
 input:-webkit-autofill,

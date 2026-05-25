@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { PillButton } from "@/components/ui/PillButton";
 import Link from "next/link";
-import Select, { components, StylesConfig, DropdownIndicatorProps } from "react-select";
+import Select, { components, StylesConfig, DropdownIndicatorProps, MenuProps, GroupBase } from "react-select";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
@@ -56,6 +56,71 @@ const ChevronIndicator = (props: DropdownIndicatorProps<Option>) => (
     </svg>
   </components.DropdownIndicator>
 );
+
+// Pixel-art drop shadow menu — mirrors PixelBox logic in JS so both strips
+// are always exact tile multiples with no partial squares at either end.
+const TILE = 6;
+const PIXEL_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${TILE}' height='${TILE}'%3E%3Crect x='0' y='0' width='${TILE / 2}' height='${TILE / 2}' fill='%230083FF'/%3E%3Crect x='${TILE / 2}' y='${TILE / 2}' width='${TILE / 2}' height='${TILE / 2}' fill='%230083FF'/%3E%3C/svg%3E")`;
+
+function PixelMenu(props: MenuProps<Option, false, GroupBase<Option>>) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    if (!boxRef.current) return;
+    const ro = new ResizeObserver(() => {
+      if (boxRef.current)
+        setDims({ w: boxRef.current.offsetWidth, h: boxRef.current.offsetHeight });
+    });
+    ro.observe(boxRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  // Exact tile multiples — zero partial squares
+  const sideH = Math.max(0, Math.floor(dims.h / TILE) * TILE - TILE);
+  const bottomW = Math.ceil(dims.w / TILE) * TILE; // left starts at TILE, covers corner
+
+  const stripe = (s: React.CSSProperties): React.CSSProperties => ({
+    position: "absolute", backgroundImage: PIXEL_SVG,
+    backgroundSize: `${TILE}px ${TILE}px`, backgroundPosition: "0 0",
+    pointerEvents: "none", ...s,
+  });
+
+  // The outer div takes React Select's absolute positioning; inner box is visual only.
+  // This mirrors PixelBox (wrapper + box as separate elements) so strips position
+  // relative to the outer border edge with no padding-box coordinate offset issues.
+  const ms = props.getStyles("menu", props as any) as React.CSSProperties;
+
+  return (
+    <div style={{
+      position: (ms.position as React.CSSProperties["position"]) ?? "absolute",
+      top: ms.top, bottom: ms.bottom, left: ms.left ?? 0, right: ms.right,
+      width: ms.width ?? "100%", zIndex: ms.zIndex,
+      marginTop: ms.marginTop, marginBottom: ms.marginBottom,
+    }}>
+      {/* Right side strip: bottom flush with box bottom, exact tile height */}
+      {dims.w > 0 && sideH > 0 && (
+        <div aria-hidden style={stripe({ right: -TILE, bottom: 0, width: TILE, height: sideH })} />
+      )}
+      {/* Bottom strip: 2 squares (TILE) from left, exact tile width, covers corner */}
+      {dims.w > 0 && (
+        <div aria-hidden style={stripe({ bottom: -TILE, left: TILE, width: bottomW, height: TILE })} />
+      )}
+      {/* Menu box — visual styles only, no absolute positioning */}
+      <div
+        ref={(node) => {
+          (boxRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          const r = props.innerRef;
+          if (r) { if (typeof r === "function") r(node); else (r as React.MutableRefObject<HTMLDivElement | null>).current = node; }
+        }}
+        {...props.innerProps}
+        style={{ background: "white", border: `2px solid ${BLUE}`, overflow: "hidden", position: "relative", zIndex: 1 }}
+      >
+        {props.children}
+      </div>
+    </div>
+  );
+}
 
 const makeSelectStyles = (): StylesConfig<Option> => ({
   control: (base) => ({
@@ -260,7 +325,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                   onChange={(opt) => opt && setVisibility(opt.value as Visibility)}
                   isSearchable={false}
                   styles={selectStyles}
-                  components={{ DropdownIndicator: ChevronIndicator }}
+                  components={{ DropdownIndicator: ChevronIndicator, Menu: PixelMenu }}
                 />
               </Field>
 
@@ -275,7 +340,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                     isSearchable
                     placeholder="Search topics…"
                     styles={selectStyles}
-                    components={{ DropdownIndicator: ChevronIndicator }}
+                    components={{ DropdownIndicator: ChevronIndicator, Menu: PixelMenu }}
                   />
                 </Field>
               )}
