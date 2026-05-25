@@ -118,17 +118,19 @@ body {
   background-position: 0 100%; /* anchor tiles to bottom → clean row at corner */
   pointer-events: none;
 }
-/* Bottom strip */
+/* Bottom strip — starts 2 squares (6px) right of box_left_outer for drop-shadow offset.
+ * background-position: 100% 0 anchors tiles to the right so the corner is always a
+ * complete tile; any fractional tile is at the left, hidden under the box edge. */
 .cc-select__menu::after {
   content: "";
   position: absolute;
-  bottom: -8px;              /* -(6 + 2): top edge = box_bottom_outer */
-  left: -2px;                /* -border: left edge = box_left_outer */
-  width: calc(100% + 10px); /* padding_width + 2*border + tile = 100% + 10 */
+  bottom: -8px;             /* -(tile + border): top edge = box_bottom_outer */
+  left: 4px;                /* box_left_outer + 2 squares = -border + tile = -2 + 6 */
+  width: calc(100% + 4px);  /* to box_right_outer + tile: padding_width + border + tile - 2squares */
   height: 6px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Crect x='0' y='0' width='3' height='3' fill='%230083FF'/%3E%3Crect x='3' y='3' width='3' height='3' fill='%230083FF'/%3E%3C/svg%3E");
   background-size: 6px 6px;
-  background-position: 0 0;
+  background-position: 100% 0; /* right-anchored: corner always complete tile */
   pointer-events: none;
 }
 
