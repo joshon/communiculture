@@ -1,187 +1,193 @@
 "use client";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Text } from "@react-three/drei";
-import { useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useState } from "react";
 import * as THREE from "three";
-import { BlockyAvatar } from "@/components/avatar/BlockyAvatar";
+import { CharacterGroup } from "@/components/avatar/AvatarRenderer";
+import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
+import { AVATAR_PARTS } from "@/components/avatar-builder/types";
+import { DEFAULT_AVATAR, type AvatarConfig } from "@/store/avatarStore";
 import { useContinuumStore } from "@/store/continuumStore";
-import type { AvatarConfig } from "@/store/avatarStore";
 
-const SCENE_WIDTH = 20; // total width of continuum in 3D units
+// ─── constants ────────────────────────────────────────────────────────────────
 
-interface Props {
-  continuumId: string;
-  leftLabel: string;
-  rightLabel: string;
-  currentUserId: string;
-  currentUserAvatarConfig: AvatarConfig;
-  onPositionChange: (position: number) => void;
-  onPositionCommit: (position: number) => void;
+const CROWD_WIDTH = 24; // world units, x = (position – 0.5) * 24
+const AVATAR_SCALE = 0.38;
+const CURRENT_SCALE = 0.43;
+// Three rows, centred at y=0 so the camera lookAt=[0,0,0] frames them well
+const ROW_YS = [-1.1, 0, 1.1];
+const BLUE = "#0083FF";
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function posToX(pos: number) {
+  return (pos - 0.5) * CROWD_WIDTH;
 }
 
-export function ContinuumScene({
-  continuumId,
-  leftLabel,
-  rightLabel,
-  currentUserId,
-  currentUserAvatarConfig,
-  onPositionChange,
-  onPositionCommit,
-}: Props) {
-  return (
-    <div className="w-full h-[480px] bg-white border border-gray-100">
-      <Canvas
-        camera={{ position: [0, 4, 14], fov: 50 }}
-        shadows
-      >
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[8, 10, 5]} intensity={1} castShadow />
+function seededRand(userId: string, salt: string): number {
+  let h = 0;
+  const s = userId + salt;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return ((h >>> 0) % 10000) / 10000;
+}
 
-        {/* Ground plane */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-          <planeGeometry args={[SCENE_WIDTH + 4, 8]} />
-          <meshStandardMaterial color="#f8f8f8" />
-        </mesh>
+function avatarXY(pos: number, userId: string, rowIndex: number): [number, number] {
+  const jitterX = (seededRand(userId, "x") - 0.5) * 0.5;
+  const jitterY = (seededRand(userId, "y") - 0.5) * 0.2;
+  return [posToX(pos) + jitterX, ROW_YS[rowIndex % ROW_YS.length] + jitterY];
+}
 
-        {/* Continuum axis line */}
-        <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[SCENE_WIDTH, 0.04]} />
-          <meshStandardMaterial color="#0033cc" />
-        </mesh>
+const DEFAULT_VARIANTS = Object.fromEntries(
+  AVATAR_PARTS.map((p) => [p, 0])
+) as Record<AvatarPart, number>;
 
-        {/* Labels */}
-        <Text
-          position={[-(SCENE_WIDTH / 2) - 0.5, 0.5, 0]}
-          fontSize={0.5}
-          color="#0033cc"
-          anchorX="right"
-          anchorY="middle"
-          maxWidth={4}
-        >
-          {leftLabel}
-        </Text>
-        <Text
-          position={[(SCENE_WIDTH / 2) + 0.5, 0.5, 0]}
-          fontSize={0.5}
-          color="#0033cc"
-          anchorX="left"
-          anchorY="middle"
-          maxWidth={4}
-        >
-          {rightLabel}
-        </Text>
+function colorsFromConfig(cfg: AvatarConfig | null | undefined): Record<AvatarPart, string> {
+  const base = cfg && Object.keys(cfg).length > 0 ? cfg : DEFAULT_AVATAR;
+  return Object.fromEntries(
+    AVATAR_PARTS.map((p) => [p, (base as any)[p] ?? DEFAULT_AVATAR[p as keyof AvatarConfig] ?? "#cccccc"])
+  ) as Record<AvatarPart, string>;
+}
 
-        <CrowdScene
-          currentUserId={currentUserId}
-          currentUserAvatarConfig={currentUserAvatarConfig}
-          onPositionChange={onPositionChange}
-          onPositionCommit={onPositionCommit}
-        />
+// ─── camera controller ────────────────────────────────────────────────────────
 
-        <OrbitControls
-          enablePan={false}
-          enableRotate={false}
-          enableZoom={true}
-          minDistance={6}
-          maxDistance={20}
-          target={[0, 1, 0]}
-        />
-      </Canvas>
-    </div>
-  );
+function CrowdCamera() {
+  const { size, camera } = useThree();
+  useEffect(() => {
+    const ortho = camera as THREE.OrthographicCamera;
+    // Show ≈±13 world units horizontally (accounting for the angled camera
+    // whose right-vector contributes ~0.866 of world-X to screen-X)
+    ortho.zoom = size.width / 22;
+    ortho.updateProjectionMatrix();
+  }, [size.width, camera]);
+  return null;
+}
+
+// ─── inner scene (reads store) ────────────────────────────────────────────────
+
+interface SceneProps {
+  library: AvatarVariantLibrary;
+  currentUserId: string;
+  currentUserAvatarConfig: AvatarConfig;
+  localPosition: number;
+  selectedUserId: string | null;
+  onSelectUser: (uid: string | null) => void;
 }
 
 function CrowdScene({
-  currentUserId,
-  currentUserAvatarConfig,
-  onPositionChange,
-  onPositionCommit,
-}: Pick<Props, "currentUserId" | "currentUserAvatarConfig" | "onPositionChange" | "onPositionCommit">) {
+  library, currentUserId, currentUserAvatarConfig,
+  localPosition, selectedUserId, onSelectUser,
+}: SceneProps) {
   const participants = useContinuumStore((s) => s.participants);
-  const { camera, gl } = useThree();
-  const dragPlane = useRef(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0));
-  const raycaster = useRef(new THREE.Raycaster());
-  const isDragging = useRef(false);
-  const [localPosition, setLocalPosition] = useState(
-    participants[currentUserId]?.position ?? 0.5
+
+  const sorted = useMemo(
+    () => Object.values(participants).sort((a, b) => a.position - b.position),
+    [participants]
   );
 
-  const posToX = (pos: number) => (pos - 0.5) * SCENE_WIDTH;
-  const xToPos = (x: number) => Math.min(1, Math.max(0, x / SCENE_WIDTH + 0.5));
-
-  const handlePointerDown = useCallback(
-    (e: any) => {
-      e.stopPropagation();
-      isDragging.current = true;
-      gl.domElement.style.cursor = "grabbing";
-    },
-    [gl]
-  );
-
-  const handlePointerMove = useCallback(
-    (e: any) => {
-      if (!isDragging.current) return;
-      const mouse = new THREE.Vector2(
-        (e.clientX / gl.domElement.clientWidth) * 2 - 1,
-        -(e.clientY / gl.domElement.clientHeight) * 2 + 1
-      );
-      raycaster.current.setFromCamera(mouse, camera);
-      const target = new THREE.Vector3();
-      raycaster.current.ray.intersectPlane(dragPlane.current, target);
-      const newPos = xToPos(target.x);
-      setLocalPosition(newPos);
-      onPositionChange(newPos);
-    },
-    [camera, gl, onPositionChange]
-  );
-
-  const handlePointerUp = useCallback(() => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    gl.domElement.style.cursor = "default";
-    onPositionCommit(localPosition);
-  }, [gl, localPosition, onPositionCommit]);
+  const isInCrowd = !!participants[currentUserId];
 
   return (
-    <group
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
-    >
-      {/* Invisible drag surface */}
-      <mesh visible={false}>
-        <planeGeometry args={[100, 100]} />
-        <meshBasicMaterial />
-      </mesh>
+    <group onPointerMissed={() => onSelectUser(null)}>
+      {/* Participants from store */}
+      {sorted.map((p, i) => {
+        const isCurrent = p.userId === currentUserId;
+        const pos = isCurrent ? localPosition : p.position;
+        const [x, y] = avatarXY(pos, p.userId, i);
+        const scale = isCurrent ? CURRENT_SCALE : AVATAR_SCALE;
+        const colors = isCurrent
+          ? colorsFromConfig(currentUserAvatarConfig)
+          : colorsFromConfig(p.avatarConfig);
 
-      {/* Other participants */}
-      {Object.values(participants)
-        .filter((p) => p.userId !== currentUserId)
-        .map((p, i) => (
-          <BlockyAvatar
+        return (
+          <group
             key={p.userId}
-            config={p.avatarConfig}
-            position={[posToX(p.position), 0, (i % 3) * 0.6 - 0.6]}
-            scale={0.5}
-          />
-        ))}
+            position={[x, y, 0]}
+            scale={scale}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectUser(p.userId === selectedUserId ? null : p.userId);
+            }}
+          >
+            {isCurrent && (
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+                <ringGeometry args={[0.38, 0.55, 32]} />
+                <meshBasicMaterial color={BLUE} />
+              </mesh>
+            )}
+            <CharacterGroup
+              library={library}
+              variantIndices={DEFAULT_VARIANTS}
+              colors={colors}
+              showOutline={false}
+            />
+          </group>
+        );
+      })}
 
-      {/* Current user's draggable avatar */}
-      <group
-        position={[posToX(localPosition), 0, 0.8]}
-        onPointerDown={handlePointerDown}
-      >
-        <BlockyAvatar
-          config={currentUserAvatarConfig}
-          scale={0.6}
-        />
-        {/* Highlight ring under feet */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <ringGeometry args={[0.3, 0.45, 32]} />
-          <meshBasicMaterial color="#0033cc" />
-        </mesh>
-      </group>
+      {/* Ghost avatar if current user hasn't placed yet — shows at localPosition */}
+      {!isInCrowd && (
+        <group position={[posToX(localPosition), ROW_YS[0], 0]} scale={CURRENT_SCALE}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+            <ringGeometry args={[0.38, 0.55, 32]} />
+            <meshBasicMaterial color={BLUE} />
+          </mesh>
+          <CharacterGroup
+            library={library}
+            variantIndices={DEFAULT_VARIANTS}
+            colors={colorsFromConfig(currentUserAvatarConfig)}
+            showOutline={false}
+          />
+        </group>
+      )}
     </group>
+  );
+}
+
+// ─── public component ─────────────────────────────────────────────────────────
+
+interface Props {
+  currentUserId: string;
+  currentUserAvatarConfig: AvatarConfig;
+  localPosition: number;
+  selectedUserId: string | null;
+  onSelectUser: (uid: string | null) => void;
+}
+
+export function ContinuumScene({
+  currentUserId, currentUserAvatarConfig,
+  localPosition, selectedUserId, onSelectUser,
+}: Props) {
+  const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
+
+  useEffect(() => {
+    fetch("/api/dev/avatar-library")
+      .then((r) => r.json())
+      .then((d) => setLibrary(d.library));
+  }, []);
+
+  return (
+    <div style={{ width: "100%", height: 360 }}>
+      {library && (
+        <Canvas
+          orthographic
+          camera={{ position: [2.165, 3.7, 3.75], zoom: 46, near: -100, far: 100 }}
+          gl={{ antialias: true }}
+          style={{ width: "100%", height: "100%" }}
+        >
+          <CrowdCamera />
+          <color attach="background" args={["#ffffff"]} />
+          <ambientLight intensity={1.2} />
+          <directionalLight position={[5, 8, 5]} intensity={0.8} />
+          <CrowdScene
+            library={library}
+            currentUserId={currentUserId}
+            currentUserAvatarConfig={currentUserAvatarConfig}
+            localPosition={localPosition}
+            selectedUserId={selectedUserId}
+            onSelectUser={onSelectUser}
+          />
+        </Canvas>
+      )}
+    </div>
   );
 }

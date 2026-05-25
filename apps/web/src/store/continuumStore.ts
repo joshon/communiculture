@@ -7,6 +7,7 @@ export interface Participant {
   image: string | null;
   avatarConfig: AvatarConfig;
   position: number; // 0.0 to 1.0
+  comment: string | null;
 }
 
 interface ContinuumStore {
@@ -17,6 +18,7 @@ interface ContinuumStore {
   setContinuumId: (id: string) => void;
   setParticipants: (participants: Participant[]) => void;
   updatePosition: (userId: string, position: number) => void;
+  updateComment: (userId: string, comment: string | null) => void;
   addParticipant: (p: Participant) => void;
   removeParticipant: (userId: string) => void;
   setConnected: (v: boolean) => void;
@@ -39,6 +41,14 @@ export const useContinuumStore = create<ContinuumStore>((set) => ({
       participants: {
         ...state.participants,
         [userId]: { ...state.participants[userId], position },
+      },
+    })),
+
+  updateComment: (userId, comment) =>
+    set((state) => ({
+      participants: {
+        ...state.participants,
+        [userId]: { ...state.participants[userId], comment },
       },
     })),
 

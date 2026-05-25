@@ -56,13 +56,11 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     "";
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <ContinuumView
-        continuum={continuum}
-        participants={participants as any}
-        messages={messages as any}
-        sessionToken={sessionToken}
-      />
-    </div>
+    <ContinuumView
+      continuum={continuum}
+      participants={participants as any}
+      messages={messages as any}
+      sessionToken={sessionToken}
+    />
   );
 }
