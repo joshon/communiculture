@@ -26,7 +26,16 @@ const inputStyle: React.CSSProperties = {
   color: "#1a1a1a",
   background: "transparent",
   paddingBottom: 4,
+  resize: "none",
+  overflow: "hidden",
+  lineHeight: 1.5,
+  display: "block",
 };
+
+function autoGrow(el: HTMLTextAreaElement) {
+  el.style.height = "auto";
+  el.style.height = el.scrollHeight + "px";
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -116,31 +125,37 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
           ) : (
             <form onSubmit={handleSubmit}>
               <Field label="Question">
-                <input
+                <textarea
                   required
+                  rows={1}
                   placeholder="e.g. which do you prefer?"
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => { setTitle(e.target.value); autoGrow(e.target); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                   style={inputStyle}
                 />
               </Field>
 
               <Field label="Position 1">
-                <input
+                <textarea
                   required
+                  rows={1}
                   placeholder="e.g. cats"
                   value={leftLabel}
-                  onChange={(e) => setLeftLabel(e.target.value)}
+                  onChange={(e) => { setLeftLabel(e.target.value); autoGrow(e.target); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                   style={inputStyle}
                 />
               </Field>
 
               <Field label="Position 2">
-                <input
+                <textarea
                   required
+                  rows={1}
                   placeholder="e.g. dogs"
                   value={rightLabel}
-                  onChange={(e) => setRightLabel(e.target.value)}
+                  onChange={(e) => { setRightLabel(e.target.value); autoGrow(e.target); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
                   style={inputStyle}
                 />
               </Field>
