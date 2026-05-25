@@ -83,6 +83,34 @@ body {
   }
 }
 
+/* ── React Select pixel shadow (cc-select__menu) ────────────────────────── */
+/* Tile: 4×4px checkerboard — top-left 2×2 and bottom-right 2×2 in #0083FF  */
+.cc-select__menu {
+  overflow: visible !important;
+}
+.cc-select__menu::before {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: 4px;
+  width: 4px;
+  height: calc(100% - 4px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect x='0' y='0' width='2' height='2' fill='%230083FF'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%230083FF'/%3E%3C/svg%3E");
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+.cc-select__menu::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: calc(100% + 4px);
+  height: 4px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect x='0' y='0' width='2' height='2' fill='%230083FF'/%3E%3Crect x='2' y='2' width='2' height='2' fill='%230083FF'/%3E%3C/svg%3E");
+  background-size: 4px 4px;
+  pointer-events: none;
+}
+
 /* Kill browser autofill background tint */
 input:-webkit-autofill,
 input:-webkit-autofill:hover,

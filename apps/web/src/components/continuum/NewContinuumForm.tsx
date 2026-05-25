@@ -78,8 +78,8 @@ const makeSelectStyles = (): StylesConfig<Option> => ({
   singleValue: (base) => ({ ...base, fontFamily: INTER, fontSize: 16, color: "#1a1a1a", margin: 0 }),
   placeholder: (base) => ({ ...base, fontFamily: INTER, fontSize: 16, color: "#AAAAAA", margin: 0 }),
   menu: (base) => ({
-    ...base, borderRadius: 0, border: `1px solid ${BLUE}`,
-    boxShadow: "3px 3px 0 rgba(0,131,255,0.15)", marginTop: 4,
+    ...base, borderRadius: 0, border: `2px solid ${BLUE}`,
+    boxShadow: "none", marginTop: 4,
   }),
   option: (base, state) => ({
     ...base,
@@ -254,6 +254,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
               <Field label="Visibility">
                 <Select<Option>
                   instanceId="visibility"
+                  classNamePrefix="cc-select"
                   options={VISIBILITY_OPTIONS}
                   value={visibilityOption}
                   onChange={(opt) => opt && setVisibility(opt.value as Visibility)}
@@ -267,6 +268,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                 <Field label="Topic">
                   <Select<Option>
                     instanceId="category"
+                    classNamePrefix="cc-select"
                     options={TOPICS}
                     value={category}
                     onChange={(opt) => setCategory(opt)}
