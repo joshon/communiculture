@@ -314,7 +314,7 @@ interface SceneProps {
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
   botConfig: typeof BOT_CONFIG;
-  onHeadScreenY?: (y: number) => void;
+  onHeadScreen?: (x: number, y: number) => void;
 }
 
 function CrowdScene({
@@ -325,7 +325,7 @@ function CrowdScene({
   isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
   botConfig,
-  onHeadScreenY,
+  onHeadScreen,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
 
@@ -351,13 +351,13 @@ function CrowdScene({
     return (posZ / 100 - 0.5) * crowdDepth;
   }
 
-  // Project the selected avatar's head to canvas-space Y each frame for speech bubble arrow
-  const onHeadScreenYRef = useRef(onHeadScreenY);
-  onHeadScreenYRef.current = onHeadScreenY;
+  // Project the selected avatar's head to canvas-space (x, y) each frame for speech bubble
+  const onHeadScreenRef = useRef(onHeadScreen);
+  onHeadScreenRef.current = onHeadScreen;
   const selectedUserIdRef = useRef(selectedUserId);
   selectedUserIdRef.current = selectedUserId;
   useFrame(({ camera, gl }) => {
-    if (!onHeadScreenYRef.current || !selectedUserIdRef.current) return;
+    if (!onHeadScreenRef.current || !selectedUserIdRef.current) return;
     const uid = selectedUserIdRef.current;
     const isCurrent = uid === currentUserId;
     const p = isCurrent ? null : participants[uid];
@@ -369,8 +369,11 @@ function CrowdScene({
     const wz = (posZ / 100 - 0.5) * crowdDepthRef.current;
     const v = new THREE.Vector3(wx, wy, wz);
     v.project(camera);
-    const screenY = (1 - (v.y + 1) / 2) * gl.domElement.clientHeight;
-    onHeadScreenYRef.current(screenY);
+    const cw = gl.domElement.clientWidth;
+    const ch = gl.domElement.clientHeight;
+    const screenX = ((v.x + 1) / 2) * cw;
+    const screenY = (1 - (v.y + 1) / 2) * ch;
+    onHeadScreenRef.current(screenX, screenY);
   });
 
   // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
@@ -509,7 +512,7 @@ interface Props {
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
-  onHeadScreenY?: (y: number) => void;
+  onHeadScreen?: (x: number, y: number) => void;
 }
 
 export function ContinuumScene({
@@ -518,7 +521,7 @@ export function ContinuumScene({
   selectedUserId, onSelectUser,
   isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
-  onHeadScreenY,
+  onHeadScreen,
 }: Props) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
   const participants = useContinuumStore((s) => s.participants);
@@ -558,7 +561,7 @@ export function ContinuumScene({
             onPositionChange={onPositionChange}
             onPositionCommit={onPositionCommit}
             botConfig={BOT_CONFIG}
-            onHeadScreenY={onHeadScreenY}
+            onHeadScreen={onHeadScreen}
           />
         </Canvas>
       )}

@@ -56,17 +56,22 @@ interface Props {
 
 // ─── comment bubble ───────────────────────────────────────────────────────────
 
+const BUBBLE_W = 240;
+// Gap between bubble edge and avatar: arrow length (17 tiles) + avatar half-width (~22px)
+const BUBBLE_GAP = "calc(var(--tile, 3px) * 17 + 24px)";
+
 interface BubbleProps {
   name: string | null;
   comment: string | null;
   isSelf: boolean;
-  positionFraction: number; // 0–1 position in the crowd for left/right placement
+  positionFraction: number; // used only to pick which side the bubble appears on
+  headScreenX: number;      // avatar head screen X in canvas-local CSS pixels
   bubbleTop: number;
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
 }
 
-function CommentBubble({ name, comment, isSelf, positionFraction, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
+function CommentBubble({ name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -81,16 +86,19 @@ function CommentBubble({ name, comment, isSelf, positionFraction, bubbleTop, arr
     }, 800);
   }, [onCommentSubmit]);
 
+  // Position bubble so its near edge is BUBBLE_GAP past the avatar center
+  const leftStyle = anchorRight
+    ? `calc(${headScreenX}px - ${BUBBLE_GAP} - ${BUBBLE_W}px)` // bubble to the left of avatar
+    : `calc(${headScreenX}px + ${BUBBLE_GAP})`;                 // bubble to the right of avatar
+
   return (
     <div
       style={{
         position: "absolute",
         top: bubbleTop,
-        ...(anchorRight
-          ? { right: `${(1 - positionFraction) * 100 + 4}%` }
-          : { left: `${positionFraction * 100 + 4}%` }),
+        left: leftStyle,
         zIndex: 10,
-        width: 240,
+        width: BUBBLE_W,
         fontFamily: INTER,
       }}
     >
@@ -145,8 +153,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     () => participants.find((p) => p.userId === currentUserId)?.positionZ ?? 50
   );
 
-  // Head screen Y for speech bubble arrow positioning (CSS pixels from canvas top)
-  const [headScreenY, setHeadScreenY] = useState(180);
+  // Avatar head screen position for speech bubble (CSS pixels from canvas top-left)
+  const [headPos, setHeadPos] = useState({ x: 700, y: 180 });
+  const handleHeadScreen = useCallback((x: number, y: number) => setHeadPos({ x, y }), []);
 
   // Selected avatar for comment bubble
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -320,18 +329,19 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             onPreJoinCommit={handlePreJoinCommit}
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
-            onHeadScreenY={setHeadScreenY}
+            onHeadScreen={handleHeadScreen}
           />
 
           {selectedParticipant && (() => {
-            const bubbleTop = Math.max(8, headScreenY - 50);
-            const arrowCenterY = Math.max(8, headScreenY - bubbleTop);
+            const bubbleTop = Math.max(8, headPos.y - 50);
+            const arrowCenterY = Math.max(8, headPos.y - bubbleTop);
             return (
               <CommentBubble
                 name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
                 comment={selectedParticipant.comment}
                 isSelf={selectedUserId === currentUserId}
                 positionFraction={selectedParticipant.position / 100}
+                headScreenX={headPos.x}
                 bubbleTop={bubbleTop}
                 arrowCenterY={arrowCenterY}
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}

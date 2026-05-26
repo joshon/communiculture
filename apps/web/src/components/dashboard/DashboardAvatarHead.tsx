@@ -74,7 +74,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
         <div style={{
           position: "absolute",
           top: `calc(${size} * 2/3 - var(--scale, 1) * 18px - var(--tile, 3px) * 4.5)`,
-          right: `calc(100% + var(--tile, 3px) * 19)`,
+          right: `calc(100% + var(--tile, 3px) * 18)`,
           zIndex: 9999,
           ...(isMobile && { "--scale": "1.5" } as React.CSSProperties),
         }}>
