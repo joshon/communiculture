@@ -129,6 +129,7 @@ function RenderMesh({
   const outlineWidth = element.outlineWidth ?? 0;
   const hasOutline = outlineWidth > 0;
   const outlineColor = overrideOutlineColor ?? element.outlineColor ?? "#ffffff";
+  const silhouetteColor = overrideOutlineColor ?? "#1a1a1a";
   const frameLocalZ = element.type === "plane" ? 0.001 : 0.501;
   const borderX = hasOutline ? outlineWidth / element.scale[0] : 0;
   const borderY = hasOutline ? outlineWidth / element.scale[1] : 0;
@@ -223,7 +224,7 @@ function RenderMesh({
           {useRounded ? (
             <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={5}>
               <meshBasicMaterial
-                color="#1a1a1a"
+                color={silhouetteColor}
                 side={THREE.BackSide}
                 stencilWrite={false}
                 stencilRef={1}
@@ -238,7 +239,7 @@ function RenderMesh({
               {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
               {element.type === "tapered" && <TaperedGeom topScale={element.topScale ?? [1, 1]} />}
               <meshBasicMaterial
-                color="#1a1a1a"
+                color={silhouetteColor}
                 side={THREE.BackSide}
                 stencilWrite={false}
                 stencilRef={1}

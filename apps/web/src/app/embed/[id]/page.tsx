@@ -41,11 +41,13 @@ export default async function EmbedPage({ params, searchParams }: Props) {
 
   if (!hasAccess) notFound();
 
-  const [participants, messages] = await Promise.all([
+  const userId = session?.user?.id;
+  const [currentUser, participants, messages] = await Promise.all([
+    userId ? prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } }) : null,
     prisma.continuumParticipant.findMany({
       where: { continuumId: params.id },
       include: {
-        user: { select: { id: true, name: true, image: true, avatarConfig: true } },
+        user: { select: { id: true, name: true, image: true, avatarConfig: true, isSynthetic: true } },
       },
     }),
     prisma.message.findMany({
@@ -78,6 +80,7 @@ export default async function EmbedPage({ params, searchParams }: Props) {
           participants={participants as any}
           messages={messages as any}
           sessionToken={sessionToken}
+          currentUserAvatarConfig={(currentUser?.avatarConfig ?? {}) as any}
         />
       ) : (
         <div className="flex flex-col items-center justify-center h-full gap-4">

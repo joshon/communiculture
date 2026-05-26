@@ -27,6 +27,7 @@ interface ContinuumData {
 interface ParticipantData {
   userId: string;
   position: number;
+  positionZ: number;
   comment: string | null;
   user: {
     id: string;
@@ -108,64 +109,6 @@ function DragBarSVG() {
     </svg>
   );
 }
-
-// ─── drag bar ─────────────────────────────────────────────────────────────────
-
-function DragBar({
-  onPositionChange,
-  onPositionCommit,
-}: {
-  onPositionChange: (p: number) => void;
-  onPositionCommit: (p: number) => void;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
-
-  const getPos = useCallback((clientX: number) => {
-    if (!ref.current) return 0.5;
-    const rect = ref.current.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-  }, []);
-
-  const onDown = useCallback(
-    (e: React.PointerEvent) => {
-      dragging.current = true;
-      (e.currentTarget as Element).setPointerCapture(e.pointerId);
-      onPositionChange(getPos(e.clientX));
-    },
-    [getPos, onPositionChange]
-  );
-
-  const onMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      onPositionChange(getPos(e.clientX));
-    },
-    [getPos, onPositionChange]
-  );
-
-  const onUp = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      dragging.current = false;
-      onPositionCommit(getPos(e.clientX));
-    },
-    [getPos, onPositionCommit]
-  );
-
-  return (
-    <div
-      ref={ref}
-      style={{ cursor: "ew-resize", userSelect: "none", touchAction: "none" }}
-      onPointerDown={onDown}
-      onPointerMove={onMove}
-      onPointerUp={onUp}
-    >
-      <DragBarSVG />
-    </div>
-  );
-}
-
 
 // ─── comment bubble ───────────────────────────────────────────────────────────
 
@@ -257,16 +200,21 @@ function CommentBubble({ name, comment, isSelf, positionFraction, onCommentSubmi
 export function ContinuumView({ continuum, participants, messages, sessionToken, currentUserAvatarConfig }: Props) {
   const { data: session } = useSession();
   const {
-    setParticipants, setConnected, updatePosition, updateComment,
+    setParticipants, setConnected, updatePositionXZ, updateComment,
     addParticipant, removeParticipant, setContinuumId, participants: storeParticipants,
   } = useContinuumStore();
 
   const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const storeParticipantsRef = useRef(storeParticipants);
+  storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
 
-  // Local position for real-time drag feedback
+  // Local X and Z for real-time drag feedback
   const [localPosition, setLocalPosition] = useState(
-    () => participants.find((p) => p.userId === currentUserId)?.position ?? 0.5
+    () => participants.find((p) => p.userId === currentUserId)?.position ?? 50
+  );
+  const [localPositionZ, setLocalPositionZ] = useState(
+    () => participants.find((p) => p.userId === currentUserId)?.positionZ ?? 50
   );
 
   // Selected avatar for comment bubble
@@ -284,6 +232,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         avatarConfig: p.user.avatarConfig,
         isSynthetic: p.user.isSynthetic,
         position: p.position,
+        positionZ: p.positionZ,
         comment: p.comment,
       }))
     );
@@ -295,8 +244,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       socket.emit("join:continuum", continuum.id);
     });
     socket.on("disconnect", () => setConnected(false));
-    socket.on("position:broadcast", ({ userId, position }: { userId: string; position: number }) => {
-      updatePosition(userId, position);
+    socket.on("position:broadcast", ({ userId, position, positionZ }: { userId: string; position: number; positionZ: number }) => {
+      updatePositionXZ(userId, position, positionZ ?? 50);
     });
     socket.on("user:join", (data: { userId: string; userName: string; userImage: string }) => {
       addParticipant({
@@ -305,7 +254,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         image: data.userImage,
         avatarConfig: {} as AvatarConfig,
         isSynthetic: false,
-        position: 0.5,
+        position: 50,
+        positionZ: 50,
         comment: null,
       });
     });
@@ -325,39 +275,40 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
   // ── position handlers ──
   const handlePositionChange = useCallback(
-    (position: number) => {
-      setLocalPosition(position);
-      updatePosition(currentUserId, position);
+    (posX: number, posZ: number) => {
+      setLocalPosition(posX);
+      setLocalPositionZ(posZ);
+      updatePositionXZ(currentUserId, posX, posZ);
       const socket = getSocket(sessionToken);
-      socket.emit("position:update", { continuumId: continuum.id, position });
+      socket.emit("position:update", { continuumId: continuum.id, position: posX, positionZ: posZ });
     },
-    [continuum.id, sessionToken, currentUserId]
+    [continuum.id, sessionToken, currentUserId, updatePositionXZ]
   );
 
   const handlePositionCommit = useCallback(
-    (position: number) => {
+    (posX: number, posZ: number) => {
       if (commitTimer.current) clearTimeout(commitTimer.current);
       commitTimer.current = setTimeout(async () => {
         await fetch(`/api/continuums/${continuum.id}/position`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ position }),
+          body: JSON.stringify({ position: posX, positionZ: posZ }),
         });
-        // Add self to the store with full data so the crowd renders correctly this session
-        if (currentUserId && !storeParticipants[currentUserId]) {
+        if (currentUserId && !storeParticipantsRef.current[currentUserId]) {
           addParticipant({
             userId: currentUserId,
             name: session?.user?.name ?? null,
             image: session?.user?.image ?? null,
             avatarConfig: currentUserAvatarConfig,
             isSynthetic: false,
-            position,
+            position: posX,
+            positionZ: posZ,
             comment: null,
           });
         }
       }, 300);
     },
-    [continuum.id, currentUserId, storeParticipants, addParticipant, session, currentUserAvatarConfig]
+    [continuum.id, currentUserId, addParticipant, session, currentUserAvatarConfig]
   );
 
   // ── comment handler ──
@@ -402,9 +353,10 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     }
   }, []);
 
-  const handlePreJoinCommit = useCallback((position: number) => {
-    setLocalPosition(position);
-    handlePositionCommit(position);
+  const handlePreJoinCommit = useCallback((posX: number, posZ: number) => {
+    setLocalPosition(posX);
+    setLocalPositionZ(posZ);
+    handlePositionCommit(posX, posZ);
   }, [handlePositionCommit]);
 
   if (!session) return null;
@@ -444,11 +396,14 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             currentUserId={currentUserId}
             currentUserAvatarConfig={currentUserAvatarConfig}
             localPosition={localPosition}
+            localPositionZ={localPositionZ}
             selectedUserId={selectedUserId}
             onSelectUser={handleSelectUser}
             isInCrowd={isInCrowd}
             onBarFracUpdate={onBarFracUpdate}
             onPreJoinCommit={handlePreJoinCommit}
+            onPositionChange={handlePositionChange}
+            onPositionCommit={handlePositionCommit}
           />
 
           {selectedParticipant && (
@@ -456,22 +411,16 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
               name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
               comment={selectedParticipant.comment}
               isSelf={selectedUserId === currentUserId}
-              positionFraction={selectedParticipant.position}
+              positionFraction={selectedParticipant.position / 100}
               onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
               onClose={() => setSelectedUserId(null)}
             />
           )}
         </div>
 
-        {/* Drag bar */}
-        <div style={{ marginTop: 12, position: "relative", height: 40 }}>
-          {isInCrowd ? (
-            <DragBar
-              onPositionChange={handlePositionChange}
-              onPositionCommit={handlePositionCommit}
-            />
-          ) : (
-            // Imperative div — positioned by ContinuumScene's PreJoinAvatar via onBarFracUpdate
+        {/* Pre-join platform bar — hidden once user joins (drag is in-scene after that) */}
+        {!isInCrowd && (
+          <div style={{ marginTop: 12, position: "relative", height: 40 }}>
             <div
               ref={platformBarRef}
               style={{
@@ -483,8 +432,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             >
               <DragBarSVG />
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Position labels */}
         <div style={{

@@ -13,7 +13,7 @@ const prisma = new PrismaClient();
 
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
-const POSITIONS = [0.1, 0.3, 0.5, 0.7, 0.9];
+const POSITIONS = [10, 30, 50, 70, 90];
 
 function seededInt(seed: number, salt: number, max: number): number {
   return ((seed * 1664525 + salt * 1013904223) >>> 0) % max;
@@ -103,10 +103,11 @@ async function main() {
         onboardingComplete: true,
       },
     });
+    const positionZ = 20 + seededInt(i + 7, i * 3 + 11, 60); // seeded 20–79
     await prisma.continuumParticipant.create({
-      data: { continuumId: continuum.id, userId: user.id, position: POSITIONS[i], comment: persona.comment },
+      data: { continuumId: continuum.id, userId: user.id, position: POSITIONS[i], positionZ, comment: persona.comment },
     });
-    console.log(`Created bot ${i + 1}/5 at ${POSITIONS[i] * 100}%: "${persona.comment}"`);
+    console.log(`Created bot ${i + 1}/5 at x=${POSITIONS[i]}% z=${positionZ}%: "${persona.comment}"`);
   }
 
   console.log("Done.");
