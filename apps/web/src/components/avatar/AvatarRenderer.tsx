@@ -92,6 +92,8 @@ function RenderMesh({
   showOutline = false,
   overrideOutlineColor,
   onPartClick,
+  unlit = false,
+  emissiveBoost = 0,
 }: {
   element: MeshElement;
   color: string;
@@ -101,6 +103,8 @@ function RenderMesh({
   showOutline?: boolean;
   overrideOutlineColor?: string;
   onPartClick?: (part: AvatarPart) => void;
+  unlit?: boolean;
+  emissiveBoost?: number;
 }) {
   const meshColor = useMemo(() => {
     const base = element.color ?? color;
@@ -135,11 +139,12 @@ function RenderMesh({
   const borderY = hasOutline ? outlineWidth / element.scale[1] : 0;
   const frameGeo = useFrameGeo(borderX, borderY, roundRadius, Math.max(3, roundSmooth * 2));
 
-  const isFlat = element.flat ?? false;
+  const isFlat = (element.flat ?? false) || unlit;
   const emissive = useMemo(() => {
+    if (emissiveBoost > 0) return new THREE.Color(meshColor);
     return new THREE.Color(element.emissiveColor ?? "#000000");
-  }, [element.emissiveColor]);
-  const emissiveIntensity = element.emissiveIntensity ?? 0;
+  }, [element.emissiveColor, emissiveBoost, meshColor]);
+  const emissiveIntensity = emissiveBoost > 0 ? emissiveBoost : (element.emissiveIntensity ?? 0);
 
   const stickerTex = useMemo(
     () => (element.texture ? getStickerTexture(element.texture) : null),
@@ -264,6 +269,8 @@ export function CharacterGroup({
   onPartClick,
   showOutline,
   outlineColor,
+  unlit = false,
+  emissiveBoost = 0,
 }: {
   library: AvatarVariantLibrary;
   variantIndices: Record<AvatarPart, number>;
@@ -272,6 +279,8 @@ export function CharacterGroup({
   onPartClick?: (part: AvatarPart) => void;
   showOutline?: boolean;
   outlineColor?: string;
+  unlit?: boolean;
+  emissiveBoost?: number;
 }) {
   return (
     <group>
@@ -305,6 +314,8 @@ export function CharacterGroup({
                   showOutline={showOutline}
                   overrideOutlineColor={outlineColor}
                   onPartClick={onPartClick}
+                  unlit={unlit}
+                  emissiveBoost={emissiveBoost}
                 />
               );
             })}
