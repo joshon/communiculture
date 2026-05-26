@@ -12,7 +12,7 @@ export default async function NewContinuumPage() {
     prisma.continuum.count({ where: { ownerId: userId } }),
   ]);
 
-  const canCreate = userRecord?.plan !== "FREE" || count < 3;
+  const canCreate = userRecord?.plan !== "FREE" || count < 5;
 
   return <NewContinuumForm canCreate={canCreate} />;
 }
