@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; // always fetch fresh participants
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
