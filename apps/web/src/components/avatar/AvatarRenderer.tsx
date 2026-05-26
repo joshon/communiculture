@@ -94,6 +94,9 @@ function RenderMesh({
   onPartClick,
   unlit = false,
   emissiveBoost = 0,
+  roughness: roughnessOverride,
+  metalness: metalnessOverride,
+  forceColor = false,
 }: {
   element: MeshElement;
   color: string;
@@ -105,14 +108,26 @@ function RenderMesh({
   onPartClick?: (part: AvatarPart) => void;
   unlit?: boolean;
   emissiveBoost?: number;
+  roughness?: number;
+  metalness?: number;
+  forceColor?: boolean;
 }) {
   const meshColor = useMemo(() => {
+    // forceColor (bots): ignore element.color and colorLightness; planes get a -20% lightness to add detail
+    if (forceColor) {
+      if (element.type === "plane") {
+        const c = new THREE.Color(color);
+        c.offsetHSL(0, 0, -0.2);
+        return c;
+      }
+      return color;
+    }
     const base = element.color ?? color;
     if (!element.colorLightness) return base;
     const c = new THREE.Color(base);
     c.offsetHSL(0, 0, element.colorLightness);
     return c;
-  }, [element.color, element.colorLightness, color]);
+  }, [element.color, element.colorLightness, element.type, color, forceColor]);
 
   const opacity = element.opacity ?? 1;
   const needsTransparency = opacity < 1 || !!element.texture;
@@ -194,7 +209,7 @@ function RenderMesh({
             {isFlat ? (
               <meshBasicMaterial {...sharedMat} />
             ) : (
-              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
+              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={roughnessOverride ?? 0.7} metalness={metalnessOverride ?? 0.05} />
             )}
           </RoundedBox>
         ) : (
@@ -207,7 +222,7 @@ function RenderMesh({
             {isFlat ? (
               <meshBasicMaterial {...sharedMat} />
             ) : (
-              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={0.7} metalness={0.05} />
+              <meshStandardMaterial {...sharedMat} emissive={emissive} emissiveIntensity={emissiveIntensity} roughness={roughnessOverride ?? 0.7} metalness={metalnessOverride ?? 0.05} />
             )}
           </mesh>
         )}
@@ -273,6 +288,9 @@ export function CharacterGroup({
   outlineColor,
   unlit = false,
   emissiveBoost = 0,
+  roughness,
+  metalness,
+  forceColor = false,
 }: {
   library: AvatarVariantLibrary;
   variantIndices: Record<AvatarPart, number>;
@@ -283,6 +301,9 @@ export function CharacterGroup({
   outlineColor?: string;
   unlit?: boolean;
   emissiveBoost?: number;
+  roughness?: number;
+  metalness?: number;
+  forceColor?: boolean;
 }) {
   return (
     <group>
@@ -318,6 +339,9 @@ export function CharacterGroup({
                   onPartClick={onPartClick}
                   unlit={unlit}
                   emissiveBoost={emissiveBoost}
+                  roughness={roughness}
+                  metalness={metalness}
+                  forceColor={forceColor}
                 />
               );
             })}

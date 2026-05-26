@@ -7,6 +7,7 @@ import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { PillButton } from "@/components/ui/PillButton";
+import { SpeechBubble } from "@/components/ui/SpeechBubble";
 import { type AvatarConfig } from "@/store/avatarStore";
 
 const INTER = "Inter, sans-serif";
@@ -60,80 +61,63 @@ interface BubbleProps {
   comment: string | null;
   isSelf: boolean;
   positionFraction: number; // 0–1 position in the crowd for left/right placement
+  arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
-  onClose: () => void;
 }
 
-function CommentBubble({ name, comment, isSelf, positionFraction, onCommentSubmit, onClose }: BubbleProps) {
+function CommentBubble({ name, comment, isSelf, positionFraction, arrowCenterY, onCommentSubmit }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
-  const [saving, setSaving] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Place bubble to the left if avatar is in right half, right if in left half
   const anchorRight = positionFraction > 0.5;
 
-  const handleSave = useCallback(async () => {
-    if (!onCommentSubmit || !draft.trim()) return;
-    setSaving(true);
-    await onCommentSubmit(draft.trim());
-    setSaving(false);
-  }, [draft, onCommentSubmit]);
+  const handleChange = useCallback((text: string) => {
+    setDraft(text);
+    if (!onCommentSubmit) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      if (text.trim()) onCommentSubmit(text.trim());
+    }, 800);
+  }, [onCommentSubmit]);
 
   return (
     <div
       style={{
         position: "absolute",
         top: 20,
-        ...(anchorRight ? { right: `${(1 - positionFraction) * 100 + 4}%` } : { left: `${positionFraction * 100 + 4}%` }),
+        ...(anchorRight
+          ? { right: `${(1 - positionFraction) * 100 + 4}%` }
+          : { left: `${positionFraction * 100 + 4}%` }),
         zIndex: 10,
         width: 240,
-        background: "white",
-        border: `2px solid ${BLUE}`,
-        padding: "12px 14px",
         fontFamily: INTER,
       }}
     >
-      {/* Close */}
-      <button
-        onClick={onClose}
-        style={{ position: "absolute", top: 6, right: 8, background: "none", border: "none", cursor: "pointer", color: "#aaa", fontSize: 16, lineHeight: 1 }}
-      >
-        ×
-      </button>
+      <SpeechBubble anchorRight={anchorRight} arrowCenterY={arrowCenterY}>
+        {!isSelf && name && (
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 8 }}>
+            {name}
+          </div>
+        )}
 
-      {!isSelf && name && (
-        <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 8 }}>
-          {name}
-        </div>
-      )}
-
-      {isSelf ? (
-        <>
+        {isSelf ? (
           <textarea
             rows={3}
             placeholder="Tell us why you placed yourself here"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => handleChange(e.target.value)}
             style={{
               width: "100%", border: "none", outline: "none", resize: "none",
               fontFamily: INTER, fontSize: 13, color: "#1a1a1a",
               background: "transparent", lineHeight: 1.5,
             }}
           />
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-            <PillButton
-              label="Save"
-              fontSize="13px"
-              loading={saving}
-              onClick={handleSave}
-              style={!draft.trim() ? { opacity: 0.4, cursor: "default" } : undefined}
-            />
-          </div>
-        </>
-      ) : (
-        <p style={{ fontSize: 13, color: comment ? "#1a1a1a" : "#aaa", margin: 0, lineHeight: 1.5 }}>
-          {comment ?? "No comment yet"}
-        </p>
-      )}
+        ) : (
+          <p style={{ fontSize: 13, color: comment ? "#1a1a1a" : "#aaa", margin: 0, lineHeight: 1.5 }}>
+            {comment ?? "No comment yet"}
+          </p>
+        )}
+      </SpeechBubble>
     </div>
   );
 }
@@ -159,6 +143,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const [localPositionZ, setLocalPositionZ] = useState(
     () => participants.find((p) => p.userId === currentUserId)?.positionZ ?? 50
   );
+
+  // Head screen Y for speech bubble arrow positioning (CSS pixels from canvas top)
+  const [headScreenY, setHeadScreenY] = useState(180);
 
   // Selected avatar for comment bubble
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -313,7 +300,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           fontSize: "clamp(24px, 4vw, 36px)",
           fontWeight: 700,
           color: "#1a1a1a",
-          margin: "0 0 clamp(24px, 4vh, 40px)",
+          margin: 0,
           lineHeight: 1.25,
         }}>
           {continuum.title}
@@ -332,6 +319,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             onPreJoinCommit={handlePreJoinCommit}
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
+            onHeadScreenY={isInCrowd ? setHeadScreenY : undefined}
           />
 
           {selectedParticipant && (
@@ -340,8 +328,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
               comment={selectedParticipant.comment}
               isSelf={selectedUserId === currentUserId}
               positionFraction={selectedParticipant.position / 100}
+              arrowCenterY={Math.max(8, headScreenY - 20)}
               onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
-              onClose={() => setSelectedUserId(null)}
             />
           )}
         </div>

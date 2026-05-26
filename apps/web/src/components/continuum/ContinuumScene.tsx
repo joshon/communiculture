@@ -10,6 +10,19 @@ import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR, type AvatarConfig } from "@/store/avatarStore";
 import { useContinuumStore } from "@/store/continuumStore";
 
+// ─── bot material config ──────────────────────────────────────────────────────
+
+const BOT_CONFIG = {
+  color: "#0083FF",
+  outlineColor: "#0083FF",
+  unlit: false,
+  roughness: 0,
+  metalness: 0,
+  emissiveIntensity: 1.16,
+  ambientIntensity: 1.4,
+  dirLightIntensity: 1.6,
+} as const;
+
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
@@ -20,11 +33,6 @@ const CURRENT_SCALE = 0.67;
 // With CURRENT_SCALE=0.67 and group at Y=0 the feet land at world Y≈-0.13 → clips.
 // Lifting by AVATAR_Y puts feet at world Y ≈ 0 (just above ground plane).
 const AVATAR_Y = 0.18;
-
-const BLUE = "#0083FF";
-const SYNTHETIC_COLORS = Object.fromEntries(
-  ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((p) => [p, BLUE])
-) as Record<AvatarPart, string>;
 
 // Platform geometry (world units)
 const PLATFORM_WIDTH = 8;   // = 1/3 of CROWD_WIDTH
@@ -305,6 +313,8 @@ interface SceneProps {
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
+  botConfig: typeof BOT_CONFIG;
+  onHeadScreenY?: (y: number) => void;
 }
 
 function CrowdScene({
@@ -314,6 +324,8 @@ function CrowdScene({
   selectedUserId, onSelectUser,
   isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
+  botConfig,
+  onHeadScreenY,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
 
@@ -323,15 +335,39 @@ function CrowdScene({
   // Pre-join Z pulled back by one platform depth so avatar sits fully inside canvas
   const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
 
+  // Minimum posZ so the current user's hair never clips off the top of the canvas.
+  // cos(atan(8/10)) ≈ 0.780 is the camera elevation's Y→screenY factor.
+  const ELEV_COS = 0.780;
+  const avatarScreenTop = (AVATAR_Y + CURRENT_SCALE * 3.3) * ELEV_COS;
+  const maxZBackWorld = Math.max(0, (halfHeightCam - avatarScreenTop) / Z_TO_SCREEN);
+  const minPosZ = Math.max(0, (0.5 - maxZBackWorld / crowdDepth) * 100 + 5);
+
   const crowdDepthRef = useRef(crowdDepth);
   crowdDepthRef.current = crowdDepth;
-
-  // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
-  const platformXRef = useRef(0);
+  const minPosZRef = useRef(minPosZ);
+  minPosZRef.current = minPosZ;
 
   function posToZ(posZ: number) {
     return (posZ / 100 - 0.5) * crowdDepth;
   }
+
+  // Project current user's head to canvas-space Y each frame for speech bubble arrow
+  const onHeadScreenYRef = useRef(onHeadScreenY);
+  onHeadScreenYRef.current = onHeadScreenY;
+  useFrame(({ camera, gl }) => {
+    if (!onHeadScreenYRef.current || !isInCrowd) return;
+    const wx = posToX(localPosition);
+    const wy = AVATAR_Y + CURRENT_SCALE * 2.5; // approximate mid-head world Y
+    const wz = (localPositionZ / 100 - 0.5) * crowdDepthRef.current;
+    const v = new THREE.Vector3(wx, wy, wz);
+    v.project(camera);
+    // NDC y=1 is canvas top; convert to CSS pixels from top
+    const screenY = (1 - (v.y + 1) / 2) * gl.domElement.clientHeight;
+    onHeadScreenYRef.current(screenY);
+  });
+
+  // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
+  const platformXRef = useRef(0);
 
   // In-crowd drag state for current user's avatar
   const isDraggingRef = useRef(false);
@@ -348,7 +384,7 @@ function CrowdScene({
       if (!isDraggingRef.current) return;
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
-      const posZ = Math.max(0, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
+      const posZ = Math.max(minPosZRef.current, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
       onPositionChangeRef.current(posX, posZ);
     };
 
@@ -358,7 +394,7 @@ function CrowdScene({
       canvas.style.cursor = "";
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
-      const posZ = Math.max(0, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
+      const posZ = Math.max(minPosZRef.current, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
       onPositionCommitRef.current(posX, posZ);
     };
 
@@ -387,7 +423,10 @@ function CrowdScene({
         const scale = isCurrent ? CURRENT_SCALE : AVATAR_SCALE;
         const isBot = p.isSynthetic;
         const cfg = isCurrent ? currentUserAvatarConfig : p.avatarConfig;
-        const colors = isBot ? SYNTHETIC_COLORS : colorsFromConfig(cfg);
+        const botColors = Object.fromEntries(
+          ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((part) => [part, botConfig.color])
+        ) as Record<AvatarPart, string>;
+        const colors = isBot ? botColors : colorsFromConfig(cfg);
         const variants = isBot
           ? variantsForBot(p.userId, library)
           : variantsFromConfig(isCurrent ? currentUserAvatarConfig : p.avatarConfig);
@@ -420,8 +459,12 @@ function CrowdScene({
                 variantIndices={variants}
                 colors={colors}
                 showOutline={true}
-                outlineColor={isBot ? BLUE : undefined}
-                unlit={isBot}
+                outlineColor={isBot ? botConfig.outlineColor : undefined}
+                unlit={isBot ? botConfig.unlit : false}
+                emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
+                roughness={isBot ? botConfig.roughness : undefined}
+                metalness={isBot ? botConfig.metalness : undefined}
+                forceColor={isBot}
               />
             </group>
           </group>
@@ -459,6 +502,7 @@ interface Props {
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
+  onHeadScreenY?: (y: number) => void;
 }
 
 export function ContinuumScene({
@@ -467,9 +511,9 @@ export function ContinuumScene({
   selectedUserId, onSelectUser,
   isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
+  onHeadScreenY,
 }: Props) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
-  // Read participants outside the Canvas so Zustand subscriptions work in the normal React tree
   const participants = useContinuumStore((s) => s.participants);
 
   useEffect(() => {
@@ -490,8 +534,8 @@ export function ContinuumScene({
         >
           <CrowdCamera />
           <color attach="background" args={["#ffffff"]} />
-          <ambientLight intensity={1.4} />
-          <directionalLight position={[-5, 7, 4]} intensity={1.6} castShadow />
+          <ambientLight intensity={BOT_CONFIG.ambientIntensity} />
+          <directionalLight position={[-5, 7, 4]} intensity={BOT_CONFIG.dirLightIntensity} castShadow />
           <directionalLight position={[3, 2, -2]} intensity={0.15} />
           <CrowdScene
             library={library}
@@ -506,6 +550,8 @@ export function ContinuumScene({
             onPreJoinCommit={onPreJoinCommit}
             onPositionChange={onPositionChange}
             onPositionCommit={onPositionCommit}
+            botConfig={BOT_CONFIG}
+            onHeadScreenY={onHeadScreenY}
           />
         </Canvas>
       )}
