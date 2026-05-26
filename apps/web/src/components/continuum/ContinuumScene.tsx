@@ -26,22 +26,27 @@ const SYNTHETIC_COLORS = Object.fromEntries(
   ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((p) => [p, BLUE])
 ) as Record<AvatarPart, string>;
 
+// Platform geometry (world units)
+const PLATFORM_WIDTH = 8;   // = 1/3 of CROWD_WIDTH
+const PLATFORM_DEPTH = 1.0;
+
 // Pre-join bar animation constants
-// PNG is 1068×90; platform inner edges are 41 px from each side
+// PNG is 1068×90; avatar bounce zone is 82px from each edge (inner rect, excluding arrows)
 const BAR_FRAC = 1 / 3;
-const CENTER_L = 41 / 1068;
-const CENTER_R = (1068 - 41) / 1068;
+const CENTER_L = 130 / 1068;
+const CENTER_R = (1068 - 130) / 1068;
 const SPEED = 0.00008;
 
-// PNG aspect ratio (1068×90)
+// PNG aspect ratio (1068×90); top border is 4px (unscaled) before the platform surface
 const PLATFORM_PNG_ASPECT = 1068 / 90;
+const PLATFORM_TOP_BORDER_FRAC = 4 / 90;
+// sprite top = Y 0, platform surface = Y −(4/90)*spriteHeight ≈ −0.030
+// feet world Y = groupY + CURRENT_SCALE*(−0.2); set equal to surface → groupY ≈ 0.104
+const PLATFORM_SURFACE_Y = -PLATFORM_TOP_BORDER_FRAC * (PLATFORM_WIDTH / PLATFORM_PNG_ASPECT);
+const PREJOIN_AVATAR_Y = PLATFORM_SURFACE_Y + CURRENT_SCALE * 0.2 - 0.06;
 
 // Camera tilt: world Z→screenY factor (from camera at [0,8,10] looking at origin)
 const Z_TO_SCREEN = 0.625;
-
-// Platform geometry (world units)
-const PLATFORM_WIDTH = 8;   // = 1/3 of CROWD_WIDTH
-const PLATFORM_DEPTH = 1.0; // how deep the platform is in world-Z
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -125,7 +130,10 @@ function CrowdCamera() {
 
 // ─── in-canvas platform sprite ────────────────────────────────────────────────
 
-function PlatformSpriteInner({
+// Uses a regular Mesh (not Sprite) so renderOrder is respected in the main render
+// pass — THREE.Sprite has its own post-geometry pass that ignores renderOrder.
+// Billboard effect is achieved by copying camera.quaternion each frame.
+function PlatformBillboardInner({
   platformXRef,
   preJoinZ,
 }: {
@@ -133,27 +141,30 @@ function PlatformSpriteInner({
   preJoinZ: number;
 }) {
   const texture = useLoader(THREE.TextureLoader, "/DragYourself.png");
-  const spriteRef = useRef<THREE.Sprite>(null);
-
-  useFrame(() => {
-    if (spriteRef.current) spriteRef.current.position.x = platformXRef.current;
-  });
+  const meshRef = useRef<THREE.Mesh>(null);
+  const { camera } = useThree();
 
   const width = PLATFORM_WIDTH;
   const height = width / PLATFORM_PNG_ASPECT;
 
-  // Center sprite so its top edge is at Y=0 (avatar feet level), no avatar overlap
+  useFrame(() => {
+    if (!meshRef.current) return;
+    meshRef.current.position.x = platformXRef.current;
+    meshRef.current.quaternion.copy(camera.quaternion);
+  });
+
   return (
-    <sprite ref={spriteRef} renderOrder={-1} position={[0, -height / 2, preJoinZ]} scale={[width, height, 1]}>
-      <spriteMaterial map={texture} transparent depthWrite={false} toneMapped={false} />
-    </sprite>
+    <mesh ref={meshRef} renderOrder={-1} position={[0, -height / 2, preJoinZ]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} transparent depthWrite={false} depthTest={false} toneMapped={false} />
+    </mesh>
   );
 }
 
 function PlatformSprite(props: { platformXRef: React.MutableRefObject<number>; preJoinZ: number }) {
   return (
     <Suspense fallback={null}>
-      <PlatformSpriteInner {...props} />
+      <PlatformBillboardInner {...props} />
     </Suspense>
   );
 }
@@ -253,7 +264,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }:
   return (
     <group
       ref={groupRef}
-      position={[posToX(BAR_FRAC / 2 * 100), AVATAR_Y, preJoinZ]}
+      position={[posToX(BAR_FRAC / 2 * 100), PREJOIN_AVATAR_Y, preJoinZ]}
       scale={CURRENT_SCALE}
       renderOrder={10}
       onPointerDown={(e) => {

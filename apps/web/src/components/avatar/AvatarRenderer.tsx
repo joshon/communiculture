@@ -231,6 +231,7 @@ function RenderMesh({
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
+                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
@@ -246,6 +247,7 @@ function RenderMesh({
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
+                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
