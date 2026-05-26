@@ -351,17 +351,24 @@ function CrowdScene({
     return (posZ / 100 - 0.5) * crowdDepth;
   }
 
-  // Project current user's head to canvas-space Y each frame for speech bubble arrow
+  // Project the selected avatar's head to canvas-space Y each frame for speech bubble arrow
   const onHeadScreenYRef = useRef(onHeadScreenY);
   onHeadScreenYRef.current = onHeadScreenY;
+  const selectedUserIdRef = useRef(selectedUserId);
+  selectedUserIdRef.current = selectedUserId;
   useFrame(({ camera, gl }) => {
-    if (!onHeadScreenYRef.current || !isInCrowd) return;
-    const wx = posToX(localPosition);
-    const wy = AVATAR_Y + CURRENT_SCALE * 2.5; // approximate mid-head world Y
-    const wz = (localPositionZ / 100 - 0.5) * crowdDepthRef.current;
+    if (!onHeadScreenYRef.current || !selectedUserIdRef.current) return;
+    const uid = selectedUserIdRef.current;
+    const isCurrent = uid === currentUserId;
+    const p = isCurrent ? null : participants[uid];
+    const pos  = isCurrent ? localPosition  : (p?.position  ?? 50);
+    const posZ = isCurrent ? localPositionZ : (p?.positionZ ?? 50);
+    const scale = isCurrent ? CURRENT_SCALE : AVATAR_SCALE;
+    const wx = posToX(pos);
+    const wy = AVATAR_Y + scale * 2.5;
+    const wz = (posZ / 100 - 0.5) * crowdDepthRef.current;
     const v = new THREE.Vector3(wx, wy, wz);
     v.project(camera);
-    // NDC y=1 is canvas top; convert to CSS pixels from top
     const screenY = (1 - (v.y + 1) / 2) * gl.domElement.clientHeight;
     onHeadScreenYRef.current(screenY);
   });

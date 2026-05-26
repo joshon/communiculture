@@ -24,10 +24,12 @@ export function SpeechBubble({ children, anchorRight, arrowCenterY, style }: Pro
   // same geometry as DashboardAvatarHead: right: tile*-17 puts the TIP flush
   // with the border; the rectangular body extends outward toward the avatar.
   // scaleX(-1) flips for right-side placement.
+  // anchorRight=true (avatar on RIGHT): no flip, connector sticks right toward avatar — matches DashboardAvatarHead
+  // anchorRight=false (avatar on LEFT): scaleX(-1) mirrors connector to the left toward avatar
   const arrowStyle: CSSProperties = {
     position: "absolute",
     top: arrowCenterY,
-    transform: `translateY(-50%)${anchorRight ? " scaleX(-1)" : ""}`,
+    transform: `translateY(-50%)${!anchorRight ? " scaleX(-1)" : ""}`,
     transformOrigin: "center center",
     ...(anchorRight
       ? { right: "calc(var(--tile, 3px) * -17)" }

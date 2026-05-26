@@ -61,11 +61,12 @@ interface BubbleProps {
   comment: string | null;
   isSelf: boolean;
   positionFraction: number; // 0–1 position in the crowd for left/right placement
+  bubbleTop: number;
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
 }
 
-function CommentBubble({ name, comment, isSelf, positionFraction, arrowCenterY, onCommentSubmit }: BubbleProps) {
+function CommentBubble({ name, comment, isSelf, positionFraction, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -84,7 +85,7 @@ function CommentBubble({ name, comment, isSelf, positionFraction, arrowCenterY, 
     <div
       style={{
         position: "absolute",
-        top: 20,
+        top: bubbleTop,
         ...(anchorRight
           ? { right: `${(1 - positionFraction) * 100 + 4}%` }
           : { left: `${positionFraction * 100 + 4}%` }),
@@ -319,19 +320,24 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             onPreJoinCommit={handlePreJoinCommit}
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
-            onHeadScreenY={isInCrowd ? setHeadScreenY : undefined}
+            onHeadScreenY={setHeadScreenY}
           />
 
-          {selectedParticipant && (
-            <CommentBubble
-              name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
-              comment={selectedParticipant.comment}
-              isSelf={selectedUserId === currentUserId}
-              positionFraction={selectedParticipant.position / 100}
-              arrowCenterY={Math.max(8, headScreenY - 20)}
-              onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
-            />
-          )}
+          {selectedParticipant && (() => {
+            const bubbleTop = Math.max(8, headScreenY - 50);
+            const arrowCenterY = Math.max(8, headScreenY - bubbleTop);
+            return (
+              <CommentBubble
+                name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
+                comment={selectedParticipant.comment}
+                isSelf={selectedUserId === currentUserId}
+                positionFraction={selectedParticipant.position / 100}
+                bubbleTop={bubbleTop}
+                arrowCenterY={arrowCenterY}
+                onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
+              />
+            );
+          })()}
         </div>
 
         {/* Position labels */}
