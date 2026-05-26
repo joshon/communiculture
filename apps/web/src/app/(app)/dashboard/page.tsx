@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     prisma.continuum.findMany({
       where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
-      take: 3,
+      take: 5,
       include: {
         _count: { select: { participants: true } },
         participants: { select: { position: true, userId: true } },
@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   const cfg = userRecord?.avatarConfig as Record<string, unknown> | null;
   if (!cfg || cfg.format !== "v2") redirect("/profile/avatar");
 
-  const canCreate = userRecord?.plan !== "FREE" || continuums.length < 3;
+  const canCreate = userRecord?.plan !== "FREE" || continuums.length < 5;
   const avatarSize = "60px";
 
   return (

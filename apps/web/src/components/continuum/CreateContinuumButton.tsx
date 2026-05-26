@@ -15,7 +15,7 @@ export function CreateContinuumButton({ canCreate, count }: Props) {
   if (!canCreate) {
     return (
       <p style={{ fontFamily: INTER, fontSize: 16, color: "#888", margin: 0 }}>
-        {count}/3 continuums —{" "}
+        {count}/5 continuums —{" "}
         <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>upgrade</Link>
       </p>
     );
