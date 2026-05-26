@@ -8,7 +8,7 @@ import OpenAI from "openai";
 import fs from "fs/promises";
 import path from "path";
 
-const FREE_LIMIT = 3;
+const FREE_LIMIT = 5;
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
 

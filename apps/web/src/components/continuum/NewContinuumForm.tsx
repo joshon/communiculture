@@ -240,7 +240,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
         }),
       });
       if (res.status === 402) {
-        setError("You've reached the free limit (3 continuums). Upgrade to create more.");
+        setError("You've reached the free limit (5 continuums). Upgrade to create more.");
         return;
       }
       if (!res.ok) { setError("Something went wrong. Try again."); return; }
@@ -279,7 +279,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
 
           {!canCreate ? (
             <p style={{ fontFamily: INTER, fontSize: 16, color: "#888" }}>
-              You&apos;ve reached the free limit of 3 continuums.{" "}
+              You&apos;ve reached the free limit of 5 continuums.{" "}
               <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>Upgrade</Link>{" "}
               to create more.
             </p>
