@@ -2,7 +2,7 @@
 
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { meshBounds } from "@react-three/drei";
-import { useEffect, useMemo, useRef, useCallback, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { CharacterGroup } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
@@ -15,7 +15,14 @@ import { useContinuumStore } from "@/store/continuumStore";
 const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
 const AVATAR_SCALE = 0.59;
 const CURRENT_SCALE = 0.67;
+
+// Shoe geometry in AvatarRenderer sits at local Y ≈ -0.2 (unscaled).
+// With CURRENT_SCALE=0.67 and group at Y=0 the feet land at world Y≈-0.13 → clips.
+// Lifting by AVATAR_Y puts feet at world Y ≈ 0 (just above ground plane).
+const AVATAR_Y = 0.18;
+
 const BLUE = "#0083FF";
+const PLATFORM_COLOR = "#DA5F44";
 const SYNTHETIC_COLORS = Object.fromEntries(
   ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((p) => [p, BLUE])
 ) as Record<AvatarPart, string>;
@@ -26,9 +33,12 @@ const CENTER_L = 41 / 523;
 const CENTER_R = 476.725 / 523;
 const SPEED = 0.00008;
 
-// Camera tilt factor: how much world Z contributes to screen Y
-// Derived from camera at (0,8,10) looking at (0,0,0): up_cam.z component / magnitude
+// Camera tilt: world Z→screenY factor (from camera at [0,8,10] looking at origin)
 const Z_TO_SCREEN = 0.625;
+
+// Platform geometry (world units)
+const PLATFORM_WIDTH = 8;   // = 1/3 of CROWD_WIDTH
+const PLATFORM_DEPTH = 1.0; // how deep the platform is in world-Z
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -112,35 +122,63 @@ function CrowdCamera() {
   return null;
 }
 
+// ─── in-canvas platform plane ─────────────────────────────────────────────────
+// Lies flat (horizontal) at ground level, tracks the bouncing bar's X position.
+
+function PlatformPlane({
+  platformXRef,
+  preJoinZ,
+}: {
+  platformXRef: React.MutableRefObject<number>;
+  preJoinZ: number;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+
+  useFrame(() => {
+    if (meshRef.current) meshRef.current.position.x = platformXRef.current;
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      // Center of the platform in Z is at preJoinZ (same as avatar feet)
+      position={[0, 0, preJoinZ]}
+      rotation={[-Math.PI / 2, 0, 0]}
+      renderOrder={5}
+    >
+      <planeGeometry args={[PLATFORM_WIDTH, PLATFORM_DEPTH]} />
+      <meshBasicMaterial color={PLATFORM_COLOR} />
+    </mesh>
+  );
+}
+
 // ─── pre-join bouncing avatar ─────────────────────────────────────────────────
 
 interface PreJoinProps {
   library: AvatarVariantLibrary;
   avatarConfig: AvatarConfig;
-  onBarFracUpdate: (frac: number) => void;
+  platformXRef: React.MutableRefObject<number>;
   onPreJoinCommit: (posX: number, posZ: number) => void;
 }
 
-function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit }: PreJoinProps) {
+function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }: PreJoinProps) {
   const { camera, gl, size } = useThree();
   const groupRef = useRef<THREE.Group>(null);
+  const rotGroupRef = useRef<THREE.Group>(null);
   const isDraggingRef = useRef(false);
   const barFracRef = useRef(0);
   const dirRef = useRef(1);
   const avatarXFracRef = useRef(BAR_FRAC / 2); // 0–1 fraction of container width
 
-  // Stable refs for callbacks
-  const onBarFracUpdateRef = useRef(onBarFracUpdate);
+  // Stable ref for callback
   const onPreJoinCommitRef = useRef(onPreJoinCommit);
-  onBarFracUpdateRef.current = onBarFracUpdate;
   onPreJoinCommitRef.current = onPreJoinCommit;
 
-  // Crowd depth and pre-join Z derived from canvas size
-  // halfHeightCam = visible half-height in camera units = 13 * H/W
-  // worldZBottom = Z value that places Y=0 object at canvas bottom = halfHeightCam / Z_TO_SCREEN
+  // Crowd depth and pre-join Z derived from canvas size.
+  // Pull preJoinZ back by one platform depth so avatar is fully visible in canvas.
   const halfHeightCam = (size.height / size.width) * 13;
   const crowdDepth = halfHeightCam * 2 * 0.7 / Z_TO_SCREEN;
-  const preJoinZ = halfHeightCam / Z_TO_SCREEN; // feet exactly at canvas bottom
+  const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
 
   const preJoinZRef = useRef(preJoinZ);
   const crowdDepthRef = useRef(crowdDepth);
@@ -156,7 +194,6 @@ function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit
     const onMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
       const [worldX] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
-      // X fraction of crowd width
       avatarXFracRef.current = Math.max(0, Math.min(1, worldX / CROWD_WIDTH + 0.5));
     };
 
@@ -167,7 +204,6 @@ function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
       const posZ = Math.max(0, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
-      onBarFracUpdateRef.current(barFracRef.current);
       onPreJoinCommitRef.current(posX, posZ);
     };
 
@@ -191,27 +227,33 @@ function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit
       const cLeft  = barFracRef.current + BAR_FRAC * CENTER_L;
       const cRight = barFracRef.current + BAR_FRAC * CENTER_R;
       avatarXFracRef.current = Math.max(cLeft, Math.min(cRight, avatarXFracRef.current));
-
-      onBarFracUpdateRef.current(barFracRef.current);
     }
+
+    // Update platform X (bar center in world space)
+    const barCenterFrac = barFracRef.current + BAR_FRAC / 2;
+    platformXRef.current = posToX(barCenterFrac * 100);
 
     if (groupRef.current) {
       groupRef.current.position.x = posToX(avatarXFracRef.current * 100);
       groupRef.current.position.z = preJoinZRef.current;
+    }
+
+    // Apply Y rotation matching the crowd avatar pattern
+    if (rotGroupRef.current) {
+      rotGroupRef.current.rotation.y = avatarRotationY(avatarXFracRef.current * 100);
     }
   });
 
   return (
     <group
       ref={groupRef}
-      position={[posToX(BAR_FRAC / 2 * 100), 0, preJoinZ]}
+      position={[posToX(BAR_FRAC / 2 * 100), AVATAR_Y, preJoinZ]}
       scale={CURRENT_SCALE}
       renderOrder={10}
       onPointerDown={(e) => {
         e.stopPropagation();
         isDraggingRef.current = true;
         gl.domElement.style.cursor = "grabbing";
-        onBarFracUpdateRef.current(-1);
         (e.nativeEvent.target as HTMLElement).setPointerCapture(e.nativeEvent.pointerId);
       }}
     >
@@ -219,12 +261,14 @@ function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit
         <boxGeometry args={[1.4, 2.5, 1.4]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
-      <CharacterGroup
-        library={library}
-        variantIndices={variants}
-        colors={colors}
-        showOutline={true}
-      />
+      <group ref={rotGroupRef}>
+        <CharacterGroup
+          library={library}
+          variantIndices={variants}
+          colors={colors}
+          showOutline={true}
+        />
+      </group>
     </group>
   );
 }
@@ -233,6 +277,7 @@ function PreJoinAvatar({ library, avatarConfig, onBarFracUpdate, onPreJoinCommit
 
 interface SceneProps {
   library: AvatarVariantLibrary;
+  participants: ReturnType<typeof useContinuumStore.getState>["participants"];
   currentUserId: string;
   currentUserAvatarConfig: AvatarConfig;
   localPosition: number;   // X, 0–100
@@ -240,28 +285,32 @@ interface SceneProps {
   selectedUserId: string | null;
   onSelectUser: (uid: string | null) => void;
   isInCrowd: boolean;
-  onBarFracUpdate: (frac: number) => void;
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
 }
 
 function CrowdScene({
-  library, currentUserId, currentUserAvatarConfig,
+  library, participants,
+  currentUserId, currentUserAvatarConfig,
   localPosition, localPositionZ,
   selectedUserId, onSelectUser,
-  isInCrowd, onBarFracUpdate, onPreJoinCommit,
+  isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
-  const participants = useContinuumStore((s) => s.participants);
 
   // Crowd depth: how much world-Z the crowd spans (scales with canvas aspect ratio)
   const halfHeightCam = (size.height / size.width) * 13;
   const crowdDepth = halfHeightCam * 2 * 0.7 / Z_TO_SCREEN;
+  // Pre-join Z pulled back by one platform depth so avatar sits fully inside canvas
+  const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
 
   const crowdDepthRef = useRef(crowdDepth);
   crowdDepthRef.current = crowdDepth;
+
+  // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
+  const platformXRef = useRef(0);
 
   function posToZ(posZ: number) {
     return (posZ / 100 - 0.5) * crowdDepth;
@@ -330,7 +379,7 @@ function CrowdScene({
         return (
           <group
             key={p.userId}
-            position={[x, 0, z]}
+            position={[x, AVATAR_Y, z]}
             scale={scale}
             onClick={(e) => {
               if (isDraggingRef.current) return;
@@ -362,12 +411,18 @@ function CrowdScene({
       })}
 
       {!isInCrowd && (
-        <PreJoinAvatar
-          library={library}
-          avatarConfig={currentUserAvatarConfig}
-          onBarFracUpdate={onBarFracUpdate}
-          onPreJoinCommit={onPreJoinCommit}
-        />
+        <>
+          <PreJoinAvatar
+            library={library}
+            avatarConfig={currentUserAvatarConfig}
+            platformXRef={platformXRef}
+            onPreJoinCommit={onPreJoinCommit}
+          />
+          <PlatformPlane
+            platformXRef={platformXRef}
+            preJoinZ={preJoinZ}
+          />
+        </>
       )}
     </group>
   );
@@ -383,7 +438,6 @@ interface Props {
   selectedUserId: string | null;
   onSelectUser: (uid: string | null) => void;
   isInCrowd: boolean;
-  onBarFracUpdate: (frac: number) => void;
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
@@ -393,10 +447,12 @@ export function ContinuumScene({
   currentUserId, currentUserAvatarConfig,
   localPosition, localPositionZ,
   selectedUserId, onSelectUser,
-  isInCrowd, onBarFracUpdate, onPreJoinCommit,
+  isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
 }: Props) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
+  // Read participants outside the Canvas so Zustand subscriptions work in the normal React tree
+  const participants = useContinuumStore((s) => s.participants);
 
   useEffect(() => {
     fetch("/api/dev/avatar-library")
@@ -420,6 +476,7 @@ export function ContinuumScene({
           <directionalLight position={[5, 8, 5]} intensity={0.6} />
           <CrowdScene
             library={library}
+            participants={participants}
             currentUserId={currentUserId}
             currentUserAvatarConfig={currentUserAvatarConfig}
             localPosition={localPosition}
@@ -427,7 +484,6 @@ export function ContinuumScene({
             selectedUserId={selectedUserId}
             onSelectUser={onSelectUser}
             isInCrowd={isInCrowd}
-            onBarFracUpdate={onBarFracUpdate}
             onPreJoinCommit={onPreJoinCommit}
             onPositionChange={onPositionChange}
             onPositionCommit={onPositionCommit}
