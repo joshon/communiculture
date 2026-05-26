@@ -58,7 +58,7 @@ interface Props {
 
 const BUBBLE_W = 240;
 // Gap between bubble edge and avatar: arrow length (17 tiles) + avatar half-width (~22px)
-const BUBBLE_GAP = "calc(var(--tile, 3px) * 17 + 24px)";
+const BUBBLE_GAP = "calc(var(--tile, 3px) * 17 + 12px)";
 
 interface BubbleProps {
   name: string | null;
@@ -333,7 +333,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           />
 
           {selectedParticipant && (() => {
-            const bubbleTop = Math.max(8, headPos.y - 50);
+            const bubbleTop = Math.max(8, headPos.y - 65);
             const arrowCenterY = Math.max(8, headPos.y - bubbleTop);
             return (
               <CommentBubble
