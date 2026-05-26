@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import { NewContinuumForm } from "@/components/continuum/NewContinuumForm";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 
 export default async function NewContinuumPage() {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,7 @@ export default async function NewContinuumPage() {
     prisma.continuum.count({ where: { ownerId: userId } }),
   ]);
 
-  const canCreate = userRecord?.plan !== "FREE" || count < 5;
+  const canCreate = userRecord?.plan !== "FREE" || count < FREE_CONTINUUM_LIMIT;
 
   return <NewContinuumForm canCreate={canCreate} />;
 }

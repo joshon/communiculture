@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { PillButton } from "@/components/ui/PillButton";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
@@ -15,7 +16,7 @@ export function CreateContinuumButton({ canCreate, count }: Props) {
   if (!canCreate) {
     return (
       <p style={{ fontFamily: INTER, fontSize: 16, color: "#888", margin: 0 }}>
-        {count}/5 continuums —{" "}
+        {count}/{FREE_CONTINUUM_LIMIT} continuums —{" "}
         <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>upgrade</Link>
       </p>
     );

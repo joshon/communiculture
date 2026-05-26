@@ -6,6 +6,7 @@ import { AppHeader } from "@/components/ui/AppHeader";
 import { PillButton } from "@/components/ui/PillButton";
 import Link from "next/link";
 import Select, { components, StylesConfig, DropdownIndicatorProps, MenuProps, GroupBase } from "react-select";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
@@ -240,7 +241,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
         }),
       });
       if (res.status === 402) {
-        setError("You've reached the free limit (5 continuums). Upgrade to create more.");
+        setError("{`You've reached the free limit (${FREE_CONTINUUM_LIMIT} continuums). Upgrade to create more.`}");
         return;
       }
       if (!res.ok) { setError("Something went wrong. Try again."); return; }
@@ -279,7 +280,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
 
           {!canCreate ? (
             <p style={{ fontFamily: INTER, fontSize: 16, color: "#888" }}>
-              You&apos;ve reached the free limit of 5 continuums.{" "}
+              You&apos;ve reached the free limit of {FREE_CONTINUUM_LIMIT} continuums.{" "}
               <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>Upgrade</Link>{" "}
               to create more.
             </p>

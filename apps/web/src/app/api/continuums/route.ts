@@ -7,8 +7,7 @@ import bcrypt from "bcryptjs";
 import OpenAI from "openai";
 import fs from "fs/promises";
 import path from "path";
-
-const FREE_LIMIT = 5;
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
 
@@ -134,7 +133,7 @@ export async function POST(req: Request) {
     select: { plan: true, _count: { select: { continuums: true } } },
   });
 
-  if (user?.plan === "FREE" && (user._count?.continuums ?? 0) >= FREE_LIMIT) {
+  if (user?.plan === "FREE" && (user._count?.continuums ?? 0) >= FREE_CONTINUUM_LIMIT) {
     return NextResponse.json(
       { error: "free_limit_reached", message: "Upgrade to create more continuums" },
       { status: 402 }

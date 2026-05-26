@@ -7,6 +7,7 @@ import { ContinuumPreviewBar } from "@/components/dashboard/ContinuumPreviewBar"
 import { CreateContinuumButton } from "@/components/continuum/CreateContinuumButton";
 import { PillButton } from "@/components/ui/PillButton";
 import { AppHeader } from "@/components/ui/AppHeader";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 
 const INTER = "Inter, sans-serif";
 
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
     prisma.continuum.findMany({
       where: { ownerId: userId },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: FREE_CONTINUUM_LIMIT,
       include: {
         _count: { select: { participants: true } },
         participants: { select: { position: true, userId: true } },
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
   const cfg = userRecord?.avatarConfig as Record<string, unknown> | null;
   if (!cfg || cfg.format !== "v2") redirect("/profile/avatar");
 
-  const canCreate = userRecord?.plan !== "FREE" || continuums.length < 5;
+  const canCreate = userRecord?.plan !== "FREE" || continuums.length < FREE_CONTINUUM_LIMIT;
   const avatarSize = "60px";
 
   return (
