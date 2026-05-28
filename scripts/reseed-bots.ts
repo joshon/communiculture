@@ -16,7 +16,11 @@ const BOT_BLUE = "#0083FF";
 const POSITIONS = [10, 30, 50, 70, 90];
 
 function seededInt(seed: number, salt: number, max: number): number {
-  return ((seed * 1664525 + salt * 1013904223) >>> 0) % max;
+  let h = ((seed + 1) * 2654435761 ^ (salt + 1) * 2246822519) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x45d9f3b) >>> 0;
+  h = (h ^ (h >>> 16)) >>> 0;
+  return h % max;
 }
 
 async function syntheticBotAvatar(botIndex: number) {

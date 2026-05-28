@@ -26,8 +26,21 @@ const BOT_CONFIG = {
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
-const AVATAR_SCALE = 0.59;
-const CURRENT_SCALE = 0.67;
+const BASE_AVATAR_SCALE = 0.59;
+const BASE_CURRENT_SCALE = 0.67;
+
+// Platform max screen width (px) — avatars never stretch wider than this
+const PLATFORM_MAX_PX = 600;
+
+// Avatar scale multiplier based on total visible participant count
+function avatarScaleMult(count: number): number {
+  if (count <= 6) return 2.24;
+  if (count >= 100) return 0.90;
+  return 2.24 - ((count - 6) / 94) * 1.34;
+}
+
+// Crowd cap: max real (non-synthetic) participants shown
+const CROWD_CAP = 100;
 
 // Shoe geometry in AvatarRenderer sits at local Y ≈ -0.2 (unscaled).
 // With CURRENT_SCALE=0.67 and group at Y=0 the feet land at world Y≈-0.13 → clips.
@@ -51,10 +64,21 @@ const PLATFORM_TOP_BORDER_FRAC = 4 / 90;
 // sprite top = Y 0, platform surface = Y −(4/90)*spriteHeight ≈ −0.030
 // feet world Y = groupY + CURRENT_SCALE*(−0.2); set equal to surface → groupY ≈ 0.104
 const PLATFORM_SURFACE_Y = -PLATFORM_TOP_BORDER_FRAC * (PLATFORM_WIDTH / PLATFORM_PNG_ASPECT);
-const PREJOIN_AVATAR_Y = PLATFORM_SURFACE_Y + CURRENT_SCALE * 0.2 - 0.06;
+const PREJOIN_AVATAR_Y = PLATFORM_SURFACE_Y + BASE_CURRENT_SCALE * 0.2 - 0.06;
 
 // Camera tilt: world Z→screenY factor (from camera at [0,8,10] looking at origin)
 const Z_TO_SCREEN = 0.625;
+// cos(atan(8/10)) ≈ 0.780 — camera elevation's world-Y → screen-Y factor
+const ELEV_COS = 0.780;
+
+// Max safe crowd depth so avatars at posZ=0 or posZ=100 don't clip the canvas edges.
+// Constraint: head screen Y at most-back Z must stay within ±halfHeightCam.
+// head_screenY = -(avatarScale * 3.5) * ELEV_COS - halfDepth * Z_TO_SCREEN ≥ -halfHeightCam
+// → halfDepth ≤ (halfHeightCam - avatarScale * 3.5 * ELEV_COS) / Z_TO_SCREEN
+function calcCrowdDepth(halfHeightCam: number, avatarScale: number): number {
+  const headScreenH = avatarScale * 3.5 * ELEV_COS;
+  return Math.max(2, (halfHeightCam - headScreenH) * 2 * 0.9 / Z_TO_SCREEN);
+}
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -72,7 +96,7 @@ function seededRand(userId: string, salt: string): number {
 function avatarRotationY(pos: number): number {
   // pos 0→100: left=+60°, center=0°, right=−60°
   const t = (pos / 100 - 0.5) * 2; // −1 … 0 … +1
-  return -t * 60 * (Math.PI / 180);
+  return -t * 30 * (Math.PI / 180);
 }
 
 function colorsFromConfig(cfg: AvatarConfig | null | undefined): Record<AvatarPart, string> {
@@ -152,7 +176,8 @@ function PlatformBillboardInner({
   const meshRef = useRef<THREE.Mesh>(null);
   const { camera } = useThree();
 
-  const width = PLATFORM_WIDTH;
+  const ortho = camera as THREE.OrthographicCamera;
+  const width = Math.min(PLATFORM_WIDTH, PLATFORM_MAX_PX / (ortho.zoom || 46));
   const height = width / PLATFORM_PNG_ASPECT;
 
   useFrame(() => {
@@ -184,25 +209,44 @@ interface PreJoinProps {
   avatarConfig: AvatarConfig;
   platformXRef: React.MutableRefObject<number>;
   onPreJoinCommit: (posX: number, posZ: number) => void;
+  scaleMult: number;
 }
 
-function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }: PreJoinProps) {
+function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult }: PreJoinProps) {
+  // Platform (idle): 35% bigger than crowd, feet on platform surface
+  const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.35;
+  const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06;
+  // Drag/drop: same scale as crowd avatars, feet at crowd ground level
+  const dragScale = BASE_AVATAR_SCALE * scaleMult;
+  const dragAvatarY = dragScale * 0.2 + 0.046;
+
   const { camera, gl, size } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const rotGroupRef = useRef<THREE.Group>(null);
   const isDraggingRef = useRef(false);
+  const isDroppedRef = useRef(false); // stays true after drop to prevent platform flash
   const barFracRef = useRef(0);
   const dirRef = useRef(1);
   const avatarXFracRef = useRef(BAR_FRAC / 2); // 0–1 fraction of container width
+  const avatarZFracRef = useRef(0.5);           // 0–1 fraction of crowd depth
+
+  // Keep current render-time values accessible in useFrame
+  const platformScaleRef = useRef(platformScale);
+  const platformAvatarYRef = useRef(platformAvatarY);
+  const dragScaleRef = useRef(dragScale);
+  const dragAvatarYRef = useRef(dragAvatarY);
+  platformScaleRef.current = platformScale;
+  platformAvatarYRef.current = platformAvatarY;
+  dragScaleRef.current = dragScale;
+  dragAvatarYRef.current = dragAvatarY;
 
   // Stable ref for callback
   const onPreJoinCommitRef = useRef(onPreJoinCommit);
   onPreJoinCommitRef.current = onPreJoinCommit;
 
   // Crowd depth and pre-join Z derived from canvas size.
-  // Pull preJoinZ back by one platform depth so avatar is fully visible in canvas.
   const halfHeightCam = (size.height / size.width) * 13;
-  const crowdDepth = halfHeightCam * 2 * 0.7 / Z_TO_SCREEN;
+  const crowdDepth = calcCrowdDepth(halfHeightCam, platformScale);
   const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
 
   const preJoinZRef = useRef(preJoinZ);
@@ -218,17 +262,18 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }:
 
     const onMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
-      const [worldX] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
+      const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       avatarXFracRef.current = Math.max(0, Math.min(1, worldX / CROWD_WIDTH + 0.5));
+      avatarZFracRef.current = Math.max(0, Math.min(1, worldZ / crowdDepthRef.current + 0.5));
     };
 
     const onUp = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
       isDraggingRef.current = false;
+      isDroppedRef.current = true; // freeze at drop position until component unmounts
       canvas.style.cursor = "";
-      const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
-      const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
-      const posZ = Math.max(0, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
+      const posX = Math.max(0, Math.min(100, avatarXFracRef.current * 100));
+      const posZ = Math.max(0, Math.min(100, avatarZFracRef.current * 100));
       onPreJoinCommitRef.current(posX, posZ);
     };
 
@@ -243,7 +288,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }:
   useFrame((_, delta) => {
     const dt = Math.min(delta * 1000, 50);
 
-    if (!isDraggingRef.current) {
+    if (!isDraggingRef.current && !isDroppedRef.current) {
       barFracRef.current += dirRef.current * SPEED * dt;
       const maxPos = 1 - BAR_FRAC;
       if (barFracRef.current >= maxPos) { barFracRef.current = maxPos; dirRef.current = -1; }
@@ -259,8 +304,13 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }:
     platformXRef.current = posToX(barCenterFrac * 100);
 
     if (groupRef.current) {
+      const active = isDraggingRef.current || isDroppedRef.current;
+      groupRef.current.scale.setScalar(active ? dragScaleRef.current : platformScaleRef.current);
       groupRef.current.position.x = posToX(avatarXFracRef.current * 100);
-      groupRef.current.position.z = preJoinZRef.current;
+      groupRef.current.position.y = active ? dragAvatarYRef.current : platformAvatarYRef.current;
+      groupRef.current.position.z = active
+        ? (avatarZFracRef.current - 0.5) * crowdDepthRef.current
+        : preJoinZRef.current;
     }
 
     // Apply Y rotation matching the crowd avatar pattern
@@ -272,8 +322,8 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit }:
   return (
     <group
       ref={groupRef}
-      position={[posToX(BAR_FRAC / 2 * 100), PREJOIN_AVATAR_Y, preJoinZ]}
-      scale={CURRENT_SCALE}
+      position={[posToX(BAR_FRAC / 2 * 100), platformAvatarY, preJoinZ]}
+      scale={platformScale}
       renderOrder={10}
       onPointerDown={(e) => {
         e.stopPropagation();
@@ -329,15 +379,29 @@ function CrowdScene({
 }: SceneProps) {
   const { size, gl, camera } = useThree();
 
-  // Crowd depth: how much world-Z the crowd spans (scales with canvas aspect ratio)
+  // Crowd depth: how much world-Z the crowd spans, capped so no avatar clips the canvas
   const halfHeightCam = (size.height / size.width) * 13;
-  const crowdDepth = halfHeightCam * 2 * 0.7 / Z_TO_SCREEN;
+
+  // Cap real participants at CROWD_CAP; bots are always shown regardless
+  const allParticipants = useMemo(() => Object.values(participants), [participants]);
+  const cappedParticipants = useMemo(() => {
+    const real = allParticipants.filter(p => !p.isSynthetic);
+    const bots = allParticipants.filter(p => p.isSynthetic);
+    const cappedReal = real.slice(0, CROWD_CAP);
+    return [...cappedReal, ...bots];
+  }, [allParticipants]);
+
+  // Scale based on total visible count (bots count for density purposes)
+  const scaleMult = useMemo(() => avatarScaleMult(cappedParticipants.length), [cappedParticipants.length]);
+  const AVATAR_SCALE = BASE_AVATAR_SCALE * scaleMult;
+  const CURRENT_SCALE = BASE_CURRENT_SCALE * scaleMult;
+
+  // Crowd depth: sized so the tallest avatar at the most extreme Z stays in canvas
+  const crowdDepth = calcCrowdDepth(halfHeightCam, AVATAR_SCALE);
   // Pre-join Z pulled back by one platform depth so avatar sits fully inside canvas
   const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
 
   // Minimum posZ so the current user's hair never clips off the top of the canvas.
-  // cos(atan(8/10)) ≈ 0.780 is the camera elevation's Y→screenY factor.
-  const ELEV_COS = 0.780;
   const avatarScreenTop = (AVATAR_Y + CURRENT_SCALE * 3.3) * ELEV_COS;
   const maxZBackWorld = Math.max(0, (halfHeightCam - avatarScreenTop) / Z_TO_SCREEN);
   const minPosZ = Math.max(0, (0.5 - maxZBackWorld / crowdDepth) * 100 + 5);
@@ -356,6 +420,8 @@ function CrowdScene({
   onHeadScreenRef.current = onHeadScreen;
   const selectedUserIdRef = useRef(selectedUserId);
   selectedUserIdRef.current = selectedUserId;
+  const scaleMultRef = useRef(scaleMult);
+  scaleMultRef.current = scaleMult;
   useFrame(({ camera, gl }) => {
     if (!onHeadScreenRef.current || !selectedUserIdRef.current) return;
     const uid = selectedUserIdRef.current;
@@ -363,7 +429,7 @@ function CrowdScene({
     const p = isCurrent ? null : participants[uid];
     const pos  = isCurrent ? localPosition  : (p?.position  ?? 50);
     const posZ = isCurrent ? localPositionZ : (p?.positionZ ?? 50);
-    const scale = isCurrent ? CURRENT_SCALE : AVATAR_SCALE;
+    const scale = BASE_AVATAR_SCALE * scaleMultRef.current;
     const wx = posToX(pos);
     const wy = AVATAR_Y + scale * 2.5;
     const wz = (posZ / 100 - 0.5) * crowdDepthRef.current;
@@ -418,8 +484,8 @@ function CrowdScene({
 
   // Sort back-to-front so far avatars render first (correct depth for opaque geometry)
   const sorted = useMemo(
-    () => Object.values(participants).sort((a, b) => a.positionZ - b.positionZ),
-    [participants]
+    () => cappedParticipants.slice().sort((a, b) => a.positionZ - b.positionZ),
+    [cappedParticipants]
   );
 
   return (
@@ -430,7 +496,8 @@ function CrowdScene({
         const posZ = isCurrent ? localPositionZ : p.positionZ;
         const x = posToX(pos);
         const z = posToZ(posZ);
-        const scale = isCurrent ? CURRENT_SCALE : AVATAR_SCALE;
+        const scale = AVATAR_SCALE;
+        const groupY = scale * 0.2 + 0.046;
         const isBot = p.isSynthetic;
         const cfg = isCurrent ? currentUserAvatarConfig : p.avatarConfig;
         const botColors = Object.fromEntries(
@@ -445,7 +512,7 @@ function CrowdScene({
         return (
           <group
             key={p.userId}
-            position={[x, AVATAR_Y, z]}
+            position={[x, groupY, z]}
             scale={scale}
             onClick={(e) => {
               if (isDraggingRef.current) return;
@@ -488,6 +555,7 @@ function CrowdScene({
             avatarConfig={currentUserAvatarConfig}
             platformXRef={platformXRef}
             onPreJoinCommit={onPreJoinCommit}
+            scaleMult={scaleMult}
           />
           <PlatformSprite
             platformXRef={platformXRef}
@@ -533,7 +601,7 @@ export function ContinuumScene({
   }, []);
 
   return (
-    <div style={{ width: "100%", height: 360 }}>
+    <div style={{ width: "100%", height: "clamp(360px, 45vh, 580px)" }}>
       {library && (
         <Canvas
           orthographic

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
@@ -61,21 +62,39 @@ const BUBBLE_W = 240;
 const BUBBLE_GAP = "calc(var(--tile, 3px) * 17 + 12px)";
 
 interface BubbleProps {
+  userId: string | null;
   name: string | null;
   comment: string | null;
   isSelf: boolean;
-  positionFraction: number; // used only to pick which side the bubble appears on
-  headScreenX: number;      // avatar head screen X in canvas-local CSS pixels
+  positionFraction: number;
+  headScreenX: number;
   bubbleTop: number;
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
 }
 
-function CommentBubble({ name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
+function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const router = useRouter();
 
   const anchorRight = positionFraction > 0.5;
+
+  // Auto-resize textarea to fit content
+  const adjustHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+
+  useEffect(() => { adjustHeight(); }, [draft, adjustHeight]);
+
+  // Auto-focus textarea when self-bubble first opens
+  useEffect(() => {
+    if (isSelf) textareaRef.current?.focus();
+  }, [isSelf]);
 
   const handleChange = useCallback((text: string) => {
     setDraft(text);
@@ -86,10 +105,9 @@ function CommentBubble({ name, comment, isSelf, positionFraction, headScreenX, b
     }, 800);
   }, [onCommentSubmit]);
 
-  // Position bubble so its near edge is BUBBLE_GAP past the avatar center
   const leftStyle = anchorRight
-    ? `calc(${headScreenX}px - ${BUBBLE_GAP} - ${BUBBLE_W}px)` // bubble to the left of avatar
-    : `calc(${headScreenX}px + ${BUBBLE_GAP})`;                 // bubble to the right of avatar
+    ? `calc(${headScreenX}px - ${BUBBLE_GAP} - ${BUBBLE_W}px)`
+    : `calc(${headScreenX}px + ${BUBBLE_GAP})`;
 
   return (
     <div
@@ -103,28 +121,60 @@ function CommentBubble({ name, comment, isSelf, positionFraction, headScreenX, b
       }}
     >
       <SpeechBubble anchorRight={anchorRight} arrowCenterY={arrowCenterY}>
-        {!isSelf && name && (
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 8 }}>
-            {name}
-          </div>
-        )}
-
         {isSelf ? (
-          <textarea
-            rows={3}
-            placeholder="Tell us why you placed yourself here"
-            value={draft}
-            onChange={(e) => handleChange(e.target.value)}
-            style={{
-              width: "100%", border: "none", outline: "none", resize: "none",
-              fontFamily: INTER, fontSize: 13, color: "#1a1a1a",
-              background: "transparent", lineHeight: 1.5,
-            }}
-          />
+          // Self bubble: name (link) at top, editable comment below
+          <div onClick={() => textareaRef.current?.focus()}>
+            {name && (
+              <button
+                onClick={(e) => { e.stopPropagation(); router.push("/dashboard?tab=standing"); }}
+                style={{
+                  display: "block", width: "100%", textAlign: "right",
+                  fontSize: 12, fontWeight: 600, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: INTER, padding: 0, marginBottom: 6,
+                }}
+              >
+                {name} →
+              </button>
+            )}
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              placeholder="Tell us why you placed yourself here"
+              value={draft}
+              onChange={(e) => handleChange(e.target.value)}
+              onInput={adjustHeight}
+              style={{
+                width: "100%", border: "none", outline: "none", resize: "none",
+                fontFamily: INTER, fontSize: 13, color: "#1a1a1a",
+                background: "transparent", lineHeight: 1.5,
+                overflow: "hidden", minHeight: "3.5em", display: "block",
+              }}
+            />
+          </div>
         ) : (
-          <p style={{ fontSize: 13, color: comment ? "#1a1a1a" : "#aaa", margin: 0, lineHeight: 1.5 }}>
-            {comment ?? "No comment yet"}
-          </p>
+          // Other person's bubble: comment text, name (link) at bottom right
+          <>
+            <p style={{ fontSize: 13, color: comment ? "#1a1a1a" : "#aaa", margin: "0 0 8px", lineHeight: 1.5 }}>
+              {comment ?? "No comment yet"}
+            </p>
+            {name && userId && (
+              <button
+                onClick={() => router.push(`/users/${userId}`)}
+                style={{
+                  display: "block", width: "100%", textAlign: "right",
+                  fontSize: 12, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: INTER, padding: 0,
+                }}
+              >
+                — {name}
+              </button>
+            )}
+            {name && !userId && (
+              <div style={{ fontSize: 12, color: "#888", textAlign: "right" }}>— {name}</div>
+            )}
+          </>
         )}
       </SpeechBubble>
     </div>
@@ -145,13 +195,20 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
 
-  // Local X and Z for real-time drag feedback
-  const [localPosition, setLocalPosition] = useState(
-    () => participants.find((p) => p.userId === currentUserId)?.position ?? 50
-  );
-  const [localPositionZ, setLocalPositionZ] = useState(
-    () => participants.find((p) => p.userId === currentUserId)?.positionZ ?? 50
-  );
+  // Local X and Z for real-time drag feedback.
+  // Initialized to 50; corrected in useEffect once session (and thus currentUserId) is known.
+  const [localPosition, setLocalPosition] = useState(50);
+  const [localPositionZ, setLocalPositionZ] = useState(50);
+  const positionInitialized = useRef(false);
+  useEffect(() => {
+    if (!currentUserId || positionInitialized.current) return;
+    const mine = participants.find((p) => p.userId === currentUserId);
+    if (mine) {
+      setLocalPosition(mine.position ?? 50);
+      setLocalPositionZ((mine as any).positionZ ?? 50);
+      positionInitialized.current = true;
+    }
+  }, [currentUserId, participants]);
 
   // Avatar head screen position for speech bubble (CSS pixels from canvas top-left)
   const [headPos, setHeadPos] = useState({ x: 700, y: 180 });
@@ -283,7 +340,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     setLocalPosition(posX);
     setLocalPositionZ(posZ);
     handlePositionCommit(posX, posZ);
-  }, [handlePositionCommit]);
+    setSelectedUserId(currentUserId); // open comment bubble automatically
+  }, [handlePositionCommit, currentUserId]);
 
   if (!session) return null;
 
@@ -317,7 +375,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         </h1>
 
         {/* Crowd + comment bubble */}
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative", marginTop: "clamp(24px, 4vh, 56px)" }}>
           <ContinuumScene
             currentUserId={currentUserId}
             currentUserAvatarConfig={currentUserAvatarConfig}
@@ -337,6 +395,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             const arrowCenterY = Math.max(8, headPos.y - bubbleTop);
             return (
               <CommentBubble
+                userId={selectedParticipant.isSynthetic ? null : (selectedUserId ?? null)}
                 name={selectedParticipant.isSynthetic ? null : selectedParticipant.name}
                 comment={selectedParticipant.comment}
                 isSelf={selectedUserId === currentUserId}
