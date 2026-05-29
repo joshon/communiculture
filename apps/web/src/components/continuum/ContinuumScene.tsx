@@ -211,9 +211,10 @@ interface PreJoinProps {
   platformXRef: React.MutableRefObject<number>;
   onPreJoinCommit: (posX: number, posZ: number) => void;
   scaleMult: number;
+  baseRenderOrder: number;
 }
 
-function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult }: PreJoinProps) {
+function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult, baseRenderOrder }: PreJoinProps) {
   // Platform (idle): 35% bigger than crowd, feet on platform surface
   const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.035;
   const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06;
@@ -351,6 +352,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
           colors={colors}
           showOutline={true}
           outlineExpansion={OUTLINE_EXPANSION / scaleMult}
+          baseRenderOrder={baseRenderOrder}
         />
       </group>
     </group>
@@ -515,7 +517,7 @@ function CrowdScene({
 
   return (
     <group>
-      {sorted.map((p) => {
+      {sorted.map((p, sortIndex) => {
         const isCurrent = p.userId === currentUserId;
         const posRaw  = isCurrent ? localPosition  : p.position;
         const posZ = isCurrent ? localPositionZ : p.positionZ;
@@ -564,6 +566,7 @@ function CrowdScene({
                 showOutline={true}
                 outlineColor={isBot ? botConfig.outlineColor : undefined}
                 outlineExpansion={OUTLINE_EXPANSION / scaleMult}
+                baseRenderOrder={sortIndex * 4}
                 unlit={isBot ? botConfig.unlit : false}
                 emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
                 roughness={isBot ? botConfig.roughness : undefined}
@@ -583,6 +586,7 @@ function CrowdScene({
             platformXRef={platformXRef}
             onPreJoinCommit={onPreJoinCommit}
             scaleMult={scaleMult}
+            baseRenderOrder={sorted.length * 4}
           />
           <PlatformSprite
             platformXRef={platformXRef}
@@ -633,7 +637,7 @@ export function ContinuumScene({
         <Canvas
           orthographic
           camera={{ position: [0, 8, 10], zoom: 46, near: -100, far: 100 }}
-          gl={{ antialias: true }}
+          gl={{ antialias: true, stencil: true }}
           style={{ width: "100%", height: "100%" }}
           onPointerMissed={() => onSelectUser(null)}
         >

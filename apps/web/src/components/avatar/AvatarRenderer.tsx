@@ -92,6 +92,7 @@ function RenderMesh({
   showOutline = false,
   overrideOutlineColor,
   outlineExpansion = 0.04,
+  baseRenderOrder = 0,
   onPartClick,
   unlit = false,
   emissiveBoost = 0,
@@ -107,6 +108,7 @@ function RenderMesh({
   showOutline?: boolean;
   overrideOutlineColor?: string;
   outlineExpansion?: number;
+  baseRenderOrder?: number;
   onPartClick?: (part: AvatarPart) => void;
   unlit?: boolean;
   emissiveBoost?: number;
@@ -177,7 +179,7 @@ function RenderMesh({
       } as const)
     : ({} as const);
 
-  const mainRenderOrder = hasOutline ? 1 : 0;
+  const mainRenderOrder = baseRenderOrder + (hasOutline ? 1 : 0);
 
   const sharedMat = {
     color: meshColor,
@@ -230,7 +232,7 @@ function RenderMesh({
         )}
 
         {hasOutline && frameGeo && (
-          <mesh position={[0, 0, frameLocalZ]} renderOrder={2}>
+          <mesh position={[0, 0, frameLocalZ]} renderOrder={baseRenderOrder + 2}>
             <primitive object={frameGeo} attach="geometry" />
             <meshBasicMaterial color={outlineColor} side={THREE.DoubleSide} transparent opacity={1} depthWrite={false} />
           </mesh>
@@ -244,10 +246,11 @@ function RenderMesh({
           element.scale[2] + outlineExpansion,
         ]}>
           {useRounded ? (
-            <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={5}>
+            <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={baseRenderOrder + 3}>
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
+                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
@@ -255,7 +258,7 @@ function RenderMesh({
               />
             </RoundedBox>
           ) : (
-            <mesh rotation={meshPreRot} renderOrder={5}>
+            <mesh rotation={meshPreRot} renderOrder={baseRenderOrder + 3}>
               {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
               {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
               {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
@@ -263,6 +266,7 @@ function RenderMesh({
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
+                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
@@ -287,6 +291,7 @@ export function CharacterGroup({
   showOutline,
   outlineColor,
   outlineExpansion = 0.04,
+  baseRenderOrder = 0,
   unlit = false,
   emissiveBoost = 0,
   roughness,
@@ -301,6 +306,7 @@ export function CharacterGroup({
   showOutline?: boolean;
   outlineColor?: string;
   outlineExpansion?: number;
+  baseRenderOrder?: number;
   unlit?: boolean;
   emissiveBoost?: number;
   roughness?: number;
@@ -339,6 +345,7 @@ export function CharacterGroup({
                   showOutline={showOutline}
                   overrideOutlineColor={outlineColor}
                   outlineExpansion={outlineExpansion}
+                  baseRenderOrder={baseRenderOrder}
                   onPartClick={onPartClick}
                   unlit={unlit}
                   emissiveBoost={emissiveBoost}
