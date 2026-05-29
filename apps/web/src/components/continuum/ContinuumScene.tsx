@@ -28,6 +28,7 @@ const BOT_CONFIG = {
 const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
 const BASE_AVATAR_SCALE = 0.59;
 const BASE_CURRENT_SCALE = 0.67;
+const OUTLINE_EXPANSION = 0.12; // per-scaleMult outline thickness (0.12/scaleMult at render)
 
 // Platform max screen width (px) — avatars never stretch wider than this
 const PLATFORM_MAX_PX = 600;
@@ -349,7 +350,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
           variantIndices={variants}
           colors={colors}
           showOutline={true}
-          outlineExpansion={0.12 / scaleMult}
+          outlineExpansion={OUTLINE_EXPANSION / scaleMult}
         />
       </group>
     </group>
@@ -427,9 +428,9 @@ function CrowdScene({
   const minPosZRef = useRef(minPosZ);
   minPosZRef.current = minPosZ;
 
-  // Minimum posX (0–100) so the widest body part (0.853×scale) doesn't exceed the
-  // camera's 1-world-unit margin at the canvas edge (camera shows ±13, crowd spans ±12).
-  const bodyEdgeMarginPosX = Math.max(0, (0.853 * AVATAR_SCALE - 1.0) / CROWD_WIDTH * 100);
+  // Minimum posX (0–100) so arm tips + outline don't exceed the camera's ±13 viewport.
+  // arm half-width ≈ 0.853×scale; outline adds OUTLINE_EXPANSION/scaleMult world units.
+  const bodyEdgeMarginPosX = Math.max(0, (0.853 * AVATAR_SCALE + OUTLINE_EXPANSION / scaleMult - 1.0) / CROWD_WIDTH * 100);
   const bodyEdgeMarginPosXRef = useRef(bodyEdgeMarginPosX);
   bodyEdgeMarginPosXRef.current = bodyEdgeMarginPosX;
 
@@ -516,8 +517,9 @@ function CrowdScene({
     <group>
       {sorted.map((p) => {
         const isCurrent = p.userId === currentUserId;
-        const pos  = isCurrent ? localPosition  : p.position;
+        const posRaw  = isCurrent ? localPosition  : p.position;
         const posZ = isCurrent ? localPositionZ : p.positionZ;
+        const pos = Math.max(bodyEdgeMarginPosX, Math.min(100 - bodyEdgeMarginPosX, posRaw));
         const x = posToX(pos);
         const z = posToZ(posZ);
         const scale = AVATAR_SCALE;
@@ -561,7 +563,7 @@ function CrowdScene({
                 colors={colors}
                 showOutline={true}
                 outlineColor={isBot ? botConfig.outlineColor : undefined}
-                outlineExpansion={0.12 / scaleMult}
+                outlineExpansion={OUTLINE_EXPANSION / scaleMult}
                 unlit={isBot ? botConfig.unlit : false}
                 emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
                 roughness={isBot ? botConfig.roughness : undefined}
