@@ -179,7 +179,8 @@ function RenderMesh({
       } as const)
     : ({} as const);
 
-  const mainRenderOrder = baseRenderOrder + (hasOutline ? 1 : 0);
+  // Shell renders at baseRenderOrder (first), body overpaints at +1 or +2
+  const mainRenderOrder = baseRenderOrder + 1 + (hasOutline ? 1 : 0);
 
   const sharedMat = {
     color: meshColor,
@@ -232,7 +233,7 @@ function RenderMesh({
         )}
 
         {hasOutline && frameGeo && (
-          <mesh position={[0, 0, frameLocalZ]} renderOrder={baseRenderOrder + 2}>
+          <mesh position={[0, 0, frameLocalZ]} renderOrder={baseRenderOrder + 3}>
             <primitive object={frameGeo} attach="geometry" />
             <meshBasicMaterial color={outlineColor} side={THREE.DoubleSide} transparent opacity={1} depthWrite={false} />
           </mesh>
@@ -246,19 +247,16 @@ function RenderMesh({
           element.scale[2] + outlineExpansion,
         ]}>
           {useRounded ? (
-            <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={baseRenderOrder + 3}>
+            <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={baseRenderOrder}>
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
                 transparent
-                stencilWrite={false}
-                stencilRef={1}
-                stencilFunc={THREE.NotEqualStencilFunc}
                 depthWrite={false}
               />
             </RoundedBox>
           ) : (
-            <mesh rotation={meshPreRot} renderOrder={baseRenderOrder + 3}>
+            <mesh rotation={meshPreRot} renderOrder={baseRenderOrder}>
               {element.type === "box" && <boxGeometry args={[1, 1, 1]} />}
               {element.type === "sphere" && <sphereGeometry args={[0.5, sphSegs, Math.max(2, Math.round(sphSegs * 0.75))]} />}
               {element.type === "cylinder" && <cylinderGeometry args={[0.5, 0.5, 1, cylSegs, 1, false, cylThetaStart, cylArc]} />}
@@ -267,9 +265,6 @@ function RenderMesh({
                 color={silhouetteColor}
                 side={THREE.BackSide}
                 transparent
-                stencilWrite={false}
-                stencilRef={1}
-                stencilFunc={THREE.NotEqualStencilFunc}
                 depthWrite={false}
               />
             </mesh>
