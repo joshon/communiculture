@@ -9,48 +9,50 @@ interface Props {
   userPosition: number | null;
   thumbnailUrl: string | null;
   avatarSize: string; // CSS value e.g. "60px"
-  secondaryPosition?: number | null;       // optional second avatar (e.g. viewer on someone else's page)
+  showDots?: boolean;
+  secondaryPosition?: number | null;
   secondaryThumbnailUrl?: string | null;
 }
 
-export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl, avatarSize, secondaryPosition, secondaryThumbnailUrl }: Props) {
+export function ContinuumPreviewBar({ positions, userPosition, thumbnailUrl, avatarSize, showDots = true, secondaryPosition, secondaryThumbnailUrl }: Props) {
   return (
     <div style={{ position: "relative", width: "100%", height: `calc(${avatarSize} + ${BAR_H}px)` }}>
       {/* Dots bar */}
-      <div style={{
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: BAR_H,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingLeft: `calc(${avatarSize} / 2)`,
-        paddingRight: `calc(${avatarSize} / 2)`,
-        boxSizing: "border-box",
-      }}>
-        {Array.from({ length: DOT_COUNT }).map((_, i) => {
-          // dot position as 0-100
-          const dotPos = (i / (DOT_COUNT - 1)) * 100;
-          const nearParticipant = positions.some(
-            (p) => Math.abs(p - dotPos) < (100 * 0.6) / DOT_COUNT
-          );
-          const isMajor = i % 5 === 0;
-          return (
-            <div
-              key={i}
-              style={{
-                width: isMajor ? 5 : 3,
-                height: isMajor ? 5 : 3,
-                borderRadius: "50%",
-                background: nearParticipant ? "#777" : "#ccc",
-                flexShrink: 0,
-              }}
-            />
-          );
-        })}
-      </div>
+      {showDots && (
+        <div style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: BAR_H,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingLeft: `calc(${avatarSize} / 2)`,
+          paddingRight: `calc(${avatarSize} / 2)`,
+          boxSizing: "border-box",
+        }}>
+          {Array.from({ length: DOT_COUNT }).map((_, i) => {
+            const dotPos = (i / (DOT_COUNT - 1)) * 100;
+            const nearParticipant = positions.some(
+              (p) => Math.abs(p - dotPos) < (100 * 0.6) / DOT_COUNT
+            );
+            const isMajor = i % 5 === 0;
+            return (
+              <div
+                key={i}
+                style={{
+                  width: isMajor ? 5 : 3,
+                  height: isMajor ? 5 : 3,
+                  borderRadius: "50%",
+                  background: nearParticipant ? "#777" : "#ccc",
+                  flexShrink: 0,
+                }}
+              />
+            );
+          })}
+        </div>
+      )}
 
       {/* Primary avatar */}
       {userPosition !== null && thumbnailUrl && (

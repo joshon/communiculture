@@ -91,6 +91,7 @@ function RenderMesh({
   highlight = false,
   showOutline = false,
   overrideOutlineColor,
+  outlineExpansion = 0.04,
   onPartClick,
   unlit = false,
   emissiveBoost = 0,
@@ -105,6 +106,7 @@ function RenderMesh({
   highlight?: boolean;
   showOutline?: boolean;
   overrideOutlineColor?: string;
+  outlineExpansion?: number;
   onPartClick?: (part: AvatarPart) => void;
   unlit?: boolean;
   emissiveBoost?: number;
@@ -237,16 +239,15 @@ function RenderMesh({
 
       {showOutline && element.type !== "plane" && (
         <group scale={[
-          element.scale[0] + 0.04,
-          element.scale[1] + 0.04,
-          element.scale[2] + 0.04,
+          element.scale[0] + outlineExpansion,
+          element.scale[1] + outlineExpansion,
+          element.scale[2] + outlineExpansion,
         ]}>
           {useRounded ? (
             <RoundedBox args={[1, 1, 1]} radius={roundRadius} smoothness={roundSmooth} renderOrder={5}>
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
-                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
@@ -262,7 +263,6 @@ function RenderMesh({
               <meshBasicMaterial
                 color={silhouetteColor}
                 side={THREE.BackSide}
-                transparent
                 stencilWrite={false}
                 stencilRef={1}
                 stencilFunc={THREE.NotEqualStencilFunc}
@@ -286,6 +286,7 @@ export function CharacterGroup({
   onPartClick,
   showOutline,
   outlineColor,
+  outlineExpansion = 0.04,
   unlit = false,
   emissiveBoost = 0,
   roughness,
@@ -299,6 +300,7 @@ export function CharacterGroup({
   onPartClick?: (part: AvatarPart) => void;
   showOutline?: boolean;
   outlineColor?: string;
+  outlineExpansion?: number;
   unlit?: boolean;
   emissiveBoost?: number;
   roughness?: number;
@@ -336,6 +338,7 @@ export function CharacterGroup({
                   highlight={isSelected}
                   showOutline={showOutline}
                   overrideOutlineColor={outlineColor}
+                  outlineExpansion={outlineExpansion}
                   onPartClick={onPartClick}
                   unlit={unlit}
                   emissiveBoost={emissiveBoost}

@@ -136,11 +136,6 @@ export default async function UserStandingPage({ params }: { params: { userId: s
                     {c.title}
                   </p>
 
-                  <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.leftLabel}</span>
-                    <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.rightLabel}</span>
-                  </div>
-
                   {theirPosition !== null && (() => {
                     const hasTheirThumb = !!targetUser.avatarThumbnail;
                     return (
@@ -149,11 +144,17 @@ export default async function UserStandingPage({ params }: { params: { userId: s
                         userPosition={theirPosition}
                         thumbnailUrl={targetUser.avatarThumbnail ?? null}
                         avatarSize={AVATAR_SIZE}
+                        showDots={false}
                         secondaryPosition={hasTheirThumb ? myPosition : null}
                         secondaryThumbnailUrl={hasTheirThumb ? (viewerRecord?.avatarThumbnail ?? null) : null}
                       />
                     );
                   })()}
+
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.leftLabel}</span>
+                    <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.rightLabel}</span>
+                  </div>
 
                   <div style={{ height: 1, background: "#ebebeb", margin: "14px 0" }} />
                 </Link>

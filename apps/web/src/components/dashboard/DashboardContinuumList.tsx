@@ -250,21 +250,22 @@ export function DashboardContinuumList({ items, userId, thumbnailUrl }: Props) {
               {c.title}
             </p>
 
-            {/* Pole labels */}
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.leftLabel}</span>
-              <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.rightLabel}</span>
-            </div>
-
-            {/* Preview bar — only on "Where you stand" */}
+            {/* Avatar bar — only on "Where you stand", above the pole labels */}
             {showBar && c.myPosition !== null && (
               <ContinuumPreviewBar
                 positions={c.allPositions}
                 userPosition={c.myPosition}
                 thumbnailUrl={thumbnailUrl}
                 avatarSize={AVATAR_SIZE}
+                showDots={false}
               />
             )}
+
+            {/* Pole labels */}
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.leftLabel}</span>
+              <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.rightLabel}</span>
+            </div>
 
             <div style={{ height: 1, background: "#ebebeb", margin: "14px 0" }} />
           </Link>

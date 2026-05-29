@@ -214,7 +214,7 @@ interface PreJoinProps {
 
 function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult }: PreJoinProps) {
   // Platform (idle): 35% bigger than crowd, feet on platform surface
-  const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.35;
+  const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.035;
   const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06;
   // Drag/drop: same scale as crowd avatars, feet at crowd ground level
   const dragScale = BASE_AVATAR_SCALE * scaleMult;
@@ -240,6 +240,11 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
   dragScaleRef.current = dragScale;
   dragAvatarYRef.current = dragAvatarY;
 
+  // Body half-width (widest part 0.813 + outline 0.04) plus a 1.5 world-unit buffer,
+  // as a fraction of CROWD_WIDTH — prevents any body part from leaving the canvas.
+  const armFracRef = useRef(0);
+  armFracRef.current = (0.853 * platformScale + 1.5) / CROWD_WIDTH;
+
   // Stable ref for callback
   const onPreJoinCommitRef = useRef(onPreJoinCommit);
   onPreJoinCommitRef.current = onPreJoinCommit;
@@ -263,7 +268,9 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
     const onMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
-      avatarXFracRef.current = Math.max(0, Math.min(1, worldX / CROWD_WIDTH + 0.5));
+      // Use drag scale (smaller than platform scale) for the body-margin constraint
+      const arm = (0.853 * dragScaleRef.current + 1.5) / CROWD_WIDTH;
+      avatarXFracRef.current = Math.max(arm, Math.min(1 - arm, worldX / CROWD_WIDTH + 0.5));
       avatarZFracRef.current = Math.max(0, Math.min(1, worldZ / crowdDepthRef.current + 0.5));
     };
 
@@ -294,8 +301,8 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
       if (barFracRef.current >= maxPos) { barFracRef.current = maxPos; dirRef.current = -1; }
       if (barFracRef.current <= 0) { barFracRef.current = 0; dirRef.current = 1; }
 
-      const cLeft  = barFracRef.current + BAR_FRAC * CENTER_L;
-      const cRight = barFracRef.current + BAR_FRAC * CENTER_R;
+      const cLeft  = Math.max(armFracRef.current, barFracRef.current + BAR_FRAC * CENTER_L);
+      const cRight = Math.min(1 - armFracRef.current, barFracRef.current + BAR_FRAC * CENTER_R);
       avatarXFracRef.current = Math.max(cLeft, Math.min(cRight, avatarXFracRef.current));
     }
 
@@ -342,6 +349,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
           variantIndices={variants}
           colors={colors}
           showOutline={true}
+          outlineExpansion={0.12 / scaleMult}
         />
       </group>
     </group>
@@ -392,7 +400,15 @@ function CrowdScene({
   }, [allParticipants]);
 
   // Scale based on total visible count (bots count for density purposes)
-  const scaleMult = useMemo(() => avatarScaleMult(cappedParticipants.length), [cappedParticipants.length]);
+  const scaleMultRaw = useMemo(() => avatarScaleMult(cappedParticipants.length), [cappedParticipants.length]);
+
+  // Cap scale so the frontmost avatar (posZ=0, world Z ≈ -crowdDepth/2 ≈ -1) never clips
+  // the top of the canvas. At front Z=-1: screen_Y = ELEV_COS*(AVATAR_Y + scale*3.3) + Z_TO_SCREEN*1
+  // must be ≤ halfHeightCam. Solve for max scale:
+  const maxScaleForHeight = Math.max(BASE_AVATAR_SCALE * 0.5,
+    (halfHeightCam - Z_TO_SCREEN - ELEV_COS * AVATAR_Y) / (ELEV_COS * 3.3));
+  const scaleMult = Math.min(scaleMultRaw, maxScaleForHeight / BASE_AVATAR_SCALE);
+
   const AVATAR_SCALE = BASE_AVATAR_SCALE * scaleMult;
   const CURRENT_SCALE = BASE_CURRENT_SCALE * scaleMult;
 
@@ -410,6 +426,12 @@ function CrowdScene({
   crowdDepthRef.current = crowdDepth;
   const minPosZRef = useRef(minPosZ);
   minPosZRef.current = minPosZ;
+
+  // Minimum posX (0–100) so the widest body part (0.853×scale) doesn't exceed the
+  // camera's 1-world-unit margin at the canvas edge (camera shows ±13, crowd spans ±12).
+  const bodyEdgeMarginPosX = Math.max(0, (0.853 * AVATAR_SCALE - 1.0) / CROWD_WIDTH * 100);
+  const bodyEdgeMarginPosXRef = useRef(bodyEdgeMarginPosX);
+  bodyEdgeMarginPosXRef.current = bodyEdgeMarginPosX;
 
   function posToZ(posZ: number) {
     return (posZ / 100 - 0.5) * crowdDepth;
@@ -459,7 +481,8 @@ function CrowdScene({
     const onMove = (e: PointerEvent) => {
       if (!isDraggingRef.current) return;
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
-      const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
+      const m = bodyEdgeMarginPosXRef.current;
+      const posX = Math.max(m, Math.min(100 - m, (worldX / CROWD_WIDTH + 0.5) * 100));
       const posZ = Math.max(minPosZRef.current, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
       onPositionChangeRef.current(posX, posZ);
     };
@@ -469,7 +492,8 @@ function CrowdScene({
       isDraggingRef.current = false;
       canvas.style.cursor = "";
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
-      const posX = Math.max(0, Math.min(100, (worldX / CROWD_WIDTH + 0.5) * 100));
+      const m = bodyEdgeMarginPosXRef.current;
+      const posX = Math.max(m, Math.min(100 - m, (worldX / CROWD_WIDTH + 0.5) * 100));
       const posZ = Math.max(minPosZRef.current, Math.min(100, (worldZ / crowdDepthRef.current + 0.5) * 100));
       onPositionCommitRef.current(posX, posZ);
     };
@@ -537,6 +561,7 @@ function CrowdScene({
                 colors={colors}
                 showOutline={true}
                 outlineColor={isBot ? botConfig.outlineColor : undefined}
+                outlineExpansion={0.12 / scaleMult}
                 unlit={isBot ? botConfig.unlit : false}
                 emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
                 roughness={isBot ? botConfig.roughness : undefined}
