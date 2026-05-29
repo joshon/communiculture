@@ -632,7 +632,7 @@ export function ContinuumScene({
   }, []);
 
   return (
-    <div style={{ width: "100%", height: "clamp(360px, 45vh, 580px)" }}>
+    <div style={{ width: "100%", height: isInCrowd ? "clamp(420px, 52vh, 680px)" : "clamp(360px, 45vh, 580px)" }}>
       {library && (
         <Canvas
           orthographic
