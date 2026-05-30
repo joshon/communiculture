@@ -359,6 +359,47 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
   );
 }
 
+// ─── per-avatar bounce + rotate animation ────────────────────────────────────
+
+function AnimatedAvatarGroup({
+  isAnimating,
+  animTrigger,
+  rotY,
+  children,
+}: {
+  isAnimating: boolean;
+  animTrigger: number;
+  rotY: number;
+  children: React.ReactNode;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const startRef = useRef(-1);
+  const lastTriggerRef = useRef(animTrigger);
+  const DURATION = 0.6;
+  const BOUNCE_H = 0.5;
+
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    if (isAnimating) {
+      if (lastTriggerRef.current !== animTrigger || startRef.current < 0) {
+        lastTriggerRef.current = animTrigger;
+        startRef.current = clock.elapsedTime;
+      }
+      const t = Math.min((clock.elapsedTime - startRef.current) / DURATION, 1);
+      const phase = Math.sin(t * Math.PI); // 0 → 1 → 0
+      ref.current.position.y = phase * BOUNCE_H;
+      ref.current.rotation.y = rotY * (1 - phase * 0.9); // sweep toward camera, back
+    } else {
+      startRef.current = -1;
+      lastTriggerRef.current = animTrigger;
+      ref.current.position.y = 0;
+      ref.current.rotation.y = rotY;
+    }
+  });
+
+  return <group ref={ref}>{children}</group>;
+}
+
 // ─── inner scene ──────────────────────────────────────────────────────────────
 
 interface SceneProps {
@@ -389,6 +430,7 @@ function CrowdScene({
   onHeadScreen,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
+  const [animatingAvatar, setAnimatingAvatar] = useState<{ userId: string; triggeredAt: number } | null>(null);
 
   // Crowd depth: how much world-Z the crowd spans, capped so no avatar clips the canvas
   const halfHeightCam = (size.height / size.width) * 13;
@@ -545,7 +587,9 @@ function CrowdScene({
             onClick={(e) => {
               if (isDraggingRef.current) return;
               e.stopPropagation();
-              onSelectUser(p.userId === selectedUserId ? null : p.userId);
+              const uid = p.userId === selectedUserId ? null : p.userId;
+              onSelectUser(uid);
+              setAnimatingAvatar(uid ? { userId: uid, triggeredAt: Date.now() } : null);
             }}
             onPointerDown={isCurrent ? (e) => {
               e.stopPropagation();
@@ -558,7 +602,11 @@ function CrowdScene({
               <boxGeometry args={[1.4, 2.5, 1.4]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
-            <group rotation={[0, rotY, 0]}>
+            <AnimatedAvatarGroup
+              isAnimating={animatingAvatar?.userId === p.userId}
+              animTrigger={animatingAvatar?.userId === p.userId ? animatingAvatar.triggeredAt : 0}
+              rotY={rotY}
+            >
               <CharacterGroup
                 library={library}
                 variantIndices={variants}
@@ -573,7 +621,7 @@ function CrowdScene({
                 metalness={isBot ? botConfig.metalness : undefined}
                 forceColor={isBot}
               />
-            </group>
+            </AnimatedAvatarGroup>
           </group>
         );
       })}
