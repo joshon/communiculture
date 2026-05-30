@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
@@ -53,6 +54,93 @@ interface Props {
   messages: MessageData[];
   sessionToken: string;
   currentUserAvatarConfig: AvatarConfig;
+}
+
+// ─── share modal ─────────────────────────────────────────────────────────────
+
+function ShareModal({ url, visibility, onClose }: { url: string; visibility: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  // Auto-copy on open
+  useEffect(() => {
+    navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {});
+  }, [url]);
+
+  const accessLabel =
+    visibility === "PUBLIC_LINK" ? "Anyone with this link can view and participate." :
+    visibility === "TEAM"        ? "Team members with this link can participate." :
+                                   "People with this link can participate.";
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "white",
+          width: "100%", maxWidth: 420,
+          padding: "32px 28px 28px",
+          fontFamily: INTER,
+          position: "relative",
+        }}
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          style={{
+            position: "absolute", top: 14, right: 16,
+            background: "none", border: "none", cursor: "pointer",
+            fontSize: 22, lineHeight: 1, color: "#999", padding: 0,
+          }}
+        >
+          ×
+        </button>
+
+        <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>
+          Share this continuum
+        </h2>
+        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#888" }}>
+          {accessLabel}
+        </p>
+
+        {/* URL row */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 8,
+          border: "1.5px solid #1a1a1a", padding: "8px 12px",
+          marginBottom: 20,
+        }}>
+          <span style={{
+            flex: 1, fontSize: 12, color: "#555",
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {url}
+          </span>
+          <button
+            onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {})}
+            style={{
+              fontFamily: INTER, fontSize: 12, fontWeight: 600,
+              color: BLUE, background: "none", border: "none",
+              cursor: "pointer", padding: "0 0 0 8px", flexShrink: 0,
+            }}
+          >
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+
+        {/* QR code */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <QRCodeSVG value={url} size={180} bgColor="#ffffff" fgColor="#1a1a1a" />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ─── comment bubble ───────────────────────────────────────────────────────────
@@ -321,12 +409,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     [continuum.id, currentUserId]
   );
 
-  // ── share ──
-  const handleShare = useCallback(() => {
-    if (!continuum.shareToken) return;
-    const url = `${window.location.origin}/continuum/${continuum.id}?token=${continuum.shareToken}`;
-    navigator.clipboard.writeText(url);
-  }, [continuum]);
+  // ── share modal ──
+  const [showShareModal, setShowShareModal] = useState(false);
+  const shareUrl = continuum.shareToken
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/continuum/${continuum.id}?token=${continuum.shareToken}`
+    : null;
 
   // ── avatar click → show bubble ──
   const handleSelectUser = useCallback((uid: string | null) => {
@@ -439,12 +526,20 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           }}>
             About this continuum
           </button>
-          {continuum.shareToken && (
-            <PillButton variant="secondary" label="Share" onClick={handleShare} />
+          {shareUrl && (
+            <PillButton variant="secondary" label="Share" onClick={() => setShowShareModal(true)} />
           )}
         </div>
 
       </main>
+
+      {showShareModal && shareUrl && (
+        <ShareModal
+          url={shareUrl}
+          visibility={continuum.visibility}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }
