@@ -1,7 +1,8 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
-import { createClient } from "ioredis";
+import Redis from "ioredis";
 import { createAdapter } from "@socket.io/redis-adapter";
+import { prisma } from "@communiculture/db";
 import { registerPositionHandlers } from "./handlers/position";
 import { registerChatHandlers } from "./handlers/chat";
 
@@ -20,32 +21,27 @@ const io = new Server(httpServer, {
 
 // Redis adapter for horizontal scaling (production)
 if (process.env.NODE_ENV === "production" && REDIS_URL) {
-  const pubClient = createClient({ host: REDIS_URL });
-  const subClient = pubClient.duplicate();
+  const pubClient = new Redis(REDIS_URL);
+  const subClient = new Redis(REDIS_URL);
   io.adapter(createAdapter(pubClient, subClient));
   console.log("[socket] Redis adapter connected");
 }
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
-// Validates the NextAuth session token passed in socket handshake auth
+// Validates the NextAuth session token by looking it up in the database.
 io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token as string | undefined;
-  if (!token) {
-    return next(new Error("unauthorized"));
-  }
-  // Token is the NextAuth session token (JWT or DB session token).
-  // We attach userId to the socket for use in handlers.
-  // Full JWT verification happens here in production using NEXTAUTH_SECRET.
+  if (!token) return next(new Error("unauthorized"));
+
   try {
-    const { getToken } = await import("next-auth/jwt");
-    const decoded = await getToken({
-      req: { headers: { cookie: `next-auth.session-token=${token}` } } as any,
-      secret: process.env.NEXTAUTH_SECRET!,
+    const session = await prisma.session.findUnique({
+      where: { sessionToken: token },
+      include: { user: { select: { id: true, name: true, image: true } } },
     });
-    if (!decoded?.sub) return next(new Error("unauthorized"));
-    socket.data.userId = decoded.sub;
-    socket.data.userName = decoded.name as string;
-    socket.data.userImage = decoded.picture as string;
+    if (!session || session.expires < new Date()) return next(new Error("unauthorized"));
+    socket.data.userId = session.user.id;
+    socket.data.userName = session.user.name ?? "";
+    socket.data.userImage = session.user.image ?? "";
     next();
   } catch {
     next(new Error("unauthorized"));
@@ -61,7 +57,6 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log(`[socket] disconnected: ${socket.id}`);
-    // Notify rooms this user was in
     socket.rooms.forEach((room) => {
       if (room !== socket.id) {
         socket.to(room).emit("user:leave", {
