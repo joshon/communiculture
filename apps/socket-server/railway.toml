@@ -1,0 +1,8 @@
+[build]
+dockerfilePath = "apps/socket-server/Dockerfile"
+buildCommand = ""
+
+[deploy]
+startCommand = "node apps/socket-server/dist/index.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
