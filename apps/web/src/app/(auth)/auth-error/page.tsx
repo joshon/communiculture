@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { PillButton } from "@/components/ui/PillButton";
 
 const INTER = "Inter, sans-serif";
@@ -15,11 +16,19 @@ const MESSAGES: Record<string, string> = {
   Default: "Something went wrong. Please try signing in again.",
 };
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const params = useSearchParams();
   const error = params.get("error") ?? "Default";
   const message = MESSAGES[error] ?? MESSAGES.Default;
 
+  return (
+    <p style={{ fontFamily: INTER, fontSize: "clamp(14px, 3vw, 16px)", color: "#555", maxWidth: 380, lineHeight: 1.6, marginBottom: 32 }}>
+      {message}
+    </p>
+  );
+}
+
+export default function AuthErrorPage() {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
       <Link href="/" style={{ position: "fixed", top: 24, left: "clamp(16px, 4vw, 32px)", zIndex: 10, display: "block" }}>
@@ -36,9 +45,9 @@ export default function AuthErrorPage() {
         padding: "0 clamp(16px, 5vw, 48px)",
         textAlign: "center",
       }}>
-        <p style={{ fontFamily: INTER, fontSize: "clamp(14px, 3vw, 16px)", color: "#555", maxWidth: 380, lineHeight: 1.6, marginBottom: 32 }}>
-          {message}
-        </p>
+        <Suspense>
+          <AuthErrorContent />
+        </Suspense>
         <PillButton href="/login" arrow label="Back to sign in" />
       </main>
     </div>

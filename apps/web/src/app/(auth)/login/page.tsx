@@ -4,7 +4,7 @@ import { signIn } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { FormField } from "@/components/ui/FormField";
 import { OAuthButton } from "@/components/ui/OAuthButton";
 import { PillButton } from "@/components/ui/PillButton";
@@ -24,10 +24,8 @@ function Rule() {
   return <div style={{ borderTop: "1px solid #D8D8D8", margin: "24px 0" }} />;
 }
 
-export default function LoginPage() {
-  const params = useSearchParams();
+function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
-  const callbackUrl = params.get("callbackUrl") ?? "/dashboard";
   const [mode, setMode] = useState<"signin" | "signup">("signin");
 
   const [siEmail,    setSiEmail]    = useState("");
@@ -243,6 +241,21 @@ export default function LoginPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function CallbackUrlReader({ children }: { children: (callbackUrl: string) => React.ReactNode }) {
+  const params = useSearchParams();
+  return <>{children(params.get("callbackUrl") ?? "/dashboard")}</>;
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <CallbackUrlReader>
+        {(callbackUrl) => <LoginPageInner callbackUrl={callbackUrl} />}
+      </CallbackUrlReader>
+    </Suspense>
   );
 }
 
