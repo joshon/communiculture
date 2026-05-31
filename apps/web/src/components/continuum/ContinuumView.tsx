@@ -3,7 +3,9 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
+import QRCode from "qrcode";
+import { PixelBox } from "@/components/ui/PixelBox";
 import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
@@ -17,6 +19,14 @@ const BLUE = "#0083FF";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
+interface OwnerData {
+  id: string;
+  name: string | null;
+  slogan: string | null;
+  url: string | null;
+  avatarThumbnail: string | null;
+}
+
 interface ContinuumData {
   id: string;
   title: string;
@@ -25,6 +35,8 @@ interface ContinuumData {
   ownerId: string;
   shareToken: string | null;
   visibility: string;
+  createdAt: string;
+  owner: OwnerData | null;
 }
 
 interface ParticipantData {
@@ -38,6 +50,7 @@ interface ParticipantData {
     image: string | null;
     avatarConfig: AvatarConfig;
     isSynthetic: boolean;
+    avatarThumbnail: string | null;
   };
 }
 
@@ -60,11 +73,25 @@ interface Props {
 
 function ShareModal({ url, visibility, onClose }: { url: string; visibility: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [qrCopied, setQrCopied] = useState(false);
+  const qrContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-copy on open
+  // Auto-copy link on open
   useEffect(() => {
     navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {});
   }, [url]);
+
+  const copyQRImage = async () => {
+    const canvas = qrContainerRef.current?.querySelector("canvas") as HTMLCanvasElement | null;
+    if (!canvas) return;
+    try {
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res));
+      if (!blob) return;
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+      setQrCopied(true);
+      setTimeout(() => setQrCopied(false), 2000);
+    } catch { /* unsupported browser */ }
+  };
 
   const accessLabel =
     visibility === "PUBLIC_LINK" ? "Anyone with this link can view and participate." :
@@ -81,64 +108,457 @@ function ShareModal({ url, visibility, onClose }: { url: string; visibility: str
         padding: 24,
       }}
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "white",
-          width: "100%", maxWidth: 420,
-          padding: "32px 28px 28px",
-          fontFamily: INTER,
-          position: "relative",
-        }}
-      >
-        {/* Close */}
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute", top: 14, right: 16,
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 22, lineHeight: 1, color: "#999", padding: 0,
-          }}
-        >
-          ×
-        </button>
-
-        <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>
-          Share this continuum
-        </h2>
-        <p style={{ margin: "0 0 20px", fontSize: 13, color: "#888" }}>
-          {accessLabel}
-        </p>
-
-        {/* URL row */}
-        <div style={{
-          display: "flex", alignItems: "center", gap: 8,
-          border: "1.5px solid #1a1a1a", padding: "8px 12px",
-          marginBottom: 20,
-        }}>
-          <span style={{
-            flex: 1, fontSize: 12, color: "#555",
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>
-            {url}
-          </span>
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, fontFamily: INTER }}>
+        <PixelBox shadowDir="bottom-right" style={{ padding: "32px 28px 28px", position: "relative" }}>
+          {/* Close */}
           <button
-            onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {})}
+            onClick={onClose}
             style={{
-              fontFamily: INTER, fontSize: 12, fontWeight: 600,
-              color: BLUE, background: "none", border: "none",
-              cursor: "pointer", padding: "0 0 0 8px", flexShrink: 0,
+              position: "absolute", top: 14, right: 16,
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 22, lineHeight: 1, color: "#999", padding: 0,
             }}
           >
-            {copied ? "Copied!" : "Copy"}
+            ×
           </button>
-        </div>
 
-        {/* QR code */}
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <QRCodeSVG value={url} size={180} bgColor="#ffffff" fgColor="#1a1a1a" />
-        </div>
+          <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>
+            Share this continuum
+          </h2>
+          <p style={{ margin: "0 0 20px", fontSize: 13, color: "#888" }}>
+            {accessLabel}
+          </p>
+
+          {/* URL row */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 8,
+            border: "1.5px solid #1a1a1a", padding: "8px 12px",
+            marginBottom: 20,
+          }}>
+            <span style={{
+              flex: 1, fontSize: 12, color: "#555",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {url}
+            </span>
+            <button
+              onClick={() => navigator.clipboard.writeText(url).then(() => setCopied(true)).catch(() => {})}
+              style={{
+                fontFamily: INTER, fontSize: 12, fontWeight: 600,
+                color: BLUE, background: "none", border: "none",
+                cursor: "pointer", padding: "0 0 0 8px", flexShrink: 0,
+              }}
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+
+          {/* QR code */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
+            <div ref={qrContainerRef}>
+              <QRCodeCanvas value={url} size={180} bgColor="#ffffff" fgColor={BLUE} />
+            </div>
+            <button
+              onClick={copyQRImage}
+              style={{
+                fontFamily: INTER, fontSize: 13, fontWeight: 600,
+                color: BLUE, background: "none", border: "none",
+                cursor: "pointer", padding: 0,
+              }}
+            >
+              {qrCopied ? "Copied!" : "Copy QR code"}
+            </button>
+          </div>
+        </PixelBox>
       </div>
+    </div>
+  );
+}
+
+// ─── about modal ─────────────────────────────────────────────────────────────
+
+function AboutModal({ continuum, onClose }: { continuum: ContinuumData; onClose: () => void }) {
+  const { owner, createdAt } = continuum;
+  const date = new Date(createdAt);
+  const formatted = date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        background: "rgba(0,0,0,0.45)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: 24,
+      }}
+    >
+      <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, fontFamily: INTER }}>
+        <PixelBox shadowDir="bottom-right" style={{ padding: "32px 28px 28px", position: "relative" }}>
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute", top: 14, right: 16,
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 22, lineHeight: 1, color: "#999", padding: 0,
+            }}
+          >
+            ×
+          </button>
+
+          <h2 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>
+            About this continuum
+          </h2>
+
+          <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
+            Created {formatted}
+          </div>
+
+          {owner && (
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              {owner.avatarThumbnail && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={owner.avatarThumbnail}
+                  alt=""
+                  style={{ width: 52, height: 52, objectFit: "contain", flexShrink: 0 }}
+                />
+              )}
+              <div>
+                {owner.id ? (
+                  <a
+                    href={`/users/${owner.id}`}
+                    style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: BLUE, textDecoration: "none" }}
+                  >
+                    {owner.name ?? "Anonymous"}
+                  </a>
+                ) : (
+                  <p style={{ fontFamily: INTER, fontSize: 15, fontWeight: 700, color: "#1a1a1a", margin: 0 }}>
+                    {owner.name ?? "Anonymous"}
+                  </p>
+                )}
+                {owner.slogan && (
+                  <p style={{ fontFamily: INTER, fontSize: 13, color: "#555", margin: "4px 0 0" }}>
+                    {owner.slogan}
+                  </p>
+                )}
+                {owner.url && (
+                  <a
+                    href={owner.url.startsWith("http") ? owner.url : `https://${owner.url}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ fontFamily: INTER, fontSize: 12, color: BLUE, display: "block", marginTop: 4 }}
+                  >
+                    {owner.url}
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </PixelBox>
+      </div>
+    </div>
+  );
+}
+
+// ─── export helpers ───────────────────────────────────────────────────────────
+
+function exportCSV(continuum: ContinuumData, participants: ParticipantData[]) {
+  const rows = [
+    ["Name", "Position (%)", continuum.leftLabel, continuum.rightLabel, "Comment"],
+    ...participants
+      .filter(p => !p.user.isSynthetic)
+      .map(p => [
+        p.user.name ?? "Anonymous",
+        p.position.toFixed(1),
+        "",
+        "",
+        p.comment ?? "",
+      ]),
+  ];
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${continuum.title.replace(/[^a-z0-9]/gi, "_")}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function exportPDF(continuum: ContinuumData, participants: ParticipantData[], withComments: boolean) {
+  const { default: jsPDF } = await import("jspdf");
+
+  const real = participants.filter(p => !p.user.isSynthetic && p.position != null);
+  const sorted = [...real].sort((a, b) => a.position - b.position);
+  if (sorted.length === 0) return;
+
+  // Layout constants
+  const ML = 18, MR = 18, MT_HDR = 36, SPEC_GAP = 5, BOT_MARGIN = 18;
+  const HEAD_SZ = 16;  // square — thumbnails are 200×200px
+  const NAME_H = 3;
+  const ROW_GAP = 1;
+  const SQ = 0.25;     // pixel-shadow square size (mm)
+  const TILE = SQ * 2; // = 0.5mm
+  const COMMENT_FONT = 8;
+  const COMMENT_LINE = 3.5;
+  const COMMENT_PAD = 2.5;
+  const PAGE_W = 260;
+  const USABLE_W = PAGE_W - ML - MR;
+  const BOX_W = HEAD_SZ + 14; // 30mm comment box
+
+  // Arrow: original SVG 44×18 pointing left → 90° CCW → 18×44 tip-at-bottom
+  // → then 180° flip → 18×44 tip-at-top (tip overlaps box bottom border, body hangs down)
+  const ARROW_U = 0.15;            // mm per SVG unit (half previous size)
+  const ARROW_W_MM = 18 * ARROW_U; // 2.7mm
+  const ARROW_H_MM = 44 * ARROW_U; // 6.6mm
+
+  // Measure comment heights using throwaway doc
+  const tmp = new jsPDF({ unit: "mm", format: "a4" });
+  tmp.setFontSize(COMMENT_FONT);
+  const commentHeights = sorted.map(p => {
+    if (!withComments || !p.comment) return 0;
+    const lines = tmp.splitTextToSize(p.comment, BOX_W - COMMENT_PAD * 2);
+    return lines.length * COMMENT_LINE + COMMENT_PAD * 2;
+  });
+
+  const maxCommentH = withComments ? Math.max(0, ...commentHeights) : 0;
+  // 5 pixel blocks (each 2 SVG units) of arrow sit inside the box border
+  const ARROW_OVERLAP = 12 * ARROW_U; // mm — 6 pixel rows of taper inside box
+  const HEAD_GAP = -3; // mm — negative means arrow/bubble overlaps into the head
+  const commentSlot = withComments ? maxCommentH + (ARROW_H_MM - ARROW_OVERLAP) + HEAD_GAP : 0;
+  const ROW_H = commentSlot + HEAD_SZ + NAME_H + ROW_GAP;
+
+  // Stagger: assign each avatar to the lowest non-overlapping row
+  const halfSlot = (withComments ? BOX_W : HEAD_SZ) / 2;
+  const rowMaxX: number[] = [];
+  const placed: Array<typeof sorted[0] & { row: number; xMm: number; commentH: number }> = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    const p = sorted[i];
+    const xMm = ML + (p.position / 100) * USABLE_W;
+    let row = 0;
+    while (row < rowMaxX.length && rowMaxX[row] !== undefined && rowMaxX[row] > xMm - halfSlot - 1) {
+      row++;
+    }
+    rowMaxX[row] = xMm + halfSlot + 1;
+    placed.push({ ...p, row, xMm, commentH: commentHeights[i] });
+  }
+
+  const maxRow = placed.reduce((m, p) => Math.max(m, p.row), 0);
+  const SPECTRUM_Y = MT_HDR + (maxRow + 1) * ROW_H + SPEC_GAP;
+  const PAGE_H = SPECTRUM_Y + 8 + BOT_MARGIN;
+
+  const shareUrl = `${window.location.origin}/continuum/${continuum.id}${continuum.shareToken ? `?token=${continuum.shareToken}` : ""}`;
+  const displayUrl = `${window.location.host}/continuum/${continuum.id}`;
+  const dateStr = new Date(continuum.createdAt).toLocaleDateString("en-US", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+
+  // Load assets in parallel
+  const loadSVGasPNG = (src: string, w: number, h: number): Promise<string> =>
+    fetch(src).then(r => r.text()).then(svg => new Promise(res => {
+      const blob = new Blob([svg], { type: "image/svg+xml" });
+      const blobUrl = URL.createObjectURL(blob);
+      const img = new Image(w * 4, h * 4);
+      img.onload = () => {
+        const c = document.createElement("canvas");
+        c.width = w * 4; c.height = h * 4;
+        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(blobUrl);
+        res(c.toDataURL("image/png"));
+      };
+      img.src = blobUrl;
+    }));
+
+  // Logo: 361×65 SVG → render at 360×65px for 2× quality
+  const [logoDataUrl, qrDataUrl] = await Promise.all([
+    loadSVGasPNG("/logo.svg", 360, 65),
+    QRCode.toDataURL(shareUrl, { width: 200, margin: 1, color: { dark: "#0083FF", light: "#ffffff" } }),
+  ]);
+
+  const doc = new jsPDF({ unit: "mm", format: [PAGE_W, PAGE_H] });
+
+  // ── pixel-box: white fill, blue border, bottom-right checkerboard shadow ──
+  const drawPixelBox = (bx: number, by: number, bw: number, bh: number) => {
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(0, 131, 255);
+    doc.setLineWidth(0.3);
+    doc.rect(bx, by, bw, bh, "FD");
+    doc.setFillColor(0, 131, 255);
+    const bsW = Math.ceil((bw + TILE) / TILE) * TILE - SQ * 2;
+    const bsLeft = bx + bw + TILE - bsW;
+    for (let tx = bsLeft; tx < bsLeft + bsW; tx += TILE) {
+      doc.rect(tx,      by + bh,      SQ, SQ, "F");
+      doc.rect(tx + SQ, by + bh + SQ, SQ, SQ, "F");
+    }
+    const rsH = Math.max(0, Math.floor(bh / TILE) * TILE - SQ * 2);
+    if (rsH > 0) {
+      const rsTop = by + bh - rsH;
+      for (let ty = rsTop; ty < rsTop + rsH; ty += TILE) {
+        doc.rect(bx + bw,      ty,      SQ, SQ, "F");
+        doc.rect(bx + bw + SQ, ty + SQ, SQ, SQ, "F");
+      }
+    }
+  };
+
+  // ── pixel arrow: tip-at-top (overlaps box bottom border), body hangs down ──
+  // Rects are 180°-rotated versions of the 90°-CCW-rotated SVG.
+  // 180° formula on 18×44 space: (x,y,w,h) → (18−x−w, 44−y−h, w, h)
+  // arrowX = left edge of arrow in PDF coords
+  // tipY   = y of the tip (= box bottom border; arrow hangs down from here)
+  const drawPixelArrow = (arrowX: number, tipY: number) => {
+    const ax = arrowX;
+    const ay = tipY;
+    const U = ARROW_U;
+    const r = (x: number, y: number, w: number, h: number, c: [number, number, number]) => {
+      doc.setFillColor(c[0], c[1], c[2]);
+      doc.rect(ax + x * U, ay + y * U, w * U, h * U, "F");
+    };
+    const B: [number, number, number] = [0, 131, 255];
+    const W: [number, number, number] = [255, 255, 255];
+    const O: [number, number, number] = [218, 95, 68];
+
+    // Blue outline — tip prongs at top, stepped outline widens, body bars, connector at bottom
+    r( 6,  0,  2,  2, B); // tip right prong
+    r(10,  0,  2,  2, B); // tip left prong
+    r( 8,  2,  2,  2, B); // tip center step
+    r( 6,  4,  2,  2, B); r(10,  4,  2,  2, B);
+    r( 4,  6,  2,  2, B); r(12,  6,  2,  2, B);
+    r( 2,  8,  2,  2, B); r(14,  8,  2,  2, B);
+    r( 0, 10,  2,  2, B); r( 8, 10,  2,  2, B); r(16, 10,  2,  2, B);
+    r( 6, 12,  2,  2, B); r(10, 12,  2,  2, B);
+    r( 4, 14,  2,  2, B); r(12, 14,  2,  2, B);
+    r( 2, 16,  2,  2, B); r(14, 16,  2,  2, B);
+    r( 0, 18,  2, 24, B); // left body bar
+    r(16, 18,  2, 24, B); // right body bar
+    r( 2, 42, 14,  2, B); // bottom connector bar
+
+    // White stepped edges (cover diagonal blue pixels at the taper)
+    r( 0, 12,  2,  6, W); r( 2, 10,  2,  6, W); r( 4,  8,  2,  6, W);
+    r( 6,  6,  2,  6, W); r( 8,  4,  2,  6, W); r(10,  6,  2,  6, W);
+    r(12,  8,  2,  6, W); r(14, 10,  2,  6, W); r(16, 12,  2,  6, W);
+
+    // White interior fills (overwrite blue inside body)
+    r( 2, 18,  2, 24, W); r( 4, 16,  2, 26, W); r( 6, 14,  2, 28, W);
+    r( 8, 12,  2, 30, W); r(10, 14,  2, 28, W); r(12, 16,  2, 26, W);
+    r(14, 18,  2, 24, W);
+
+    // Orange chevrons — two ^ shapes pointing toward tip (up)
+    r( 4, 24,  2,  4, O); r( 6, 22,  2,  4, O); r( 8, 20,  2,  4, O);
+    r(10, 22,  2,  4, O); r(12, 24,  2,  4, O);
+    r( 4, 34,  2,  4, O); r( 6, 32,  2,  4, O); r( 8, 30,  2,  4, O);
+    r(10, 32,  2,  4, O); r(12, 34,  2,  4, O);
+  };
+
+  // ── header: title (left) + logo + QR (right) ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  doc.setTextColor(26, 26, 26);
+  doc.text(continuum.title, ML, MT_HDR - 6);
+
+  const LOGO_W = 40, LOGO_H = 40 * (65 / 361);
+  doc.addImage(logoDataUrl, "PNG", ML, 5, LOGO_W, LOGO_H);
+
+  // QR code: 0.8× (12.8mm), top right, brand blue
+  const QR_SZ = 12.8;
+  const qrX = PAGE_W - MR - QR_SZ;
+  doc.addImage(qrDataUrl, "PNG", qrX, 5, QR_SZ, QR_SZ);
+
+  // ── bottom-left: date | url ──
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  doc.setTextColor(160, 160, 160);
+  doc.text(`${dateStr}  |  ${displayUrl}`, ML, PAGE_H - 5);
+
+  // ── spectrum labels ──
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.setTextColor(26, 26, 26);
+  doc.text(continuum.leftLabel,  ML,          SPECTRUM_Y + 7);
+  doc.text(continuum.rightLabel, PAGE_W - MR, SPECTRUM_Y + 7, { align: "right" });
+
+  // ── avatars ──
+  for (const p of placed) {
+    // row 0 is closest to bar; higher rows are further from bar (upward)
+    const rowBaseY = SPECTRUM_Y - (p.row + 1) * ROW_H;
+    // Head is always at the bottom of the commentSlot, so stagger rows align at head level
+    const headY = rowBaseY + commentSlot;
+
+    // Draw head first so bubble/arrow render on top of it
+    if (p.user.avatarThumbnail) {
+      try { doc.addImage(p.user.avatarThumbnail, "PNG", p.xMm - HEAD_SZ / 2, headY, HEAD_SZ, HEAD_SZ); }
+      catch { /* skip */ }
+    } else {
+      doc.setFillColor(220, 220, 220);
+      doc.rect(p.xMm - HEAD_SZ / 2, headY, HEAD_SZ, HEAD_SZ, "F");
+    }
+
+    // Name
+    const firstName = (p.user.name ?? "?").split(" ")[0];
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    doc.setTextColor(80, 80, 80);
+    doc.text(firstName, p.xMm, headY + HEAD_SZ + 2, { align: "center" });
+
+    // Bubble + arrow on top of head
+    if (withComments && p.comment && p.commentH > 0) {
+      const tipY = headY - HEAD_GAP - ARROW_H_MM;
+      const boxY = tipY + ARROW_OVERLAP - p.commentH;
+      const boxX = p.xMm - BOX_W / 2;
+      drawPixelBox(boxX, boxY, BOX_W, p.commentH);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(COMMENT_FONT);
+      doc.setTextColor(30, 30, 30);
+      const lines = doc.splitTextToSize(p.comment, BOX_W - COMMENT_PAD * 2);
+      doc.text(lines, boxX + COMMENT_PAD, boxY + COMMENT_PAD + COMMENT_LINE * 0.8);
+      const arrowX = p.xMm - ARROW_W_MM / 2;
+      drawPixelArrow(arrowX, tipY);
+    }
+  }
+
+  doc.save(`${continuum.title.replace(/[^a-z0-9]/gi, "_")}.pdf`);
+}
+
+// ─── export menu ─────────────────────────────────────────────────────────────
+
+function ExportMenu({ continuum, participants, onClose }: {
+  continuum: ContinuumData;
+  participants: ParticipantData[];
+  onClose: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const run = async (key: string, fn: () => Promise<void> | void) => {
+    setBusy(key);
+    try { await fn(); } finally { setBusy(null); onClose(); }
+  };
+
+  const items = [
+    { key: "csv",          label: "CSV",                  fn: () => exportCSV(continuum, participants) },
+    { key: "pdf-comments", label: "PDF — with comments",  fn: () => exportPDF(continuum, participants, true) },
+    { key: "pdf-plain",    label: "PDF — without comments", fn: () => exportPDF(continuum, participants, false) },
+  ];
+
+  return (
+    <div style={{ position: "relative", zIndex: 200 }}>
+      <PixelBox shadowDir="bottom-right" style={{ overflow: "hidden", minWidth: 200 }}>
+        {items.map(({ key, label, fn }) => (
+          <button
+            key={key}
+            disabled={!!busy}
+            onClick={() => run(key, fn)}
+            style={{
+              display: "block", width: "100%", textAlign: "left",
+              fontFamily: INTER, fontSize: 14, color: busy === key ? BLUE : "#1a1a1a",
+              background: "none", border: "none", cursor: busy ? "default" : "pointer",
+              padding: "10px 16px",
+              borderBottom: key !== "pdf-plain" ? "1px solid #ebebeb" : "none",
+            }}
+          >
+            {busy === key ? "Exporting…" : label}
+          </button>
+        ))}
+      </PixelBox>
     </div>
   );
 }
@@ -415,6 +835,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/continuum/${continuum.id}?token=${continuum.shareToken}`
     : null;
 
+  // ── export menu ──
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const exportBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ── about modal ──
+  const [showAbout, setShowAbout] = useState(false);
+
   // ── avatar click → show bubble ──
   const handleSelectUser = useCallback((uid: string | null) => {
     setSelectedUserId(uid);
@@ -514,18 +941,46 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           display: "flex", justifyContent: "flex-end", alignItems: "center",
           gap: 24, marginTop: 32,
         }}>
-          <button style={{
-            fontFamily: INTER, fontSize: 16, color: BLUE,
-            background: "none", border: "none", cursor: "pointer", padding: 0,
-          }}>
-            Export
-          </button>
-          <button style={{
-            fontFamily: INTER, fontSize: 16, color: BLUE,
-            background: "none", border: "none", cursor: "pointer", padding: 0,
-          }}>
+          {/* Export button + dropdown */}
+          <div style={{ position: "relative" }}>
+            <button
+              ref={exportBtnRef}
+              onClick={() => setShowExportMenu(v => !v)}
+              style={{
+                fontFamily: INTER, fontSize: 16, color: BLUE,
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+              }}
+            >
+              Export
+            </button>
+            {showExportMenu && (
+              <>
+                {/* Click-outside backdrop */}
+                <div
+                  onClick={() => setShowExportMenu(false)}
+                  style={{ position: "fixed", inset: 0, zIndex: 199 }}
+                />
+                <div style={{ position: "absolute", bottom: "calc(100% + 10px)", right: 0, zIndex: 200 }}>
+                  <ExportMenu
+                    continuum={continuum}
+                    participants={participants}
+                    onClose={() => setShowExportMenu(false)}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowAbout(true)}
+            style={{
+              fontFamily: INTER, fontSize: 16, color: BLUE,
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+            }}
+          >
             About this continuum
           </button>
+
           {shareUrl && (
             <PillButton variant="secondary" label="Share" onClick={() => setShowShareModal(true)} />
           )}
@@ -539,6 +994,10 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           visibility={continuum.visibility}
           onClose={() => setShowShareModal(false)}
         />
+      )}
+
+      {showAbout && (
+        <AboutModal continuum={continuum} onClose={() => setShowAbout(false)} />
       )}
     </div>
   );

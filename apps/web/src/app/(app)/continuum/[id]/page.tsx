@@ -35,12 +35,12 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
 
   if (!isOwner && !isTeamMember && !hasShareToken) notFound();
 
-  const [currentUser, participants, messages] = await Promise.all([
+  const [currentUser, participants, messages, owner] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } }),
     prisma.continuumParticipant.findMany({
       where: { continuumId: params.id },
       include: {
-        user: { select: { id: true, name: true, image: true, avatarConfig: true, isSynthetic: true } },
+        user: { select: { id: true, name: true, image: true, avatarConfig: true, isSynthetic: true, avatarThumbnail: true } },
       },
     }),
     prisma.message.findMany({
@@ -48,6 +48,10 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
       include: { user: { select: { id: true, name: true, image: true } } },
       orderBy: { createdAt: "asc" },
       take: 100,
+    }),
+    prisma.user.findUnique({
+      where: { id: continuum.ownerId },
+      select: { id: true, name: true, slogan: true, url: true, avatarThumbnail: true },
     }),
   ]);
 
@@ -60,7 +64,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
 
   return (
     <ContinuumView
-      continuum={continuum}
+      continuum={{ ...continuum, createdAt: continuum.createdAt.toISOString(), owner: owner ?? null }}
       participants={participants as any}
       messages={messages as any}
       sessionToken={sessionToken}

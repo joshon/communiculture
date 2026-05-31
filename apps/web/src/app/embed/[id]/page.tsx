@@ -76,7 +76,7 @@ export default async function EmbedPage({ params, searchParams }: Props) {
       </div>
       {session ? (
         <ContinuumView
-          continuum={continuum}
+          continuum={{ ...continuum, createdAt: continuum.createdAt.toISOString(), owner: null }}
           participants={participants as any}
           messages={messages as any}
           sessionToken={sessionToken}
