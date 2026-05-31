@@ -30,5 +30,5 @@ packages/db/node_modules/
 .vscode/
 .idea/
 
-# Avatar builder dev persistence
-.avatar-library.json
+# Avatar builder dev persistence (committed so production build includes it)
+# .avatar-library.json
