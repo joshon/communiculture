@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       <div style={{ borderBottom: "1px solid #f0f0f0", padding: "20px clamp(20px,5vw,48px)" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Link href="/">
-            <Image src="/logo.svg" alt="communi*culture" width={160} height={31}
+            <Image src="/logo.svg" alt="Communiculture" width={160} height={31}
               style={{ width: "clamp(120px,20vw,160px)", height: "auto", display: "block" }} />
           </Link>
           <Link href="/login" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
 
         <Section title="Who we are">
           <p style={{ margin: "0 0 12px" }}>
-            communi*culture is a project by <a href="https://futurefarmers.com" style={{ color: BLUE }}>Futurefarmers</a>, operated by Josh On. The service is available at communiculture.org.
+            Communiculture is a project by <a href="https://futurefarmers.com" style={{ color: BLUE }}>Futurefarmers</a>, operated by Josh On. The service is available at communiculture.org.
           </p>
           <p style={{ margin: 0 }}>
             Questions about this policy: <a href="mailto:josh@theyrule.net" style={{ color: BLUE }}>josh@theyrule.net</a>
@@ -55,7 +55,7 @@ export default function PrivacyPage() {
         </Section>
 
         <Section title="What we collect">
-          <p style={{ margin: "0 0 12px" }}>When you sign in and use communi*culture, we collect:</p>
+          <p style={{ margin: "0 0 12px" }}>When you sign in and use Communiculture, we collect:</p>
           <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>
             <li style={{ marginBottom: 8 }}><strong>Account info</strong> — your name, email address, and profile image from whichever sign-in method you use (Google, Microsoft, Facebook, or email)</li>
             <li style={{ marginBottom: 8 }}><strong>Avatar configuration</strong> — the colors and style choices you make for your blocky avatar</li>

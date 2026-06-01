@@ -24,7 +24,7 @@ export default function TermsPage() {
       <div style={{ borderBottom: "1px solid #f0f0f0", padding: "20px clamp(20px,5vw,48px)" }}>
         <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Link href="/">
-            <Image src="/logo.svg" alt="communi*culture" width={160} height={31}
+            <Image src="/logo.svg" alt="Communiculture" width={160} height={31}
               style={{ width: "clamp(120px,20vw,160px)", height: "auto", display: "block" }} />
           </Link>
           <Link href="/login" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
@@ -47,13 +47,13 @@ export default function TermsPage() {
 
         <Section title="Who we are">
           <p style={{ margin: 0 }}>
-            communi*culture is a service provided by Futurefarmers, operated by Josh On. By using communiculture.org, you agree to these terms. Questions: <a href="mailto:josh@theyrule.net" style={{ color: BLUE }}>josh@theyrule.net</a>
+            Communiculture is a service provided by Futurefarmers, operated by Josh On. By using communiculture.org, you agree to these terms. Questions: <a href="mailto:josh@theyrule.net" style={{ color: BLUE }}>josh@theyrule.net</a>
           </p>
         </Section>
 
-        <Section title="What communi*culture is">
+        <Section title="What Communiculture is">
           <p style={{ margin: 0 }}>
-            communi*culture is a group exercise tool. It lets people place themselves on a spectrum between two positions on a question, see where others stand, and leave comments. It is not a polling platform, a debate forum, or a social network.
+            Communiculture is a group exercise tool. It lets people place themselves on a spectrum between two positions on a question, see where others stand, and leave comments. It is not a polling platform, a debate forum, or a social network.
           </p>
         </Section>
 
@@ -83,7 +83,7 @@ export default function TermsPage() {
 
         <Section title="Intellectual property">
           <p style={{ margin: 0 }}>
-            The communi*culture name, logo, avatar designs, and software are owned by Futurefarmers. The original Futurefarmers 2002 design was created by Amy Franceschini and Brian Won. You may not copy or redistribute these without permission.
+            The Communiculture name, logo, avatar designs, and software are owned by Futurefarmers. The original Futurefarmers 2002 design was created by Amy Franceschini and Brian Won. You may not copy or redistribute these without permission.
           </p>
         </Section>
 
@@ -95,7 +95,7 @@ export default function TermsPage() {
 
         <Section title="Limitation of liability">
           <p style={{ margin: 0 }}>
-            To the fullest extent permitted by law, Futurefarmers shall not be liable for any indirect, incidental, or consequential damages arising from your use of communi*culture.
+            To the fullest extent permitted by law, Futurefarmers shall not be liable for any indirect, incidental, or consequential damages arising from your use of Communiculture.
           </p>
         </Section>
 
