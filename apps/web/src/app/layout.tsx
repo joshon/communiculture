@@ -9,6 +9,13 @@ const inter = Inter({ subsets: ["latin"], weight: ["400", "500"], variable: "--f
 export const metadata: Metadata = {
   title: "Communiculture",
   description: "A division of Futurefarmers — place yourself on a continuum",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
