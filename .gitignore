@@ -32,3 +32,6 @@ packages/db/node_modules/
 
 # Avatar builder dev persistence (committed so production build includes it)
 # .avatar-library.json
+
+# Local credentials — never commit
+CREDENTIALS.local.md
