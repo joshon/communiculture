@@ -59,7 +59,7 @@ export default function AboutPage() {
 
         <Section title="What is a continuum?">
           <p style={{ margin: "0 0 16px" }}>
-            A continuum is a group exercise where two positions are set at opposite ends of a space — physical or conceptual — and people place themselves along the spectrum between them, based on where they honestly stand on the question being asked.
+            A continuum is a group exercise where two positions are set at opposite ends of a space — physical or conceptual — and people place themselves along the spectrum between them, based on where they stand on the question being asked.
           </p>
           <p style={{ margin: "0 0 16px" }}>
             The technique has roots in <strong>sociometry</strong>, the study of social relationships developed by psychiatrist{" "}
@@ -67,7 +67,13 @@ export default function AboutPage() {
           </p>
           <p style={{ margin: "0 0 16px" }}>
             The specific form of the continuum exercise was first formally described as the{" "}
-            <strong>Spectrogram</strong> by Delbert M. Kole in a 1967 paper published in <em>Group Psychotherapy</em>. It has since spread through education, conflict resolution, and group facilitation under many names: the <em>Human Barometer</em>, <em>Spectrum Lines</em>, <em>Continuum Dialogue</em>, <em>Four Corners</em>, and <em>Values Clarification</em>.
+            <A href="https://www.psychodramajournal.com/index.php/asgppjournal/article/view/866"><strong>Spectrogram</strong></A>{" "}
+            by Delbert M. Kole in a 1967 paper published in <em>Group Psychotherapy</em>. It has since spread through education, conflict resolution, and group facilitation under many names: the{" "}
+            <A href="https://www.facinghistory.org/resource-library/barometer-taking-stand-controversial-issues"><em>Human Barometer</em></A>,{" "}
+            <A href="https://resistrenew.com/2021/02/13/toolbox-spectrum-lines/"><em>Spectrum Lines</em></A>,{" "}
+            <A href="https://www.nsrfharmony.org/wp-content/uploads/2017/10/continuum_dialogue_0.pdf"><em>Continuum Dialogue</em></A>,{" "}
+            <A href="https://ggie.berkeley.edu/practice/four-corners/"><em>Four Corners</em></A>, and{" "}
+            <A href="https://en.wikipedia.org/wiki/Values_clarification"><em>Values Clarification</em></A>.
           </p>
           <p style={{ margin: 0 }}>
             What all versions share is the same quiet power: they make abstract positions concrete, they reveal nuance inside apparent consensus, and they let people see — literally, spatially — where they stand in relation to one another.
@@ -76,7 +82,7 @@ export default function AboutPage() {
 
         <Section title="History of this project">
           <p style={{ margin: "0 0 16px" }}>
-            In 2000, <A href="https://joshon.com">Josh On</A> built the first digital version as his graduate project at the{" "}
+            In 2000, Josh On built the first digital version as his graduate project at the{" "}
             <A href="https://www.rca.ac.uk">Royal College of Art</A> (Interaction Design). Called <strong>Prototype World</strong>, it moved the spectrogram online for the first time — turning what had been a physical, room-scale exercise into something that could happen across a network, with strangers.
           </p>
           <p style={{ margin: "0 0 16px" }}>
