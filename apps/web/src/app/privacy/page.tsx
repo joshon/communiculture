@@ -117,7 +117,10 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 32, marginTop: 8 }}>
+        <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 32, marginTop: 8, display: "flex", gap: 24 }}>
+          <Link href="/terms" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
+            Terms of Service
+          </Link>
           <Link href="/" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
             ← back to communiculture
           </Link>
