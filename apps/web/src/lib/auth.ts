@@ -79,35 +79,13 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      // For OAuth providers only (not credentials or email magic link),
-      // link the new account to an existing user with the same email.
+      // allowDangerousEmailAccountLinking handles account linking automatically.
+      // We only need to ensure the JWT gets the existing user's ID (not a new one).
       if (account?.provider !== "credentials" && account?.provider !== "email" && user.email) {
         const existing = await prisma.user.findUnique({
           where: { email: user.email },
-          include: { accounts: true },
         });
         if (existing) {
-          const alreadyLinked = existing.accounts.some(
-            (a) => a.provider === account?.provider
-          );
-          if (!alreadyLinked && account) {
-            await prisma.account.create({
-              data: {
-                userId: existing.id,
-                type: account.type,
-                provider: account.provider,
-                providerAccountId: account.providerAccountId,
-                access_token: account.access_token,
-                refresh_token: account.refresh_token,
-                expires_at: account.expires_at,
-                token_type: account.token_type,
-                scope: account.scope,
-                id_token: account.id_token,
-                session_state: account.session_state as string | undefined,
-              },
-            });
-          }
-          // Point NextAuth to the existing user so it uses the right ID
           user.id = existing.id;
         }
       }

@@ -25,14 +25,16 @@ function useEditorCanvasSize() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = new ResizeObserver(() => {
+    const measure = () => {
       const h = Math.max(300, Math.min(EDITOR_MAX_H, el.clientHeight || EDITOR_MAX_H));
       setHeight(h);
       setZoom(Math.round(EDITOR_BASE_ZOOM * h / EDITOR_MAX_H));
       setWidth(Math.round(h * EDITOR_ASPECT));
-    });
+    };
+    const obs = new ResizeObserver(measure);
     obs.observe(el);
-    return () => obs.disconnect();
+    window.addEventListener("resize", measure);
+    return () => { obs.disconnect(); window.removeEventListener("resize", measure); };
   }, []);
   return { ref, zoom, width, height };
 }
