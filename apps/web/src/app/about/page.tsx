@@ -7,7 +7,7 @@ const BLUE = "#0083FF";
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ marginBottom: 48 }}>
-      <h2 style={{ fontFamily: INTER, fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "#aaa", marginBottom: 16, margin: "0 0 16px" }}>
+      <h2 style={{ fontFamily: INTER, fontSize: 18, fontWeight: 600, color: "#111", marginBottom: 16, margin: "0 0 16px" }}>
         {title}
       </h2>
       <div style={{ fontFamily: INTER, fontSize: 16, lineHeight: 1.75, color: "#1a1a1a" }}>
@@ -49,14 +49,6 @@ export default function AboutPage() {
         padding: "clamp(40px,8vw,80px) clamp(20px,5vw,48px)",
       }}>
 
-        {/* Title */}
-        <h1 style={{ fontFamily: INTER, fontSize: "clamp(28px,4vw,40px)", fontWeight: 700, color: "#1a1a1a", marginBottom: 8, marginTop: 0 }}>
-          communi<span style={{ color: BLUE }}>*</span>culture
-        </h1>
-        <p style={{ fontFamily: INTER, fontSize: 16, color: "#888", marginBottom: 56, marginTop: 0 }}>
-          a division of <A href="https://futurefarmers.com">futurefarmers</A>
-        </p>
-
         <Section title="What is a continuum?">
           <p style={{ margin: "0 0 16px" }}>
             A continuum is a group exercise where two positions are set at opposite ends of a space — physical or conceptual — and people place themselves along the spectrum between them, based on where they stand on the question being asked.
@@ -76,25 +68,25 @@ export default function AboutPage() {
             <A href="https://en.wikipedia.org/wiki/Values_clarification"><em>Values Clarification</em></A>.
           </p>
           <p style={{ margin: 0 }}>
-            What all versions share is the same quiet power: they make abstract positions concrete, they reveal nuance inside apparent consensus, and they let people see — literally, spatially — where they stand in relation to one another.
+            All versions make abstract positions concrete, they reveal nuance inside apparent consensus, and they let people see — literally, spatially — where they stand in relation to one another.
           </p>
         </Section>
 
         <Section title="History of this project">
           <p style={{ margin: "0 0 16px" }}>
             In 2000, Josh On built the first digital version as his graduate project at the{" "}
-            <A href="https://www.rca.ac.uk">Royal College of Art</A> (Interaction Design). Called <strong>Prototype World</strong>, it moved the spectrogram online for the first time — turning what had been a physical, room-scale exercise into something that could happen across a network, with strangers.
+            <A href="https://www.rca.ac.uk">Royal College of Art</A> (Computer Related Design). Called <strong>Prototype World</strong>, it moved the spectrogram online for the first time — turning what had been a physical, room-scale exercise into something that could happen across a network, with strangers.
           </p>
           <p style={{ margin: "0 0 16px" }}>
             In 2002, the project was rebuilt at <A href="https://futurefarmers.com">Futurefarmers</A> with{" "}
-            <A href="https://futurefarmers.com">Amy Franceschini</A> and illustrator Brian Won. Built in Flash, it introduced the blocky, hand-drawn avatars that became the project's signature — characters that wore your position without explaining it.
+            <A href="https://futurefarmers.com">Amy Franceschini</A> and illustrator Brian Won. Built in a very early version of Flash and PHP.
           </p>
           <p style={{ margin: "0 0 16px" }}>
             <A href="https://vimeo.com/165099530">Watch the 2002 version on Vimeo →</A>
           </p>
           <p style={{ margin: 0 }}>
-            In 2026, Josh rebuilt communi*culture from scratch with{" "}
-            <A href="https://claude.ai">Claude</A> — bringing it into the present as a real-time, multiplayer web app with 3D avatars, live positioning, and team tools.
+            In 2026, Josh rebuilt communiculture from scratch with{" "}
+            <A href="https://claude.ai">Claude</A> — with a real-time, multiplayer web app with 3D avatars, live positioning, mobile support, all building on the original Futurefarmers design.
           </p>
         </Section>
 
