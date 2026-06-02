@@ -1,5 +1,5 @@
 FROM node:20-alpine AS base
-RUN npm install -g pnpm@9.0.0
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # Install dependencies
 FROM base AS deps
@@ -21,7 +21,7 @@ RUN pnpm --filter @communiculture/socket-server build
 
 # Production image
 FROM node:20-alpine AS runner
-RUN npm install -g pnpm@9.0.0
+RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 WORKDIR /app
 ENV NODE_ENV=production
 
