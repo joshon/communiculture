@@ -1,0 +1,168 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum Plan {
+  FREE
+  PLUS
+  PRO
+}
+
+enum TeamRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum Visibility {
+  PRIVATE      // legacy
+  TEAM         // legacy
+  PUBLIC_LINK  // unlisted, link only
+  PUBLIC       // publicly listed with category
+  PASSWORD     // link + password required
+}
+
+// ─── Auth (NextAuth Prisma Adapter) ─────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core Models ────────────────────────────────────────────────────────────
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String?
+  email              String?   @unique
+  emailVerified      DateTime?
+  image              String?
+  passwordHash       String?
+  slogan             String?
+  url                String?
+  avatarConfig       Json      @default("{}")
+  avatarThumbnail    String?   @db.Text
+  onboardingComplete Boolean   @default(false)
+  stripeCustomerId   String?   @unique
+  plan               Plan      @default(FREE)
+  isSynthetic        Boolean   @default(false)
+
+  accounts       Account[]
+  sessions       Session[]
+  continuums     Continuum[]
+  memberships    TeamMember[]
+  participations ContinuumParticipant[]
+  messages       Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  members   TeamMember[]
+  continuums Continuum[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TeamMember {
+  userId String
+  teamId String
+  role   TeamRole @default(MEMBER)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([userId, teamId])
+}
+
+model Continuum {
+  id          String     @id @default(cuid())
+  title       String
+  leftLabel   String
+  rightLabel  String
+  description String?
+  ownerId     String
+  teamId      String?
+  visibility   Visibility @default(PUBLIC_LINK)
+  shareToken   String?    @unique
+  category     String?
+  passwordHash String?
+
+  participants ContinuumParticipant[]
+  messages     Message[]
+
+  owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  team  Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  closedAt  DateTime?
+}
+
+model ContinuumParticipant {
+  id          String  @id @default(cuid())
+  continuumId String
+  userId      String
+  position    Float   @default(50)  // X position, 0–100 (left to right on continuum)
+  positionZ   Float   @default(50)  // Z/depth position, 0–100 (visual only, no semantic meaning)
+  comment     String?
+
+  continuum Continuum @relation(fields: [continuumId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([continuumId, userId])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  continuumId String
+  userId      String
+  body        String   @db.Text
+
+  continuum Continuum @relation(fields: [continuumId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
