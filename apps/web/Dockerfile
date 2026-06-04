@@ -1,22 +1,23 @@
 FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
+RUN apk add --no-cache openssl
 
-# Install dependencies
-# Build context is apps/web/ — packages/db/ is embedded here
+# Install dependencies using npm (avoids pnpm/Prisma compatibility issues)
 FROM base AS deps
 WORKDIR /app
 COPY package.json ./
-COPY packages/db/package.json ./packages/db/package.json
-RUN printf 'packages:\n  - "packages/db"\n' > pnpm-workspace.yaml
-RUN pnpm install --no-frozen-lockfile
+COPY packages/db/ ./packages/db/
+# Replace workspace:* with file: so npm understands it
+RUN node -e "const p=JSON.parse(require('fs').readFileSync('./package.json','utf8')); p.dependencies['@communiculture/db']='file:./packages/db'; require('fs').writeFileSync('./package.json',JSON.stringify(p,null,2));"
+RUN npm install --legacy-peer-deps
 
 # Build
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/packages/db ./packages/db
 COPY . .
-RUN npm_execpath=$(which pnpm) ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
-RUN pnpm run build
+RUN ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
+RUN npm run build
 
 # Production image
 FROM base AS runner
