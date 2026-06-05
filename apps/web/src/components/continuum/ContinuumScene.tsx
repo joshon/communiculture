@@ -660,6 +660,25 @@ interface Props {
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
   onHeadScreen?: (x: number, y: number) => void;
+  isSeeding?: boolean;
+}
+
+const SEEDING_POSITIONS = [10, 30, 50, 70, 90];
+
+function SeedingDot({ posX, phase }: { posX: number; phase: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  useFrame(({ clock }) => {
+    if (!meshRef.current) return;
+    const t = (clock.getElapsedTime() + phase) * 2;
+    const s = 0.55 + 0.25 * Math.sin(t);
+    meshRef.current.scale.setScalar(s);
+  });
+  return (
+    <mesh ref={meshRef} position={[posX, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[0.22, 32]} />
+      <meshBasicMaterial color="#0083FF" transparent opacity={0.7} />
+    </mesh>
+  );
 }
 
 export function ContinuumScene({
@@ -668,7 +687,7 @@ export function ContinuumScene({
   selectedUserId, onSelectUser,
   isInCrowd, onPreJoinCommit,
   onPositionChange, onPositionCommit,
-  onHeadScreen,
+  onHeadScreen, isSeeding,
 }: Props) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
   const participants = useContinuumStore((s) => s.participants);
@@ -710,6 +729,13 @@ export function ContinuumScene({
             botConfig={BOT_CONFIG}
             onHeadScreen={onHeadScreen}
           />
+          {isSeeding && SEEDING_POSITIONS.map((pos, i) => (
+            <SeedingDot
+              key={pos}
+              posX={(pos / 100 - 0.5) * 26}
+              phase={i * 0.4}
+            />
+          ))}
         </Canvas>
       )}
     </div>

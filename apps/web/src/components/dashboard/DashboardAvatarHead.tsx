@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState, useEffect } from "react";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { useAvatarStore } from "@/store/avatarStore";
 import { PixelBox } from "@/components/ui/PixelBox";
 import { useIsMobile } from "@/hooks/useIsMobile";
@@ -27,6 +27,8 @@ interface Props {
 export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: Props) {
   const storeThumbnailUrl = useAvatarStore((s) => s.thumbnailUrl);
   const thumbnailUrl = storeThumbnailUrl ?? serverThumbnailUrl;
+  const { data: session } = useSession();
+  const userName = session?.user?.name;
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile(1024);
@@ -162,6 +164,12 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
               <rect x="34" y="12" width="4" height="2" fill="#DA5F44" />
             </svg>
 
+            {userName && (
+              <div style={{ ...itemStyle, color: "#888", fontSize: sc(12), paddingBottom: sc(4), cursor: "default" }}>
+                {userName}
+              </div>
+            )}
+            {userName && <div style={{ borderTop: `1px solid ${BLUE}` }} />}
             <Link href="/profile" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit profile</Link>
             <Link href="/profile/avatar" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit avatar</Link>
             <div style={{ borderTop: `1px solid ${BLUE}` }} />

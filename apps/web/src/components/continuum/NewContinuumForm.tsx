@@ -245,7 +245,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
       }
       if (!res.ok) { setError("Something went wrong. Try again."); return; }
       const continuum = await res.json();
-      router.push(`/continuum/${continuum.id}`);
+      router.push(`/continuum/${continuum.id}${continuum.seeding ? "?seeding=1" : ""}`);
     } finally {
       setLoading(false);
     }
@@ -408,11 +408,16 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                 </p>
               )}
 
-              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12 }}>
+                {loading && prepopulate && (
+                  <span style={{ fontFamily: INTER, fontSize: 13, color: "#888" }}>
+                    generating synthetic voices…
+                  </span>
+                )}
                 <PillButton
                   type="submit"
                   arrow
-                  label="Create"
+                  label={prepopulate ? "Create + seed" : "Create"}
                   loading={loading}
                   style={!ready ? { opacity: 0.4, cursor: "default" } : undefined}
                 />

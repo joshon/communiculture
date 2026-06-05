@@ -42,7 +42,7 @@ async function syntheticBotAvatar(botIndex: number) {
 
 // ─── synthetic participant generation ─────────────────────────────────────────
 
-const POSITIONS = [0.1, 0.3, 0.5, 0.7, 0.9];
+const POSITIONS = [10, 30, 50, 70, 90]; // 0–100 scale matching ContinuumParticipant.position
 
 interface SyntheticPersona {
   name: string;
@@ -193,16 +193,14 @@ export async function POST(req: Request) {
     content: moderationContent,
   });
 
-  if (prepopulate && process.env.ANTHROPIC_API_KEY) {
-    try {
-      await createSyntheticParticipants(continuum.id, continuum.title, continuum.leftLabel, continuum.rightLabel);
-    } catch (err) {
-      console.error("Synthetic participant generation failed:", err);
-      // Non-fatal — continuum was created, just without synthetic participants
-    }
+  const isSeeding = !!(prepopulate && process.env.ANTHROPIC_API_KEY);
+  if (isSeeding) {
+    // Fire async — don't block the response
+    createSyntheticParticipants(continuum.id, continuum.title, continuum.leftLabel, continuum.rightLabel)
+      .catch(err => console.error("Synthetic participant generation failed:", err));
   }
 
-  return NextResponse.json(continuum, { status: 201 });
+  return NextResponse.json({ ...continuum, seeding: isSeeding }, { status: 201 });
 }
 
 // ─── GET /api/continuums ──────────────────────────────────────────────────────

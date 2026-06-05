@@ -67,6 +67,7 @@ interface Props {
   messages: MessageData[];
   sessionToken: string;
   currentUserAvatarConfig: AvatarConfig;
+  seeding?: boolean;
 }
 
 // ─── share modal ─────────────────────────────────────────────────────────────
@@ -691,7 +692,7 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
 
 // ─── main view ────────────────────────────────────────────────────────────────
 
-export function ContinuumView({ continuum, participants, messages, sessionToken, currentUserAvatarConfig }: Props) {
+export function ContinuumView({ continuum, participants, messages, sessionToken, currentUserAvatarConfig, seeding: initialSeeding }: Props) {
   const { data: session } = useSession();
   const {
     setParticipants, setConnected, updatePositionXZ, updateComment,
@@ -702,6 +703,37 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const storeParticipantsRef = useRef(storeParticipants);
   storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
+
+  // Seeding placeholders — poll until 5 synthetic participants arrive
+  const [isSeeding, setIsSeeding] = useState(!!initialSeeding);
+  useEffect(() => {
+    if (!isSeeding) return;
+    const poll = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/continuums/${continuum.id}`);
+        const data = await res.json();
+        const bots = (data.participants ?? []).filter((p: any) => p.user?.isSynthetic);
+        if (bots.length >= 5) {
+          // Load bots into the store
+          bots.forEach((p: any) => {
+            addParticipant({
+              userId: p.userId,
+              name: p.user.name,
+              image: p.user.image ?? null,
+              avatarConfig: p.user.avatarConfig ?? {},
+              isSynthetic: true,
+              position: p.position ?? 50,
+              positionZ: p.positionZ ?? 50,
+              comment: p.comment ?? null,
+            });
+          });
+          setIsSeeding(false);
+          clearInterval(poll);
+        }
+      } catch { /* ignore */ }
+    }, 2000);
+    return () => clearInterval(poll);
+  }, [isSeeding, continuum.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Local X and Z for real-time drag feedback.
   // Initialized to 50; corrected in useEffect once session (and thus currentUserId) is known.
@@ -902,6 +934,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
             onHeadScreen={handleHeadScreen}
+            isSeeding={isSeeding}
           />
 
           {selectedParticipant && (() => {

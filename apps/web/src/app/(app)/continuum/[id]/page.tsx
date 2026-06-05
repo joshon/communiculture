@@ -11,10 +11,11 @@ import type { NextRequest } from "next/server";
 
 interface Props {
   params: { id: string };
-  searchParams: { token?: string };
+  searchParams: { token?: string; seeding?: string };
 }
 
 export default async function ContinuumPage({ params, searchParams }: Props) {
+  const isSeeding = searchParams.seeding === "1";
   const session = await getServerSession(authOptions);
   if (!session) notFound();
 
@@ -69,6 +70,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
       messages={messages as any}
       sessionToken={sessionToken}
       currentUserAvatarConfig={(currentUser?.avatarConfig ?? {}) as any}
+      seeding={isSeeding}
     />
   );
 }
