@@ -732,7 +732,7 @@ export function ContinuumScene({
           {isSeeding && SEEDING_POSITIONS.map((pos, i) => (
             <SeedingDot
               key={pos}
-              posX={(pos / 100 - 0.5) * 26}
+              posX={(pos / 100 - 0.5) * CROWD_WIDTH}
               phase={i * 0.4}
             />
           ))}

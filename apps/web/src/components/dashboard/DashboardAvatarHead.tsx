@@ -165,7 +165,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
             </svg>
 
             {userName && (
-              <div style={{ ...itemStyle, color: "#888", fontSize: sc(12), paddingBottom: sc(4), cursor: "default" }}>
+              <div style={{ ...itemStyle, color: "#000", fontWeight: 700, cursor: "default" }}>
                 {userName}
               </div>
             )}

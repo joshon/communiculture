@@ -194,12 +194,6 @@ export async function POST(req: Request) {
   });
 
   const isSeeding = !!(prepopulate && process.env.ANTHROPIC_API_KEY);
-  if (isSeeding) {
-    // Fire async — don't block the response
-    createSyntheticParticipants(continuum.id, continuum.title, continuum.leftLabel, continuum.rightLabel)
-      .catch(err => console.error("Synthetic participant generation failed:", err));
-  }
-
   return NextResponse.json({ ...continuum, seeding: isSeeding }, { status: 201 });
 }
 

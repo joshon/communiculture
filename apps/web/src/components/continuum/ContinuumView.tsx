@@ -704,17 +704,22 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
 
-  // Seeding placeholders — poll until 5 synthetic participants arrive
+  // Seeding placeholders — trigger seed endpoint then poll until 5 bots arrive
   const [isSeeding, setIsSeeding] = useState(!!initialSeeding);
   useEffect(() => {
     if (!isSeeding) return;
+
+    // Kick off seeding server-side (this request stays open until Anthropic responds)
+    fetch(`/api/continuums/${continuum.id}/seed`, { method: "POST" })
+      .catch(() => { /* non-fatal */ });
+
+    // Poll every 2s for bots appearing
     const poll = setInterval(async () => {
       try {
         const res = await fetch(`/api/continuums/${continuum.id}`);
         const data = await res.json();
         const bots = (data.participants ?? []).filter((p: any) => p.user?.isSynthetic);
         if (bots.length >= 5) {
-          // Load bots into the store
           bots.forEach((p: any) => {
             addParticipant({
               userId: p.userId,
