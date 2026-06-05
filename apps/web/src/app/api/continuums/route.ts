@@ -4,17 +4,18 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import { nanoid } from "@/lib/nanoid";
 import bcrypt from "bcryptjs";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs/promises";
 import path from "path";
 import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
+import { enqueueForModeration } from "@/lib/moderation";
+
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
 
 // ─── synthetic avatar generation ──────────────────────────────────────────────
 
 function seededInt(seed: number, salt: number, max: number): number {
-  // Simple LCG for deterministic randomness without external deps
   const h = ((seed * 1664525 + salt * 1013904223) >>> 0) % max;
   return h;
 }
@@ -53,7 +54,7 @@ async function generatePersonas(
   leftLabel: string,
   rightLabel: string
 ): Promise<SyntheticPersona[]> {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   const prompt = `Generate 5 short opinion comments for an interactive spectrum tool about: "${title}"
 
@@ -73,17 +74,17 @@ Each comment: 1–2 natural sentences. Distinct voices. Must be clearly about th
 Return ONLY valid JSON (no markdown):
 [{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."},{"name":"participant","comment":"..."}]`;
 
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.85,
+  const response = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 600,
+    messages: [{ role: "user", content: prompt }],
   });
 
-  const raw = response.choices[0]?.message?.content?.trim() ?? "[]";
+  const rawText = response.content[0]?.type === "text" ? response.content[0].text.trim() : "[]";
+  const raw = rawText.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
   const parsed: SyntheticPersona[] = JSON.parse(raw);
   if (!Array.isArray(parsed) || parsed.length !== 5) {
-    throw new Error("Unexpected OpenAI response shape");
+    throw new Error("Unexpected response shape from Anthropic");
   }
   return parsed;
 }
@@ -172,7 +173,24 @@ export async function POST(req: Request) {
     },
   });
 
-  if (prepopulate && process.env.OPENAI_API_KEY) {
+  // Moderate continuum content (title + labels + description) asynchronously
+  const moderationContent = [
+    `Title: ${continuum.title}`,
+    `Left label: ${continuum.leftLabel}`,
+    `Right label: ${continuum.rightLabel}`,
+    continuum.description ? `Description: ${continuum.description}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  enqueueForModeration({
+    id: `continuum:${continuum.id}`,
+    type: "continuum",
+    entityId: continuum.id,
+    content: moderationContent,
+  });
+
+  if (prepopulate && process.env.ANTHROPIC_API_KEY) {
     try {
       await createSyntheticParticipants(continuum.id, continuum.title, continuum.leftLabel, continuum.rightLabel);
     } catch (err) {

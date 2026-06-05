@@ -47,7 +47,7 @@ export const COLOR_PALETTE: string[] = [
 ];
 
 export const SKIN_TONES: string[] = [
-  "#F5F3F2", "#F3BD87", "#EE9181", "#917143", "#191A1C",
+  "#F5F3F2", "#F3BD87", "#EE9181", "#917143", "#917143",
 ];
 
 export const SKIN_PARTS: AvatarPart[] = ["head", "neck", "arms", "legs"];

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@communiculture/db";
 import bcrypt from "bcryptjs";
+import { enqueueForModeration } from "@/lib/moderation";
 
 export async function POST(req: Request) {
   const { name, email, password } = await req.json();
@@ -16,9 +17,17 @@ export async function POST(req: Request) {
 
   try {
     const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.user.create({
+    const user = await prisma.user.create({
       data: { name: name || null, email, passwordHash },
     });
+    if (name) {
+      enqueueForModeration({
+        id: `username:${user.id}`,
+        type: "username",
+        entityId: user.id,
+        content: `Username: ${name}`,
+      });
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("signup error", err);

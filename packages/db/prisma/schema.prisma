@@ -29,6 +29,12 @@ enum Visibility {
   PASSWORD     // link + password required
 }
 
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── Auth (NextAuth Prisma Adapter) ─────────────────────────────────────────
 
 model Account {
@@ -134,6 +140,8 @@ model Continuum {
   owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   team  Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
+  moderationStatus ModerationStatus @default(APPROVED)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
@@ -159,7 +167,8 @@ model Message {
   id          String   @id @default(cuid())
   continuumId String
   userId      String
-  body        String   @db.Text
+  body             String           @db.Text
+  moderationStatus ModerationStatus @default(APPROVED)
 
   continuum Continuum @relation(fields: [continuumId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -5,6 +5,7 @@ import { createAdapter } from "@socket.io/redis-adapter";
 import { prisma } from "@communiculture/db";
 import { registerPositionHandlers } from "./handlers/position";
 import { registerChatHandlers } from "./handlers/chat";
+import { initModerationServer } from "./lib/moderation";
 
 const PORT = parseInt(process.env.SOCKET_PORT ?? "3001", 10);
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
@@ -47,6 +48,8 @@ io.use(async (socket, next) => {
     next(new Error("unauthorized"));
   }
 });
+
+initModerationServer(io);
 
 // ─── Connection ──────────────────────────────────────────────────────────────
 io.on("connection", (socket) => {
