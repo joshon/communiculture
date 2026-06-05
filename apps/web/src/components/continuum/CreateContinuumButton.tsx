@@ -2,25 +2,36 @@
 
 import Link from "next/link";
 import { PillButton } from "@/components/ui/PillButton";
-import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
 
 interface Props {
   canCreate: boolean;
-  count: number;
+  totalOwned: number;
+  allowed: number | null; // null = lifetime/unlimited
 }
 
-export function CreateContinuumButton({ canCreate, count }: Props) {
+export function CreateContinuumButton({ canCreate, totalOwned, allowed }: Props) {
+  const countLabel = allowed === null
+    ? `${totalOwned} created (unlimited)`
+    : `${totalOwned} / ${allowed}`;
+
   if (!canCreate) {
     return (
-      <p style={{ fontFamily: INTER, fontSize: 16, color: "#888", margin: 0 }}>
-        {count}/{FREE_CONTINUUM_LIMIT} continuums —{" "}
-        <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>upgrade</Link>
-      </p>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+        <p style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: 0 }}>
+          {countLabel} —{" "}
+          <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>buy more</Link>
+        </p>
+      </div>
     );
   }
 
-  return <PillButton href="/continuum/new" label="+ new continuum" fontSize="16px" />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+      <PillButton href="/continuum/new" label="+ new continuum" fontSize="16px" />
+      <p style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", margin: 0 }}>{countLabel}</p>
+    </div>
+  );
 }

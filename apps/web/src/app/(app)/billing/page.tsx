@@ -1,38 +1,52 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
-import { PLANS } from "@/lib/stripe";
+import { PACKS } from "@/lib/stripe";
 import { BillingClient } from "@/components/billing/BillingClient";
+import { continuumsAllowed } from "@/lib/plans";
+import { AppHeader } from "@/components/ui/AppHeader";
 
-export default async function BillingPage({
-  searchParams,
-}: {
-  searchParams: { success?: string };
-}) {
+const INTER = "Inter, sans-serif";
+
+export default async function BillingPage({ searchParams }: { searchParams: { success?: string } }) {
   const session = await getServerSession(authOptions);
-  const user = await prisma.user.findUnique({
-    where: { id: session!.user.id },
-    select: { plan: true, stripeCustomerId: true },
+  const userId = session!.user.id;
+
+  const [user, totalOwned] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { lifetimeContinuums: true, continuumCredits: true },
+    }),
+    prisma.continuum.count({ where: { ownerId: userId } }),
+  ]);
+
+  const allowed = continuumsAllowed({
+    lifetimeContinuums: user?.lifetimeContinuums ?? false,
+    continuumCredits: user?.continuumCredits ?? 0,
+    totalOwned,
   });
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10">
-      <h2 className="text-comm-blue lowercase text-2xl font-bold mb-2">billing</h2>
-      <p className="text-gray-400 text-xs lowercase mb-8">
-        current plan: <span className="text-black">{user?.plan.toLowerCase()}</span>
-      </p>
+    <div style={{ minHeight: "100vh", background: "white" }}>
+      <AppHeader />
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px" }}>
+        <h2 style={{ fontFamily: INTER, fontSize: 24, fontWeight: 700, color: "#0083FF", marginBottom: 24 }}>
+          billing
+        </h2>
 
-      {searchParams.success && (
-        <div className="bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 lowercase mb-6">
-          upgrade successful! your plan has been updated.
-        </div>
-      )}
+        {searchParams.success && (
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 16px", marginBottom: 24, fontFamily: INTER, fontSize: 14, color: "#15803d" }}>
+            purchase successful — your continuums have been added.
+          </div>
+        )}
 
-      <BillingClient
-        currentPlan={user?.plan ?? "FREE"}
-        hasSubscription={!!user?.stripeCustomerId}
-        plans={PLANS}
-      />
+        <BillingClient
+          totalOwned={totalOwned}
+          allowed={allowed}
+          continuumCredits={user?.continuumCredits ?? 0}
+          packs={PACKS}
+        />
+      </div>
     </div>
   );
 }

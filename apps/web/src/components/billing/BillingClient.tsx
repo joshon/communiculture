@@ -1,24 +1,29 @@
 "use client";
 
 import { useState } from "react";
-import type { PLANS } from "@/lib/stripe";
+import type { PACKS } from "@/lib/stripe";
+import Link from "next/link";
+
+const INTER = "Inter, sans-serif";
+const BLUE = "#0083FF";
 
 interface Props {
-  currentPlan: string;
-  hasSubscription: boolean;
-  plans: typeof PLANS;
+  totalOwned: number;
+  allowed: number | null; // null = lifetime
+  continuumCredits: number;
+  packs: typeof PACKS;
 }
 
-export function BillingClient({ currentPlan, hasSubscription, plans }: Props) {
+export function BillingClient({ totalOwned, allowed, continuumCredits, packs }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleUpgrade = async (plan: string) => {
-    setLoading(plan);
+  const handleBuy = async (pack: string) => {
+    setLoading(pack);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ pack }),
       });
       const { url } = await res.json();
       if (url) window.location.href = url;
@@ -27,77 +32,78 @@ export function BillingClient({ currentPlan, hasSubscription, plans }: Props) {
     }
   };
 
-  const handleManage = async () => {
-    setLoading("manage");
-    try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
-      const { url } = await res.json();
-      if (url) window.location.href = url;
-    } finally {
-      setLoading(null);
-    }
-  };
+  const isLifetime = allowed === null;
+  const used = totalOwned;
+  const remaining = isLifetime ? null : Math.max(0, (allowed ?? 0) - used);
 
   return (
-    <div className="space-y-4">
-      {/* Free tier */}
-      <div className={`border p-5 ${currentPlan === "FREE" ? "border-comm-blue" : "border-gray-200"}`}>
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="font-medium lowercase">free</p>
-            <p className="text-sm text-gray-400 lowercase mt-1">$0/mo</p>
-            <ul className="text-xs text-gray-500 lowercase mt-2 space-y-1">
-              <li>3 continuums</li>
-              <li>participate in invited continuums</li>
-              <li>1 team</li>
-            </ul>
-          </div>
-          {currentPlan === "FREE" && (
-            <span className="text-xs text-comm-blue lowercase">current plan</span>
-          )}
-        </div>
+    <div>
+      {/* Usage summary */}
+      <div style={{ background: "#f8f8f8", padding: "16px 20px", marginBottom: 32, fontFamily: INTER }}>
+        {isLifetime ? (
+          <p style={{ margin: 0, fontSize: 15, color: "#1a1a1a" }}>
+            <strong>Lifetime access</strong> — unlimited continuums
+            <span style={{ fontSize: 13, color: "#888", marginLeft: 8 }}>({used} created)</span>
+          </p>
+        ) : (
+          <>
+            <p style={{ margin: "0 0 4px", fontSize: 15, color: "#1a1a1a" }}>
+              <strong>{used}</strong> of <strong>{allowed}</strong> continuums used
+              {remaining === 0 && (
+                <span style={{ color: "#cc2222", marginLeft: 8, fontSize: 13 }}>— limit reached</span>
+              )}
+            </p>
+            <p style={{ margin: 0, fontSize: 13, color: "#888" }}>
+              5 free + {continuumCredits} purchased
+              {remaining !== null && remaining > 0 && ` — ${remaining} remaining`}
+            </p>
+          </>
+        )}
       </div>
 
-      {Object.entries(plans).map(([key, plan]) => (
-        <div
-          key={key}
-          className={`border p-5 ${currentPlan === key ? "border-comm-blue" : "border-gray-200"}`}
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-medium lowercase">{plan.name.toLowerCase()}</p>
-              <p className="text-sm text-gray-400 lowercase mt-1">{plan.price}</p>
-              <ul className="text-xs text-gray-500 lowercase mt-2 space-y-1">
-                {plan.features.map((f) => (
-                  <li key={f}>{f.toLowerCase()}</li>
-                ))}
-              </ul>
-            </div>
-            <div>
-              {currentPlan === key ? (
-                <span className="text-xs text-comm-blue lowercase">current plan</span>
-              ) : (
+      {/* Pack cards */}
+      {!isLifetime && (
+        <>
+          <p style={{ fontFamily: INTER, fontSize: 14, color: "#555", marginBottom: 16 }}>
+            Buy more continuums — one-time purchase, never expires.
+          </p>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: 32 }}>
+            {Object.entries(packs).map(([key, pack]) => (
+              <div
+                key={key}
+                style={{
+                  border: "1.5px solid #1a1a1a",
+                  padding: "20px 24px",
+                  minWidth: 180,
+                  flex: 1,
+                  fontFamily: INTER,
+                }}
+              >
+                <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 700, color: "#1a1a1a" }}>{pack.price}</p>
+                <p style={{ margin: "0 0 16px", fontSize: 14, color: "#555" }}>{pack.credits} continuums</p>
                 <button
-                  onClick={() => handleUpgrade(key)}
+                  onClick={() => handleBuy(key)}
                   disabled={!!loading}
-                  className="bg-comm-blue text-white px-4 py-2 text-xs lowercase hover:bg-blue-800 disabled:opacity-50"
+                  style={{
+                    background: BLUE,
+                    color: "white",
+                    border: "none",
+                    padding: "8px 18px",
+                    fontFamily: INTER,
+                    fontSize: 14,
+                    cursor: "pointer",
+                    opacity: loading ? 0.6 : 1,
+                  }}
                 >
-                  {loading === key ? "loading..." : `upgrade to ${plan.name.toLowerCase()}`}
+                  {loading === key ? "loading…" : "buy"}
                 </button>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
-        </div>
-      ))}
-
-      {hasSubscription && (
-        <button
-          onClick={handleManage}
-          disabled={!!loading}
-          className="text-xs text-gray-400 lowercase underline hover:text-gray-600 disabled:opacity-50"
-        >
-          {loading === "manage" ? "loading..." : "manage subscription"}
-        </button>
+          <p style={{ fontFamily: INTER, fontSize: 12, color: "#aaa" }}>
+            Deleting a continuum moves it to your archive but does not free up a slot — your count reflects all continuums ever created.
+          </p>
+        </>
       )}
     </div>
   );

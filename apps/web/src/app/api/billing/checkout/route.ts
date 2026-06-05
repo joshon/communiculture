@@ -2,15 +2,15 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
-import { stripe, PLANS } from "@/lib/stripe";
+import { stripe, PACKS } from "@/lib/stripe";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const { plan } = await req.json();
-  if (!PLANS[plan as keyof typeof PLANS]) {
-    return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  const { pack } = await req.json();
+  if (!PACKS[pack as keyof typeof PACKS]) {
+    return NextResponse.json({ error: "invalid_pack" }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({
@@ -19,8 +19,6 @@ export async function POST(req: Request) {
   });
 
   let customerId = user?.stripeCustomerId;
-
-  // Create Stripe customer if needed
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: user?.email ?? undefined,
@@ -35,17 +33,12 @@ export async function POST(req: Request) {
 
   const checkoutSession = await stripe.checkout.sessions.create({
     customer: customerId,
-    mode: "subscription",
+    mode: "payment",
     payment_method_types: ["card"],
-    line_items: [
-      {
-        price: PLANS[plan as keyof typeof PLANS].priceId,
-        quantity: 1,
-      },
-    ],
+    line_items: [{ price: PACKS[pack as keyof typeof PACKS].priceId, quantity: 1 }],
     success_url: `${process.env.NEXTAUTH_URL}/billing?success=1`,
     cancel_url: `${process.env.NEXTAUTH_URL}/billing`,
-    metadata: { userId: session.user.id, plan },
+    metadata: { userId: session.user.id, pack },
   });
 
   return NextResponse.json({ url: checkoutSession.url });

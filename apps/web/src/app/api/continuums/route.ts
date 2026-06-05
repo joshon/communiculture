@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs/promises";
 import path from "path";
-import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
+import { canCreateContinuum } from "@/lib/plans";
 import { enqueueForModeration } from "@/lib/moderation";
 
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
@@ -129,14 +129,17 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { plan: true, _count: { select: { continuums: true } } },
-  });
+  const [user, totalOwned] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { lifetimeContinuums: true, continuumCredits: true },
+    }),
+    prisma.continuum.count({ where: { ownerId: userId } }),
+  ]);
 
-  if (user?.plan === "FREE" && (user._count?.continuums ?? 0) >= FREE_CONTINUUM_LIMIT) {
+  if (!canCreateContinuum({ lifetimeContinuums: user?.lifetimeContinuums ?? false, continuumCredits: user?.continuumCredits ?? 0, totalOwned })) {
     return NextResponse.json(
-      { error: "free_limit_reached", message: "Upgrade to create more continuums" },
+      { error: "limit_reached", message: "You've used all your continuums — buy a pack to create more" },
       { status: 402 }
     );
   }

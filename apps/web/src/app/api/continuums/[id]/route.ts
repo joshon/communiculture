@@ -98,6 +98,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   if (!c || c.ownerId !== session.user.id)
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  await prisma.continuum.delete({ where: { id: params.id } });
+  await prisma.continuum.update({
+    where: { id: params.id },
+    data: { deletedAt: new Date() },
+  });
   return NextResponse.json({ ok: true });
 }

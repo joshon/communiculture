@@ -85,9 +85,11 @@ model User {
   avatarConfig       Json      @default("{}")
   avatarThumbnail    String?   @db.Text
   onboardingComplete Boolean   @default(false)
-  stripeCustomerId   String?   @unique
-  plan               Plan      @default(FREE)
-  isSynthetic        Boolean   @default(false)
+  stripeCustomerId    String?   @unique
+  plan                Plan      @default(FREE)
+  isSynthetic         Boolean   @default(false)
+  continuumCredits    Int       @default(0)
+  lifetimeContinuums  Boolean   @default(false)
 
   accounts       Account[]
   sessions       Session[]
@@ -145,6 +147,7 @@ model Continuum {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
+  deletedAt DateTime?
 }
 
 model ContinuumParticipant {
