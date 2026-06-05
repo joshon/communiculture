@@ -249,7 +249,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
     } finally {
       setLoading(false);
     }
-  }, [ready, title, leftLabel, rightLabel, visibility, category, password, router]);
+  }, [ready, title, leftLabel, rightLabel, visibility, category, password, prepopulate, router]);
 
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
