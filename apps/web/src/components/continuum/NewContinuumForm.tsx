@@ -245,7 +245,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
       }
       if (!res.ok) { setError("Something went wrong. Try again."); return; }
       const continuum = await res.json();
-      router.push(`/continuum/${continuum.id}${continuum.seeding ? "?seeding=1" : ""}`);
+      router.push(`/continuum/${continuum.id}${prepopulate ? "?seeding=1" : ""}`);
     } finally {
       setLoading(false);
     }

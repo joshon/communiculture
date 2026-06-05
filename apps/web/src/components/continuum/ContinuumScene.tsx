@@ -669,14 +669,14 @@ function SeedingDot({ posX, phase }: { posX: number; phase: number }) {
   const meshRef = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
     if (!meshRef.current) return;
-    const t = (clock.getElapsedTime() + phase) * 2;
-    const s = 0.55 + 0.25 * Math.sin(t);
+    const t = (clock.getElapsedTime() + phase) * 2.5;
+    const s = 0.7 + 0.3 * Math.sin(t);
     meshRef.current.scale.setScalar(s);
   });
   return (
-    <mesh ref={meshRef} position={[posX, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <circleGeometry args={[0.22, 32]} />
-      <meshBasicMaterial color="#0083FF" transparent opacity={0.7} />
+    <mesh ref={meshRef} position={[posX, 1.0, 0]}>
+      <sphereGeometry args={[0.28, 16, 16]} />
+      <meshBasicMaterial color="#0083FF" transparent opacity={0.75} />
     </mesh>
   );
 }

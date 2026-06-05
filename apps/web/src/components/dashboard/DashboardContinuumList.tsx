@@ -71,16 +71,31 @@ function ContinuumRow({
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <Link href={href} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-          <span style={{ fontFamily: INTER, fontSize: 13, color: "#aaa" }}>{formatDate(c.createdAt)}</span>
+    <div>
+      {/* Meta row: date | responses | delete */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+        <span style={{ fontFamily: INTER, fontSize: 13, color: "#aaa" }}>{formatDate(c.createdAt)}</span>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
           <span style={{ fontFamily: INTER, fontSize: 13, color: "#aaa" }}>
             {c.participantCount} {c.participantCount === 1 ? "response" : "responses"}
           </span>
+          {onDelete && !confirming && (
+            <button onClick={handleDelete} disabled={deleting} style={{ fontFamily: INTER, fontSize: 12, color: "#ccc", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
+              {deleting ? "deleting…" : "delete"}
+            </button>
+          )}
+          {onDelete && confirming && !deleting && (
+            <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
+              <span style={{ fontFamily: INTER, fontSize: 11, color: "#888" }}>won&apos;t free a slot —</span>
+              <button onClick={handleDelete} style={{ fontFamily: INTER, fontSize: 12, color: "#cc2222", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>confirm</button>
+              <button onClick={e => { e.preventDefault(); setConfirming(false); }} style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: 0 }}>cancel</button>
+            </span>
+          )}
         </div>
+      </div>
 
-        <p style={{ fontFamily: INTER, fontSize: 16, fontWeight: 600, color: "#1a1a1a", margin: "0 0 6px", paddingRight: onDelete ? 80 : 0 }}>
+      <Link href={href} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+        <p style={{ fontFamily: INTER, fontSize: 16, fontWeight: 600, color: "#1a1a1a", margin: "0 0 6px" }}>
           {c.title}
         </p>
 
@@ -99,40 +114,6 @@ function ContinuumRow({
           <span style={{ fontFamily: INTER, fontSize: 14, color: "#555" }}>{c.rightLabel}</span>
         </div>
       </Link>
-
-      {onDelete && (
-        <div style={{ position: "absolute", top: 0, right: 0, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 2 }}>
-          {confirming && !deleting && (
-            <span style={{ fontFamily: INTER, fontSize: 11, color: "#888", maxWidth: 160, textAlign: "right" }}>
-              Note: this won&apos;t free up a slot
-            </span>
-          )}
-          <button
-            onClick={handleDelete}
-            disabled={deleting}
-            style={{
-              fontFamily: INTER,
-              fontSize: 12,
-              color: confirming ? "#cc2222" : "#aaa",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              textDecoration: "underline",
-            }}
-          >
-            {deleting ? "deleting…" : confirming ? "confirm delete" : "delete"}
-          </button>
-          {confirming && !deleting && (
-            <button
-              onClick={e => { e.preventDefault(); setConfirming(false); }}
-              style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: 0 }}
-            >
-              cancel
-            </button>
-          )}
-        </div>
-      )}
 
       <div style={{ height: 1, background: "#ebebeb", margin: "14px 0" }} />
     </div>
