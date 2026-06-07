@@ -42,7 +42,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   const [participants, messages] = await Promise.all([
     prisma.continuumParticipant.findMany({
       where: { continuumId: params.id },
-      include: { user: { select: { id: true, name: true, image: true, avatarConfig: true } } },
+      include: { user: { select: { id: true, name: true, image: true, avatarConfig: true, isSynthetic: true } } },
     }),
     prisma.message.findMany({
       where: { continuumId: params.id },
