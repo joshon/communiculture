@@ -67,10 +67,10 @@ const PLATFORM_TOP_BORDER_FRAC = 4 / 90;
 const PLATFORM_SURFACE_Y = -PLATFORM_TOP_BORDER_FRAC * (PLATFORM_WIDTH / PLATFORM_PNG_ASPECT);
 const PREJOIN_AVATAR_Y = PLATFORM_SURFACE_Y + BASE_CURRENT_SCALE * 0.2 - 0.06;
 
-// Camera tilt: world Z→screenY factor (from camera at [0,8,10] looking at origin)
-const Z_TO_SCREEN = 0.625;
-// cos(atan(8/10)) ≈ 0.780 — camera elevation's world-Y → screen-Y factor
-const ELEV_COS = 0.780;
+// Camera tilt: world Z→screenY factor (from camera at [0,5,10] looking at origin)
+const Z_TO_SCREEN = 0.447; // 5/√125
+// cos(atan(5/10)) ≈ 0.894 — camera elevation's world-Y → screen-Y factor
+const ELEV_COS = 0.894; // 10/√125
 
 // Max safe crowd depth so avatars at posZ=0 or posZ=100 don't clip the canvas edges.
 // Constraint: head screen Y at most-back Z must stay within ±halfHeightCam.
@@ -78,7 +78,7 @@ const ELEV_COS = 0.780;
 // → halfDepth ≤ (halfHeightCam - avatarScale * 3.5 * ELEV_COS) / Z_TO_SCREEN
 function calcCrowdDepth(halfHeightCam: number, avatarScale: number): number {
   const headScreenH = avatarScale * 3.5 * ELEV_COS;
-  return Math.max(2, (halfHeightCam - headScreenH) * 2 * 0.9 / Z_TO_SCREEN);
+  return Math.max(2, Math.min((halfHeightCam - headScreenH) * 2 * 0.9 / Z_TO_SCREEN, 12));
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -217,7 +217,9 @@ interface PreJoinProps {
 function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult, baseRenderOrder }: PreJoinProps) {
   // Platform (idle): 35% bigger than crowd, feet on platform surface
   const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.035;
-  const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06;
+  // Offset compensates for the flatter camera angle ([0,5,10]) projecting the
+  // 3D avatar higher relative to the billboard platform sprite.
+  const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06 - 0.13;
   // Drag/drop: same scale as crowd avatars, feet at crowd ground level
   const dragScale = BASE_AVATAR_SCALE * scaleMult;
   const dragAvatarY = dragScale * 0.2 + 0.046;
@@ -254,7 +256,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
   // Crowd depth and pre-join Z derived from canvas size.
   const halfHeightCam = (size.height / size.width) * 13;
   const crowdDepth = calcCrowdDepth(halfHeightCam, platformScale);
-  const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
+  const preJoinZ = Math.min(halfHeightCam / Z_TO_SCREEN, halfHeightCam / 0.9) - PLATFORM_DEPTH;
 
   const preJoinZRef = useRef(preJoinZ);
   const crowdDepthRef = useRef(crowdDepth);
@@ -460,7 +462,7 @@ function CrowdScene({
   // Crowd depth: sized so the tallest avatar at the most extreme Z stays in canvas
   const crowdDepth = calcCrowdDepth(halfHeightCam, AVATAR_SCALE);
   // Pre-join Z pulled back by one platform depth so avatar sits fully inside canvas
-  const preJoinZ = halfHeightCam / Z_TO_SCREEN - PLATFORM_DEPTH;
+  const preJoinZ = Math.min(halfHeightCam / Z_TO_SCREEN, halfHeightCam / 0.9) - PLATFORM_DEPTH;
 
   // Minimum posZ so the current user's hair never clips off the top of the canvas.
   const avatarScreenTop = (AVATAR_Y + CURRENT_SCALE * 3.3) * ELEV_COS;
@@ -703,7 +705,7 @@ export function ContinuumScene({
       {library && (
         <Canvas
           orthographic
-          camera={{ position: [0, 8, 10], zoom: 46, near: -100, far: 100 }}
+          camera={{ position: [0, 5, 10], zoom: 46, near: -100, far: 100 }}
           gl={{ antialias: true, stencil: true }}
           style={{ width: "100%", height: "100%" }}
           onPointerMissed={() => onSelectUser(null)}

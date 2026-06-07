@@ -42,7 +42,7 @@ const TABS: { key: Tab; label: string }[] = [
 
 function formatDate(iso: string) {
   const d = new Date(iso);
-  return `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+  return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${String(d.getUTCDate()).padStart(2, "0")}/${d.getUTCFullYear()}`;
 }
 
 function ContinuumRow({
