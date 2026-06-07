@@ -31,3 +31,15 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   return NextResponse.json(participant);
 }
+
+// Remove the current user's own participation (leave the continuum)
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  await prisma.continuumParticipant.deleteMany({
+    where: { continuumId: params.id, userId: session.user.id },
+  });
+
+  return NextResponse.json({ ok: true });
+}

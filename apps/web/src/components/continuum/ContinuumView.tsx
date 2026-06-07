@@ -580,9 +580,10 @@ interface BubbleProps {
   bubbleTop: number;
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
+  onRemove?: () => void;
 }
 
-function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit }: BubbleProps) {
+function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit, onRemove }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -660,6 +661,19 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
                 overflow: "hidden", minHeight: "3.5em", display: "block",
               }}
             />
+            {onRemove && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onRemove(); }}
+                style={{
+                  display: "block", marginTop: 4,
+                  fontFamily: INTER, fontSize: 11, color: "#aaa",
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: 0, textDecoration: "underline",
+                }}
+              >
+                remove from continuum
+              </button>
+            )}
           </div>
         ) : (
           // Other person's bubble: comment text, name (link) at bottom right
@@ -866,6 +880,16 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     [continuum.id, currentUserId]
   );
 
+  // ── leave continuum: remove the current user's own participation ──
+  const handleRemoveSelf = useCallback(async () => {
+    setSelectedUserId(null);
+    removeParticipant(currentUserId);
+    positionInitialized.current = false;
+    setLocalPosition(50);
+    setLocalPositionZ(50);
+    await fetch(`/api/continuums/${continuum.id}/position`, { method: "DELETE" });
+  }, [continuum.id, currentUserId, removeParticipant]);
+
   // ── share modal ──
   const [showShareModal, setShowShareModal] = useState(false);
   const shareUrl = continuum.shareToken
@@ -956,6 +980,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
                 bubbleTop={bubbleTop}
                 arrowCenterY={arrowCenterY}
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
+                onRemove={selectedUserId === currentUserId ? handleRemoveSelf : undefined}
               />
             );
           })()}

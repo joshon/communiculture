@@ -77,6 +77,13 @@ const Z_TO_SCREEN = 0.447; // 5/√125
 // cos(atan(5/10)) ≈ 0.894 — camera elevation's world-Y → screen-Y factor
 const ELEV_COS = 0.894; // 10/√125
 
+// The pre-join avatar + platform sit this far in front of the crowd's front edge
+// (so normal depth testing draws them on top). Their Y is then raised to keep the
+// same on-screen position despite being pushed toward the camera.
+const PREJOIN_FRONT_MARGIN = 1.5;
+// world-Y raise that cancels a 1-unit forward (toward-camera) Z shift on screen
+const Z_TO_Y_COMP = Z_TO_SCREEN / ELEV_COS;
+
 // Max safe crowd depth so avatars at posZ=0 or posZ=100 don't clip the canvas edges.
 // Constraint: head screen Y at most-back Z must stay within ±halfHeightCam.
 // head_screenY = -(avatarScale * 3.5) * ELEV_COS - halfDepth * Z_TO_SCREEN ≥ -halfHeightCam
@@ -174,9 +181,13 @@ function CrowdCamera() {
 function PlatformBillboardInner({
   platformXRef,
   preJoinZ,
+  preJoinYComp,
+  renderOrder,
 }: {
   platformXRef: React.MutableRefObject<number>;
   preJoinZ: number;
+  preJoinYComp: number;
+  renderOrder: number;
 }) {
   const texture = useLoader(THREE.TextureLoader, "/DragYourself.png");
   const meshRef = useRef<THREE.Mesh>(null);
@@ -193,14 +204,14 @@ function PlatformBillboardInner({
   });
 
   return (
-    <mesh ref={meshRef} renderOrder={-1} position={[0, -height / 2, preJoinZ]}>
+    <mesh ref={meshRef} renderOrder={renderOrder} position={[0, -height / 2 + preJoinYComp, preJoinZ]}>
       <planeGeometry args={[width, height]} />
       <meshBasicMaterial map={texture} transparent depthWrite={false} depthTest={false} toneMapped={false} />
     </mesh>
   );
 }
 
-function PlatformSprite(props: { platformXRef: React.MutableRefObject<number>; preJoinZ: number }) {
+function PlatformSprite(props: { platformXRef: React.MutableRefObject<number>; preJoinZ: number; preJoinYComp: number; renderOrder: number }) {
   return (
     <Suspense fallback={null}>
       <PlatformBillboardInner {...props} />
@@ -217,19 +228,21 @@ interface PreJoinProps {
   onPreJoinCommit: (posX: number, posZ: number) => void;
   scaleMult: number;
   baseRenderOrder: number;
+  preJoinZ: number;
+  preJoinYComp: number;
+  crowdDepth: number;
 }
 
-function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult, baseRenderOrder }: PreJoinProps) {
-  // Platform (idle): 35% bigger than crowd, feet on platform surface
+function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, scaleMult, baseRenderOrder, preJoinZ, preJoinYComp, crowdDepth }: PreJoinProps) {
+  // Platform (idle): 35% bigger than crowd, feet on platform surface.
+  // +preJoinYComp keeps the avatar on-screen despite being pushed forward in Z.
   const platformScale = BASE_CURRENT_SCALE * scaleMult * 1.035;
-  // Offset compensates for the flatter camera angle ([0,5,10]) projecting the
-  // 3D avatar higher relative to the billboard platform sprite.
-  const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06 - 0.13;
+  const platformAvatarY = PLATFORM_SURFACE_Y + platformScale * 0.2 - 0.06 - 0.13 + preJoinYComp;
   // Drag/drop: same scale as crowd avatars, feet at crowd ground level
   const dragScale = BASE_AVATAR_SCALE * scaleMult;
   const dragAvatarY = dragScale * 0.2 + 0.046;
 
-  const { camera, gl, size } = useThree();
+  const { camera, gl } = useThree();
   const groupRef = useRef<THREE.Group>(null);
   const rotGroupRef = useRef<THREE.Group>(null);
   const isDraggingRef = useRef(false);
@@ -258,11 +271,8 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
   const onPreJoinCommitRef = useRef(onPreJoinCommit);
   onPreJoinCommitRef.current = onPreJoinCommit;
 
-  // Crowd depth and pre-join Z derived from canvas size.
-  const halfHeightCam = (size.height / size.width) * 13;
-  const crowdDepth = calcCrowdDepth(halfHeightCam, platformScale);
-  const preJoinZ = Math.min(halfHeightCam / Z_TO_SCREEN, halfHeightCam / 0.9) - PLATFORM_DEPTH;
-
+  // Crowd depth and pre-join Z are passed in from CrowdScene so the avatar stays
+  // aligned with the platform sprite and consistently in front of the crowd.
   const preJoinZRef = useRef(preJoinZ);
   const crowdDepthRef = useRef(crowdDepth);
   preJoinZRef.current = preJoinZ;
@@ -578,8 +588,11 @@ function CrowdScene({
 
   // Crowd depth: sized so the tallest avatar at the most extreme Z stays in canvas
   const crowdDepth = calcCrowdDepth(halfHeightCam, AVATAR_SCALE);
-  // Pre-join Z pulled back by one platform depth so avatar sits fully inside canvas
-  const preJoinZ = Math.min(halfHeightCam / Z_TO_SCREEN, halfHeightCam / 0.9) - PLATFORM_DEPTH;
+  // Screen-ideal Z for the platform, then pushed in front of the crowd's front
+  // edge; the resulting forward shift is cancelled on-screen by preJoinYComp.
+  const preJoinZScreen = Math.min(halfHeightCam / Z_TO_SCREEN, halfHeightCam / 0.9) - PLATFORM_DEPTH;
+  const preJoinZ = Math.max(preJoinZScreen, crowdDepth / 2 + PREJOIN_FRONT_MARGIN);
+  const preJoinYComp = Z_TO_Y_COMP * (preJoinZ - preJoinZScreen);
 
   // Minimum posZ so the current user's hair never clips off the top of the canvas.
   const avatarScreenTop = (AVATAR_Y + CURRENT_SCALE * 3.3) * ELEV_COS;
@@ -727,17 +740,24 @@ function CrowdScene({
 
       {!isInCrowd && (
         <>
+          {/* Layer order: crowd (< 4N) < platform bar < the user's own avatar,
+              so the bar sits above the crowd but the user stands on top of it. */}
+          <PlatformSprite
+            platformXRef={platformXRef}
+            preJoinZ={preJoinZ}
+            preJoinYComp={preJoinYComp}
+            renderOrder={sorted.length * 4 + 1}
+          />
           <PreJoinAvatar
             library={library}
             avatarConfig={currentUserAvatarConfig}
             platformXRef={platformXRef}
             onPreJoinCommit={onPreJoinCommit}
             scaleMult={scaleMult}
-            baseRenderOrder={sorted.length * 4}
-          />
-          <PlatformSprite
-            platformXRef={platformXRef}
+            baseRenderOrder={sorted.length * 4 + 5}
             preJoinZ={preJoinZ}
+            preJoinYComp={preJoinYComp}
+            crowdDepth={crowdDepth}
           />
         </>
       )}
@@ -798,7 +818,10 @@ export function ContinuumScene({
   }, []);
 
   return (
-    <div style={{ width: "100%", height: isInCrowd ? "clamp(420px, 52vh, 680px)" : "clamp(360px, 45vh, 580px)" }}>
+    // Constant height in both states so the crowd doesn't re-scale/jump when the
+    // current user adds or removes their own avatar. Uses most of the viewport,
+    // leaving margin above (hair) and below (platform + pole labels).
+    <div style={{ width: "100%", height: "clamp(440px, 64vh, 820px)" }}>
       {library && (
         <Canvas
           orthographic
