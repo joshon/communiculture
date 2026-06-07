@@ -28,7 +28,7 @@ const BOT_CONFIG = {
 const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
 const BASE_AVATAR_SCALE = 0.59;
 const BASE_CURRENT_SCALE = 0.67;
-const OUTLINE_EXPANSION = 0.12; // per-scaleMult outline thickness (0.12/scaleMult at render)
+const OUTLINE_EXPANSION = 0.12; // local outline thickness — scales WITH the avatar (× scaleMult in world)
 
 // Platform max screen width (px) — avatars never stretch wider than this
 const PLATFORM_MAX_PX = 600;
@@ -353,7 +353,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
           variantIndices={variants}
           colors={colors}
           showOutline={true}
-          outlineExpansion={OUTLINE_EXPANSION / scaleMult}
+          outlineExpansion={OUTLINE_EXPANSION}
           baseRenderOrder={baseRenderOrder}
         />
       </group>
@@ -363,25 +363,49 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
 
 // ─── per-avatar bounce + rotate animation ────────────────────────────────────
 
+const SPIN_DURATION = 1.8;
+const SPIN_TURNS = 3;
+
 function AnimatedAvatarGroup({
   isAnimating,
   animTrigger,
   rotY,
+  spinTrigger = 0,
   children,
 }: {
   isAnimating: boolean;
   animTrigger: number;
   rotY: number;
+  spinTrigger?: number; // non-zero value starts a 3-turn entrance spin
   children: React.ReactNode;
 }) {
   const ref = useRef<THREE.Group>(null);
   const startRef = useRef(-1);
   const lastTriggerRef = useRef(animTrigger);
+  const spinStartRef = useRef(-1);
+  const lastSpinRef = useRef(0);
   const DURATION = 0.6;
   const BOUNCE_H = 0.5;
 
   useFrame(({ clock }) => {
     if (!ref.current) return;
+
+    // Entrance spin takes priority — 3 full turns easing to the resting rotation
+    if (spinTrigger && lastSpinRef.current !== spinTrigger) {
+      lastSpinRef.current = spinTrigger;
+      spinStartRef.current = clock.elapsedTime;
+    }
+    if (spinStartRef.current >= 0) {
+      const st = (clock.elapsedTime - spinStartRef.current) / SPIN_DURATION;
+      if (st < 1) {
+        const eased = 1 - Math.pow(1 - st, 3); // cubic ease-out
+        ref.current.rotation.y = rotY + SPIN_TURNS * Math.PI * 2 * (1 - eased);
+        ref.current.position.y = 0;
+        return;
+      }
+      spinStartRef.current = -1; // done — fall through to normal behaviour
+    }
+
     if (isAnimating) {
       if (lastTriggerRef.current !== animTrigger || startRef.current < 0) {
         lastTriggerRef.current = animTrigger;
@@ -401,6 +425,79 @@ function AnimatedAvatarGroup({
 
   return <group ref={ref}>{children}</group>;
 }
+
+// Memoized crowd avatar — only re-renders when its own derived props change,
+// so dragging one avatar doesn't reconcile the geometry of all the others.
+const CrowdAvatar = React.memo(function CrowdAvatar({
+  userId, x, groupY, z, scale, rotY, isCurrent, isBot, cfg, library,
+  botConfig, isSelected, animTrigger, baseRenderOrder, spinTrigger,
+  onSelect, onDragStart,
+}: {
+  userId: string;
+  x: number; groupY: number; z: number; scale: number; rotY: number;
+  isCurrent: boolean; isBot: boolean;
+  cfg: AvatarConfig | null | undefined;
+  library: AvatarVariantLibrary;
+  botConfig: typeof BOT_CONFIG;
+  isSelected: boolean;
+  animTrigger: number;
+  baseRenderOrder: number;
+  spinTrigger: number;
+  onSelect: (userId: string) => void;
+  onDragStart: (e: any) => void;
+}) {
+  const colors = useMemo(() => {
+    if (isBot) {
+      return Object.fromEntries(
+        ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((part) => [part, botConfig.color])
+      ) as Record<AvatarPart, string>;
+    }
+    return colorsFromConfig(cfg);
+  }, [isBot, cfg, botConfig]);
+
+  const variants = useMemo(
+    () => (isBot ? variantsForBot(userId, library) : variantsFromConfig(cfg)),
+    [isBot, userId, library, cfg]
+  );
+
+  return (
+    <group
+      position={[x, groupY, z]}
+      scale={scale}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect(userId);
+      }}
+      onPointerDown={isCurrent ? onDragStart : undefined}
+    >
+      <mesh position={[0, 1.25, 0]} raycast={meshBounds}>
+        <boxGeometry args={[1.4, 2.5, 1.4]} />
+        <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+      </mesh>
+      <AnimatedAvatarGroup
+        isAnimating={isSelected}
+        animTrigger={animTrigger}
+        rotY={rotY}
+        spinTrigger={spinTrigger}
+      >
+        <CharacterGroup
+          library={library}
+          variantIndices={variants}
+          colors={colors}
+          showOutline={true}
+          outlineColor={isBot ? botConfig.outlineColor : undefined}
+          outlineExpansion={OUTLINE_EXPANSION}
+          baseRenderOrder={baseRenderOrder}
+          unlit={isBot ? botConfig.unlit : false}
+          emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
+          roughness={isBot ? botConfig.roughness : undefined}
+          metalness={isBot ? botConfig.metalness : undefined}
+          forceColor={isBot}
+        />
+      </AnimatedAvatarGroup>
+    </group>
+  );
+});
 
 // ─── inner scene ──────────────────────────────────────────────────────────────
 
@@ -433,6 +530,16 @@ function CrowdScene({
 }: SceneProps) {
   const { size, gl, camera } = useThree();
   const [animatingAvatar, setAnimatingAvatar] = useState<{ userId: string; triggeredAt: number } | null>(null);
+
+  // Entrance spin: wait a beat after load, then spin the current user's avatar
+  // 3× so they can find themselves, settling at the intended facing direction.
+  const [spinTrigger, setSpinTrigger] = useState(0);
+  const hasCurrentInCrowd = !!currentUserId && !!participants[currentUserId];
+  useEffect(() => {
+    if (!hasCurrentInCrowd) return;
+    const t = setTimeout(() => setSpinTrigger(Date.now()), 700);
+    return () => clearTimeout(t);
+  }, [hasCurrentInCrowd]);
 
   // Crowd depth: how much world-Z the crowd spans, capped so no avatar clips the canvas
   const halfHeightCam = (size.height / size.width) * 13;
@@ -553,6 +660,21 @@ function CrowdScene({
     };
   }, [gl, camera, isInCrowd]);
 
+  // Stable callbacks so memoized CrowdAvatars don't re-render on every parent render.
+  const handleSelect = React.useCallback((userId: string) => {
+    if (isDraggingRef.current) return;
+    const uid = userId === selectedUserIdRef.current ? null : userId;
+    onSelectUser(uid);
+    setAnimatingAvatar(uid ? { userId: uid, triggeredAt: Date.now() } : null);
+  }, [onSelectUser]);
+
+  const handleDragStart = React.useCallback((e: any) => {
+    e.stopPropagation();
+    isDraggingRef.current = true;
+    gl.domElement.style.cursor = "grabbing";
+    (e.nativeEvent.target as HTMLElement).setPointerCapture(e.nativeEvent.pointerId);
+  }, [gl]);
+
   // Sort back-to-front so far avatars render first (correct depth for opaque geometry)
   const sorted = useMemo(
     () => cappedParticipants.slice().sort((a, b) => a.positionZ - b.positionZ),
@@ -566,65 +688,28 @@ function CrowdScene({
         const posRaw  = isCurrent ? localPosition  : p.position;
         const posZ = isCurrent ? localPositionZ : p.positionZ;
         const pos = Math.max(bodyEdgeMarginPosX, Math.min(100 - bodyEdgeMarginPosX, posRaw));
-        const x = posToX(pos);
-        const z = posToZ(posZ);
         const scale = AVATAR_SCALE;
-        const groupY = scale * 0.2 + 0.046;
-        const isBot = p.isSynthetic;
-        const cfg = isCurrent ? currentUserAvatarConfig : p.avatarConfig;
-        const botColors = Object.fromEntries(
-          ["hair","head","face","neck","arms","body","pants","legs","shoes"].map((part) => [part, botConfig.color])
-        ) as Record<AvatarPart, string>;
-        const colors = isBot ? botColors : colorsFromConfig(cfg);
-        const variants = isBot
-          ? variantsForBot(p.userId, library)
-          : variantsFromConfig(isCurrent ? currentUserAvatarConfig : p.avatarConfig);
-        const rotY = avatarRotationY(pos);
-
         return (
-          <group
+          <CrowdAvatar
             key={p.userId}
-            position={[x, groupY, z]}
+            userId={p.userId}
+            x={posToX(pos)}
+            z={posToZ(posZ)}
+            groupY={scale * 0.2 + 0.046}
             scale={scale}
-            onClick={(e) => {
-              if (isDraggingRef.current) return;
-              e.stopPropagation();
-              const uid = p.userId === selectedUserId ? null : p.userId;
-              onSelectUser(uid);
-              setAnimatingAvatar(uid ? { userId: uid, triggeredAt: Date.now() } : null);
-            }}
-            onPointerDown={isCurrent ? (e) => {
-              e.stopPropagation();
-              isDraggingRef.current = true;
-              gl.domElement.style.cursor = "grabbing";
-              (e.nativeEvent.target as HTMLElement).setPointerCapture(e.nativeEvent.pointerId);
-            } : undefined}
-          >
-            <mesh position={[0, 1.25, 0]} raycast={meshBounds}>
-              <boxGeometry args={[1.4, 2.5, 1.4]} />
-              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
-            </mesh>
-            <AnimatedAvatarGroup
-              isAnimating={animatingAvatar?.userId === p.userId}
-              animTrigger={animatingAvatar?.userId === p.userId ? animatingAvatar.triggeredAt : 0}
-              rotY={rotY}
-            >
-              <CharacterGroup
-                library={library}
-                variantIndices={variants}
-                colors={colors}
-                showOutline={true}
-                outlineColor={isBot ? botConfig.outlineColor : undefined}
-                outlineExpansion={OUTLINE_EXPANSION / scaleMult}
-                baseRenderOrder={sortIndex * 4}
-                unlit={isBot ? botConfig.unlit : false}
-                emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
-                roughness={isBot ? botConfig.roughness : undefined}
-                metalness={isBot ? botConfig.metalness : undefined}
-                forceColor={isBot}
-              />
-            </AnimatedAvatarGroup>
-          </group>
+            rotY={avatarRotationY(pos)}
+            isCurrent={isCurrent}
+            isBot={p.isSynthetic}
+            cfg={isCurrent ? currentUserAvatarConfig : p.avatarConfig}
+            library={library}
+            botConfig={botConfig}
+            isSelected={animatingAvatar?.userId === p.userId}
+            animTrigger={animatingAvatar?.userId === p.userId ? animatingAvatar.triggeredAt : 0}
+            baseRenderOrder={sortIndex * 4}
+            spinTrigger={isCurrent ? spinTrigger : 0}
+            onSelect={handleSelect}
+            onDragStart={handleDragStart}
+          />
         );
       })}
 
