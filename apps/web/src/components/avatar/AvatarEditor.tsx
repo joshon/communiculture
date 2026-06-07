@@ -41,13 +41,13 @@ function useEditorCanvasSize() {
 
 // ─── 18-color palette — ordered by row ────────────────────────────────────────
 export const COLOR_PALETTE: string[] = [
-  "#608E76", "#90994F", "#E2F161", "#F7D45D", "#917143", "#F3BD87",
+  "#69472F", "#90994F", "#E2F161", "#F7D45D", "#917143", "#F3BD87",
   "#6CAE8C", "#659AC7", "#6EBBD9", "#3F58D0", "#93559C", "#E96475",
   "#EA6BA8", "#EDA5CF", "#EE9181", "#A7A6A4", "#191A1C", "#F5F3F2",
 ];
 
 export const SKIN_TONES: string[] = [
-  "#F5F3F2", "#F3BD87", "#EE9181", "#917143", "#917143",
+  "#F5F3F2", "#F3BD87", "#EE9181", "#917143", "#917143", "#69472F",
 ];
 
 export const SKIN_PARTS: AvatarPart[] = ["head", "neck", "arms", "legs"];
