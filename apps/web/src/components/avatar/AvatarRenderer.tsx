@@ -12,6 +12,11 @@ import { getStickerTexture } from "@/lib/stickerTextures";
 // Logo blue — must match the SVG and editor
 const LOGO_BLUE = "#0083FF";
 
+// Editor camera elevation above the horizon (lower = more level / less top-down).
+// Was 30°; the continuum is ~26.6°. Set a touch lower for a clearly flatter view.
+const EDITOR_ELEVATION_DEG = 20;
+const EDITOR_POLAR_ANGLE = ((90 - EDITOR_ELEVATION_DEG) * Math.PI) / 180;
+
 // ─── viewport-proportional zoom (scales avatar like a video with page width) ──
 
 function CameraController({ zoomMultiplier = 1, fixedZoom }: { zoomMultiplier?: number; fixedZoom?: number }) {
@@ -498,8 +503,8 @@ export function AvatarRenderer({
   return (
     <Canvas
       orthographic
-      // 30° elevation, +30° Y rotation (avatar faces screen-left)
-      // horizontal r=4.33: x = r·sin(30°) = 2.165, z = r·cos(30°) = 3.75
+      // +30° Y rotation (avatar faces screen-left); elevation is set by
+      // OrbitControls' locked polar angle (EDITOR_POLAR_ANGLE) below.
       camera={{ position: [2.165, 3.7, 3.75], zoom: 130, near: -100, far: 100 }}
       shadows
       gl={{ stencil: true }}
@@ -538,8 +543,8 @@ export function AvatarRenderer({
         minDistance={2}
         maxDistance={8}
         target={[0, cameraTargetY, 0]}
-        minPolarAngle={Math.PI / 3}
-        maxPolarAngle={Math.PI / 3}
+        minPolarAngle={EDITOR_POLAR_ANGLE}
+        maxPolarAngle={EDITOR_POLAR_ANGLE}
       />
     </Canvas>
   );
