@@ -33,9 +33,14 @@ const OUTLINE_EXPANSION = 0.12; // local outline thickness — scales WITH the a
 // Platform max screen width (px) — avatars never stretch wider than this
 const PLATFORM_MAX_PX = 600;
 
+// Largest avatar scale multiplier (few participants) — outline reference point.
+const MAX_SCALE_MULT = 2.24;
+// Cap on the outline scale factor so the biggest avatars aren't over-outlined.
+const OUTLINE_MAX_FACTOR = 0.6;
+
 // Avatar scale multiplier based on total visible participant count
 function avatarScaleMult(count: number): number {
-  if (count <= 6) return 2.24;
+  if (count <= 6) return MAX_SCALE_MULT;
   if (count >= 100) return 0.90;
   return 2.24 - ((count - 6) / 94) * 1.34;
 }
@@ -353,7 +358,7 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
           variantIndices={variants}
           colors={colors}
           showOutline={true}
-          outlineExpansion={OUTLINE_EXPANSION}
+          outlineExpansion={OUTLINE_EXPANSION * Math.min(OUTLINE_MAX_FACTOR, scaleMult / MAX_SCALE_MULT)}
           baseRenderOrder={baseRenderOrder}
         />
       </group>
@@ -430,7 +435,7 @@ function AnimatedAvatarGroup({
 // so dragging one avatar doesn't reconcile the geometry of all the others.
 const CrowdAvatar = React.memo(function CrowdAvatar({
   userId, x, groupY, z, scale, rotY, isCurrent, isBot, cfg, library,
-  botConfig, isSelected, animTrigger, baseRenderOrder, spinTrigger,
+  botConfig, baseRenderOrder, spinTrigger, outlineExpansion,
   onSelect, onDragStart,
 }: {
   userId: string;
@@ -439,10 +444,9 @@ const CrowdAvatar = React.memo(function CrowdAvatar({
   cfg: AvatarConfig | null | undefined;
   library: AvatarVariantLibrary;
   botConfig: typeof BOT_CONFIG;
-  isSelected: boolean;
-  animTrigger: number;
   baseRenderOrder: number;
   spinTrigger: number;
+  outlineExpansion: number;
   onSelect: (userId: string) => void;
   onDragStart: (e: any) => void;
 }) {
@@ -475,8 +479,8 @@ const CrowdAvatar = React.memo(function CrowdAvatar({
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       <AnimatedAvatarGroup
-        isAnimating={isSelected}
-        animTrigger={animTrigger}
+        isAnimating={false}
+        animTrigger={0}
         rotY={rotY}
         spinTrigger={spinTrigger}
       >
@@ -486,7 +490,7 @@ const CrowdAvatar = React.memo(function CrowdAvatar({
           colors={colors}
           showOutline={true}
           outlineColor={isBot ? botConfig.outlineColor : undefined}
-          outlineExpansion={OUTLINE_EXPANSION}
+          outlineExpansion={outlineExpansion}
           baseRenderOrder={baseRenderOrder}
           unlit={isBot ? botConfig.unlit : false}
           emissiveBoost={isBot ? botConfig.emissiveIntensity : 0}
@@ -529,15 +533,16 @@ function CrowdScene({
   onHeadScreen,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
-  const [animatingAvatar, setAnimatingAvatar] = useState<{ userId: string; triggeredAt: number } | null>(null);
+  // Per-avatar spin trigger: clicking an avatar spins it (same entrance spin).
+  const [clickSpin, setClickSpin] = useState<{ userId: string; at: number } | null>(null);
 
   // Entrance spin: wait a beat after load, then spin the current user's avatar
   // 3× so they can find themselves, settling at the intended facing direction.
-  const [spinTrigger, setSpinTrigger] = useState(0);
+  const [entranceSpin, setEntranceSpin] = useState(0);
   const hasCurrentInCrowd = !!currentUserId && !!participants[currentUserId];
   useEffect(() => {
     if (!hasCurrentInCrowd) return;
-    const t = setTimeout(() => setSpinTrigger(Date.now()), 700);
+    const t = setTimeout(() => setEntranceSpin(Date.now()), 700);
     return () => clearTimeout(t);
   }, [hasCurrentInCrowd]);
 
@@ -565,6 +570,11 @@ function CrowdScene({
 
   const AVATAR_SCALE = BASE_AVATAR_SCALE * scaleMult;
   const CURRENT_SCALE = BASE_CURRENT_SCALE * scaleMult;
+
+  // Outline scales with the avatar, but super-linearly so small (dense) avatars
+  // get a proportionally thinner outline. Capped below 1 so the largest avatars
+  // aren't over-outlined.
+  const crowdOutlineExpansion = OUTLINE_EXPANSION * Math.min(OUTLINE_MAX_FACTOR, scaleMult / MAX_SCALE_MULT);
 
   // Crowd depth: sized so the tallest avatar at the most extreme Z stays in canvas
   const crowdDepth = calcCrowdDepth(halfHeightCam, AVATAR_SCALE);
@@ -665,7 +675,7 @@ function CrowdScene({
     if (isDraggingRef.current) return;
     const uid = userId === selectedUserIdRef.current ? null : userId;
     onSelectUser(uid);
-    setAnimatingAvatar(uid ? { userId: uid, triggeredAt: Date.now() } : null);
+    if (uid) setClickSpin({ userId: uid, at: Date.now() }); // spin the clicked avatar
   }, [onSelectUser]);
 
   const handleDragStart = React.useCallback((e: any) => {
@@ -689,6 +699,9 @@ function CrowdScene({
         const posZ = isCurrent ? localPositionZ : p.positionZ;
         const pos = Math.max(bodyEdgeMarginPosX, Math.min(100 - bodyEdgeMarginPosX, posRaw));
         const scale = AVATAR_SCALE;
+        // Clicking spins the avatar; a fresh entrance spin overrides for the current user.
+        const clickAt = clickSpin?.userId === p.userId ? clickSpin.at : 0;
+        const spin = isCurrent ? Math.max(clickAt, entranceSpin) : clickAt;
         return (
           <CrowdAvatar
             key={p.userId}
@@ -703,10 +716,9 @@ function CrowdScene({
             cfg={isCurrent ? currentUserAvatarConfig : p.avatarConfig}
             library={library}
             botConfig={botConfig}
-            isSelected={animatingAvatar?.userId === p.userId}
-            animTrigger={animatingAvatar?.userId === p.userId ? animatingAvatar.triggeredAt : 0}
             baseRenderOrder={sortIndex * 4}
-            spinTrigger={isCurrent ? spinTrigger : 0}
+            spinTrigger={spin}
+            outlineExpansion={crowdOutlineExpansion}
             onSelect={handleSelect}
             onDragStart={handleDragStart}
           />
