@@ -10,7 +10,7 @@ import bcrypt from "bcryptjs";
 import { createTransport } from "nodemailer";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: PrismaAdapter(prisma as any) as any,
   session: { strategy: "jwt" },
   providers: [
     GoogleProvider({

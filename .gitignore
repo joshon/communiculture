@@ -35,3 +35,6 @@ packages/db/node_modules/
 
 # Local credentials — never commit
 CREDENTIALS.local.md
+
+# Generated Prisma client
+packages/db/src/generated/

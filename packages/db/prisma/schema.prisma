@@ -1,5 +1,8 @@
 generator client {
   provider = "prisma-client-js"
+  // Generate into the package so monorepo consumers resolve a single, fresh
+  // client (avoids the hoisted-vs-nested @prisma/client mismatch on Railway).
+  output   = "../src/generated/client"
 }
 
 datasource db {
