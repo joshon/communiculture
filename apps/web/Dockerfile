@@ -16,11 +16,15 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # npm copied packages/db into node_modules/@communiculture/db at deps time, so it
-# can be stale. Symlink it to the live source, then generate the Prisma client
-# fresh (into packages/db/src/generated/client per the schema's `output`).
-RUN rm -rf node_modules/@communiculture/db packages/db/node_modules packages/db/src/generated \
+# can be stale. Symlink it to the live source so the build compiles the latest
+# package, then generate the Prisma client fresh into node_modules/@prisma/client.
+RUN rm -rf node_modules/@communiculture/db packages/db/node_modules \
  && ln -sfn /app/packages/db /app/node_modules/@communiculture/db \
  && ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
+# Fail the build loudly if the generated client is stale (missing new schema fields).
+RUN grep -q "lifetimeContinuums" node_modules/.prisma/client/index.d.ts \
+ && echo "PRISMA CLIENT OK: lifetimeContinuums present" \
+ || (echo "PRISMA CLIENT STALE: lifetimeContinuums missing" && exit 1)
 RUN npm run build
 
 # Production image
