@@ -60,7 +60,7 @@ const PLATFORM_DEPTH = 1.0;
 // Pre-join bar animation constants
 // PNG is 1068×90; avatar bounce zone is 82px from each edge (inner rect, excluding arrows)
 const BAR_FRAC = 1 / 3;
-const CENTER_L = 130 / 1068;
+// Inner platform edge as a fraction of the PNG width (arrow boxes are ~130px of 1068).
 const CENTER_R = (1068 - 130) / 1068;
 const SPEED = 0.00008;
 
@@ -262,11 +262,6 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
   dragScaleRef.current = dragScale;
   dragAvatarYRef.current = dragAvatarY;
 
-  // Body half-width (widest part 0.813 + outline 0.04) plus a 1.5 world-unit buffer,
-  // as a fraction of CROWD_WIDTH — prevents any body part from leaving the canvas.
-  const armFracRef = useRef(0);
-  armFracRef.current = (0.853 * platformScale + 1.5) / CROWD_WIDTH;
-
   // Stable ref for callback
   const onPreJoinCommitRef = useRef(onPreJoinCommit);
   onPreJoinCommitRef.current = onPreJoinCommit;
@@ -320,9 +315,17 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
       if (barFracRef.current >= maxPos) { barFracRef.current = maxPos; dirRef.current = -1; }
       if (barFracRef.current <= 0) { barFracRef.current = 0; dirRef.current = 1; }
 
-      const cLeft  = Math.max(armFracRef.current, barFracRef.current + BAR_FRAC * CENTER_L);
-      const cRight = Math.min(1 - armFracRef.current, barFracRef.current + BAR_FRAC * CENTER_R);
-      avatarXFracRef.current = Math.max(cLeft, Math.min(cRight, avatarXFracRef.current));
+      // Confine the avatar to the inner platform (between the arrow boxes). Blend
+      // halfway between the old BAR_FRAC bound and the actual rendered platform
+      // width, so the avatar stays off the arrows without being over-restricted.
+      const ortho = camera as THREE.OrthographicCamera;
+      const platformFrac = Math.min(PLATFORM_WIDTH, PLATFORM_MAX_PX / (ortho.zoom || 46)) / CROWD_WIDTH;
+      const effFrac = (BAR_FRAC + platformFrac) / 2;
+      const centerFrac = barFracRef.current + BAR_FRAC / 2;
+      const innerHalfFrac = effFrac * (CENTER_R - 0.5) * 1.085;       // arrows excluded
+      const feetHalfFrac = (0.225 * platformScale) / CROWD_WIDTH;     // keep feet on
+      const allowHalf = Math.max(0, innerHalfFrac - feetHalfFrac);
+      avatarXFracRef.current = Math.max(centerFrac - allowHalf, Math.min(centerFrac + allowHalf, avatarXFracRef.current));
     }
 
     // Update platform X (bar center in world space)
