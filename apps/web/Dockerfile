@@ -14,9 +14,11 @@ RUN npm install --legacy-peer-deps
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/db ./packages/db
 COPY . .
-RUN ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
+# Generate the Prisma client fresh (into packages/db/src/generated/client per the
+# schema's `output`). Clean first so a stale cached client can't shadow it.
+RUN rm -rf packages/db/src/generated packages/db/node_modules \
+ && ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
 RUN npm run build
 
 # Production image
