@@ -15,21 +15,27 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Copy the schema to a dedicated path FIRST so this layer's cache key is tied to
+# the schema's content. When the schema changes, every step below busts — this is
+# what stops Railway's builder from replaying a stale `prisma generate`.
+COPY packages/db/prisma/schema.prisma ./.schema-cachekey
 # npm copied packages/db into node_modules/@communiculture/db at deps time, so it
 # can be stale. Symlink it to the live source so the build compiles the latest
-# package, then generate the Prisma client fresh into node_modules/@prisma/client.
+# package, then force-clean any cached client and generate it fresh.
 RUN rm -rf node_modules/@communiculture/db packages/db/node_modules \
+            node_modules/.prisma/client node_modules/@prisma/client/.prisma \
  && ln -sfn /app/packages/db /app/node_modules/@communiculture/db \
  && ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
 # Fail the build loudly if the generated client is stale (missing new schema
-# fields). Search wherever Prisma actually wrote the client, not a fixed path.
-RUN F=$(grep -rl "lifetimeContinuums" node_modules/.prisma node_modules/@prisma 2>/dev/null | head -1); \
+# fields). The real generated types live in node_modules/.prisma/client.
+RUN echo "--- schema field check ---"; \
+    grep -c "lifetimeContinuums" ./.schema-cachekey | sed 's/^/schema lifetimeContinuums count: /'; \
+    F=$(grep -rl "lifetimeContinuums" node_modules/.prisma 2>/dev/null | head -1); \
     if [ -n "$F" ]; then \
       echo "PRISMA CLIENT OK: lifetimeContinuums present in $F"; \
     else \
-      echo "PRISMA CLIENT STALE: lifetimeContinuums missing"; \
-      echo "--- prisma client index.d.ts files found: ---"; \
-      find node_modules -name index.d.ts -path "*prisma*" 2>/dev/null | head -20; \
+      echo "PRISMA CLIENT STALE: lifetimeContinuums missing from generated client"; \
+      find node_modules/.prisma -name index.d.ts 2>/dev/null | head; \
       exit 1; \
     fi
 RUN npm run build
