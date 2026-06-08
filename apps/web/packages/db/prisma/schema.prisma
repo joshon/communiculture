@@ -29,6 +29,12 @@ enum Visibility {
   PASSWORD     // link + password required
 }
 
+enum ModerationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ─── Auth (NextAuth Prisma Adapter) ─────────────────────────────────────────
 
 model Account {
@@ -79,9 +85,11 @@ model User {
   avatarConfig       Json      @default("{}")
   avatarThumbnail    String?   @db.Text
   onboardingComplete Boolean   @default(false)
-  stripeCustomerId   String?   @unique
-  plan               Plan      @default(FREE)
-  isSynthetic        Boolean   @default(false)
+  stripeCustomerId    String?   @unique
+  plan                Plan      @default(FREE)
+  isSynthetic         Boolean   @default(false)
+  continuumCredits    Int       @default(0)
+  lifetimeContinuums  Boolean   @default(false)
 
   accounts       Account[]
   sessions       Session[]
@@ -134,9 +142,12 @@ model Continuum {
   owner User  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   team  Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
 
+  moderationStatus ModerationStatus @default(APPROVED)
+
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
+  deletedAt DateTime?
 }
 
 model ContinuumParticipant {
@@ -159,7 +170,8 @@ model Message {
   id          String   @id @default(cuid())
   continuumId String
   userId      String
-  body        String   @db.Text
+  body             String           @db.Text
+  moderationStatus ModerationStatus @default(APPROVED)
 
   continuum Continuum @relation(fields: [continuumId], references: [id], onDelete: Cascade)
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
