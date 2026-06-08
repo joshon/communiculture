@@ -21,10 +21,17 @@ COPY . .
 RUN rm -rf node_modules/@communiculture/db packages/db/node_modules \
  && ln -sfn /app/packages/db /app/node_modules/@communiculture/db \
  && ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
-# Fail the build loudly if the generated client is stale (missing new schema fields).
-RUN grep -q "lifetimeContinuums" node_modules/.prisma/client/index.d.ts \
- && echo "PRISMA CLIENT OK: lifetimeContinuums present" \
- || (echo "PRISMA CLIENT STALE: lifetimeContinuums missing" && exit 1)
+# Fail the build loudly if the generated client is stale (missing new schema
+# fields). Search wherever Prisma actually wrote the client, not a fixed path.
+RUN F=$(grep -rl "lifetimeContinuums" node_modules/.prisma node_modules/@prisma 2>/dev/null | head -1); \
+    if [ -n "$F" ]; then \
+      echo "PRISMA CLIENT OK: lifetimeContinuums present in $F"; \
+    else \
+      echo "PRISMA CLIENT STALE: lifetimeContinuums missing"; \
+      echo "--- prisma client index.d.ts files found: ---"; \
+      find node_modules -name index.d.ts -path "*prisma*" 2>/dev/null | head -20; \
+      exit 1; \
+    fi
 RUN npm run build
 
 # Production image
