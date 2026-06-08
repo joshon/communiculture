@@ -15,9 +15,11 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Generate the Prisma client fresh (into packages/db/src/generated/client per the
-# schema's `output`). Clean first so a stale cached client can't shadow it.
-RUN rm -rf packages/db/src/generated packages/db/node_modules \
+# npm copied packages/db into node_modules/@communiculture/db at deps time, so it
+# can be stale. Symlink it to the live source, then generate the Prisma client
+# fresh (into packages/db/src/generated/client per the schema's `output`).
+RUN rm -rf node_modules/@communiculture/db packages/db/node_modules packages/db/src/generated \
+ && ln -sfn /app/packages/db /app/node_modules/@communiculture/db \
  && ./node_modules/.bin/prisma generate --schema=./packages/db/prisma/schema.prisma
 RUN npm run build
 
