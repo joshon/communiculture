@@ -16,35 +16,55 @@ interface Props {
   anchorRight: boolean;
   /** px from bubble's top edge to the arrow's vertical center */
   arrowCenterY: number;
+  /** when true, the arrow points UP from the top edge (used on mobile) */
+  arrowUp?: boolean;
+  /** for arrowUp: horizontal position of the arrow within the box, in px from left */
+  arrowX?: number;
   style?: CSSProperties;
 }
 
-export function SpeechBubble({ children, anchorRight, arrowCenterY, style }: Props) {
+export function SpeechBubble({ children, anchorRight, arrowCenterY, arrowUp, arrowX, style }: Props) {
   // Arrow is positioned relative to PixelBox's inner content div.
   // same geometry as DashboardAvatarHead: right: tile*-17 puts the TIP flush
   // with the border; the rectangular body extends outward toward the avatar.
   // scaleX(-1) flips for right-side placement.
   // anchorRight=true (avatar on RIGHT): no flip, connector sticks right toward avatar — matches DashboardAvatarHead
   // anchorRight=false (avatar on LEFT): scaleX(-1) mirrors connector to the left toward avatar
-  const arrowStyle: CSSProperties = {
-    position: "absolute",
-    top: arrowCenterY,
-    transform: `translateY(-50%)${!anchorRight ? " scaleX(-1)" : ""}`,
-    transformOrigin: "center center",
-    ...(anchorRight
-      ? { right: "calc(var(--tile, 3px) * -17)" }
-      : { left:  "calc(var(--tile, 3px) * -17)" }),
-    width: ARROW_W,
-    height: ARROW_H,
-    display: "block",
-    overflow: "visible",
-    pointerEvents: "none",
-    zIndex: 2,
-  };
+  // Up arrow (mobile): rotate the left-pointing arrow so its tip points up, and
+  // sit it just above the box, horizontally centred.
+  const arrowStyle: CSSProperties = arrowUp
+    ? {
+        position: "absolute",
+        top: "calc(var(--tile, 3px) * -9)",
+        left: arrowX != null ? arrowX : "50%",
+        transform: `translateX(-50%) rotate(-90deg)`,
+        transformOrigin: "center center",
+        width: ARROW_W,
+        height: ARROW_H,
+        display: "block",
+        overflow: "visible",
+        pointerEvents: "none",
+        zIndex: 2,
+      }
+    : {
+        position: "absolute",
+        top: arrowCenterY,
+        transform: `translateY(-50%)${!anchorRight ? " scaleX(-1)" : ""}`,
+        transformOrigin: "center center",
+        ...(anchorRight
+          ? { right: "calc(var(--tile, 3px) * -17)" }
+          : { left:  "calc(var(--tile, 3px) * -17)" }),
+        width: ARROW_W,
+        height: ARROW_H,
+        display: "block",
+        overflow: "visible",
+        pointerEvents: "none",
+        zIndex: 2,
+      };
 
   return (
     <PixelBox
-      shadowDir={anchorRight ? "bottom-left" : "bottom-right"}
+      shadowDir={arrowUp ? "bottom-left" : anchorRight ? "bottom-left" : "bottom-right"}
       style={{ padding: "12px 14px", ...style }}
     >
       {/* Pixel-art arrow — identical SVG to DashboardAvatarHead */}

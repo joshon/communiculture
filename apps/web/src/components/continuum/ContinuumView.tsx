@@ -588,6 +588,14 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const router = useRouter();
+  // Lazy-init from the real viewport so the centred mobile layout applies on the
+  // first render (this bubble only mounts on selection, so it's client-only).
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const anchorRight = positionFraction > 0.5;
 
@@ -619,18 +627,40 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
     ? `calc(${headScreenX}px - ${BUBBLE_GAP} - ${BUBBLE_W}px)`
     : `calc(${headScreenX}px + ${BUBBLE_GAP})`;
 
-  return (
-    <div
-      style={{
+  // On mobile the side-anchored bubble runs off-screen — centre it horizontally
+  // and sit it below the avatar with the arrow pointing up toward it.
+  const headScreenY = bubbleTop + arrowCenterY; // reconstruct the avatar head Y
+  // Mobile: centre the box under the avatar but clamp it inside the canvas
+  // container; the up-arrow then points at the avatar's actual X (shifting within
+  // the box only when clamped). headScreenX is container-relative, so clamp to the
+  // container width (viewport minus the main's horizontal padding).
+  const vw = typeof window !== "undefined" ? window.innerWidth : 412;
+  const pad = Math.min(48, Math.max(16, vw * 0.04));
+  const containerW = vw - 2 * pad;
+  const boxW = Math.min(240, containerW);
+  const boxLeft = Math.max(0, Math.min(containerW - boxW, headScreenX - boxW / 2));
+  const arrowX = Math.max(18, Math.min(boxW - 18, headScreenX - boxLeft));
+  const containerStyle: React.CSSProperties = isMobile
+    ? {
+        position: "absolute",
+        top: headScreenY + 22,
+        left: boxLeft,
+        zIndex: 10,
+        width: boxW,
+        fontFamily: INTER,
+      }
+    : {
         position: "absolute",
         top: bubbleTop,
         left: leftStyle,
         zIndex: 10,
         width: BUBBLE_W,
         fontFamily: INTER,
-      }}
-    >
-      <SpeechBubble anchorRight={anchorRight} arrowCenterY={arrowCenterY}>
+      };
+
+  return (
+    <div style={containerStyle}>
+      <SpeechBubble anchorRight={anchorRight} arrowCenterY={arrowCenterY} arrowUp={isMobile} arrowX={isMobile ? arrowX : undefined}>
         {isSelf ? (
           // Self bubble: name (link) at top, editable comment below
           <div onClick={() => textareaRef.current?.focus()}>
@@ -927,12 +957,16 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   ];
 
   return (
-    <div style={{ minHeight: "100vh", background: "white" }}>
+    <div style={{ minHeight: "100dvh", background: "white", display: "flex", flexDirection: "column" }}>
       <AppHeader breadcrumbs={breadcrumbs} />
 
       <main style={{
-        paddingTop: "clamp(32px, 5vh, 56px)",
-        paddingBottom: 64,
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        paddingTop: "clamp(24px, 4vh, 56px)",
+        paddingBottom: "clamp(24px, 4vh, 56px)",
         paddingLeft: "clamp(16px, 4vw, 48px)",
         paddingRight: "clamp(16px, 4vw, 48px)",
       }}>
@@ -949,8 +983,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           {continuum.title}
         </h1>
 
-        {/* Crowd + comment bubble */}
-        <div style={{ position: "relative", marginTop: "clamp(24px, 4vh, 56px)" }}>
+        {/* Crowd + comment bubble — flex-grows to fill, so the page fits the
+            viewport and the share row stays on screen (canvas shrinks if needed) */}
+        <div style={{ position: "relative", marginTop: "clamp(16px, 3vh, 40px)", flex: 1, minHeight: 220, maxHeight: 860 }}>
           <ContinuumScene
             currentUserId={currentUserId}
             currentUserAvatarConfig={currentUserAvatarConfig}
@@ -988,13 +1023,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
         {/* Position labels */}
         <div style={{
-          display: "flex", justifyContent: "space-between",
-          marginTop: 16,
+          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+          gap: 16, marginTop: 16,
         }}>
-          <span style={{ fontFamily: INTER, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 700, color: "#1a1a1a" }}>
+          <span style={{ fontFamily: INTER, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 700, color: "#1a1a1a", textAlign: "left", flex: 1 }}>
             {continuum.leftLabel}
           </span>
-          <span style={{ fontFamily: INTER, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 700, color: "#1a1a1a" }}>
+          <span style={{ fontFamily: INTER, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 700, color: "#1a1a1a", textAlign: "right", flex: 1 }}>
             {continuum.rightLabel}
           </span>
         </div>
@@ -1002,7 +1037,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         {/* Action bar */}
         <div style={{
           display: "flex", justifyContent: "flex-end", alignItems: "center",
-          gap: 24, marginTop: 32,
+          gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
           {/* Export button + dropdown */}
           <div style={{ position: "relative" }}>

@@ -25,7 +25,12 @@ const BOT_CONFIG = {
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
-const CROWD_WIDTH = 24;   // world X units, position 0→100 maps to -12→+12
+// World X units the crowd spans (position 0→100 maps to ±CROWD_WIDTH/2).
+// Narrowed on portrait/mobile (set per-render in CrowdScene) so the whole scene
+// scales up — bigger avatars + platform — while still fitting on screen.
+const CROWD_WIDTH_DESKTOP = 24;
+const CROWD_WIDTH_MOBILE = 10;
+let CROWD_WIDTH = CROWD_WIDTH_DESKTOP;
 const BASE_AVATAR_SCALE = 0.59;
 const BASE_CURRENT_SCALE = 0.67;
 const OUTLINE_EXPANSION = 0.12; // local outline thickness — scales WITH the avatar (× scaleMult in world)
@@ -53,8 +58,11 @@ const CROWD_CAP = 100;
 // Lifting by AVATAR_Y puts feet at world Y ≈ 0 (just above ground plane).
 const AVATAR_Y = 0.18;
 
-// Platform geometry (world units)
-const PLATFORM_WIDTH = 8;   // = 1/3 of CROWD_WIDTH
+// Platform geometry (world units). On mobile the bar is a larger fraction of the
+// (narrower) crowd so it reads at a usable size. Set per-render in CrowdScene.
+const PLATFORM_WIDTH_DESKTOP = 8;   // = 1/3 of CROWD_WIDTH
+const PLATFORM_WIDTH_MOBILE = 6;    // leaves room to slide within the mobile crowd
+let PLATFORM_WIDTH = PLATFORM_WIDTH_DESKTOP;
 // How far up from the very bottom edge the platform surface sits (NDC units),
 // leaving room for the bar graphic below the surface.
 const PLATFORM_BOTTOM_MARGIN = 0.2;
@@ -66,13 +74,11 @@ const BAR_FRAC = 1 / 3;
 const CENTER_R = (1068 - 130) / 1068;
 const SPEED = 0.00008;
 
-// PNG aspect ratio (1068×90); top border is 4px (unscaled) before the platform surface
+// PNG aspect ratio (1068×90); top border is 4px (unscaled) before the platform surface.
+// The surface offset from the sprite top is derived per-frame from the sprite's
+// actual height (since the platform width is now responsive).
 const PLATFORM_PNG_ASPECT = 1068 / 90;
 const PLATFORM_TOP_BORDER_FRAC = 4 / 90;
-// sprite top = Y 0, platform surface = Y −(4/90)*spriteHeight ≈ −0.030
-// feet world Y = groupY + CURRENT_SCALE*(−0.2); set equal to surface → groupY ≈ 0.104
-const PLATFORM_SURFACE_Y = -PLATFORM_TOP_BORDER_FRAC * (PLATFORM_WIDTH / PLATFORM_PNG_ASPECT);
-const PREJOIN_AVATAR_Y = PLATFORM_SURFACE_Y + BASE_CURRENT_SCALE * 0.2 - 0.06;
 
 // Camera tilt: world Z→screenY factor (from camera at [0,5,10] looking at origin)
 const Z_TO_SCREEN = 0.447; // 5/√125
@@ -90,7 +96,7 @@ const PREJOIN_FRONT_MARGIN = 1.5;
 // → halfDepth ≤ (halfHeightCam - avatarScale * 3.5 * ELEV_COS) / Z_TO_SCREEN
 function calcCrowdDepth(halfHeightCam: number, avatarScale: number): number {
   const headScreenH = avatarScale * 3.5 * ELEV_COS;
-  return Math.max(2, Math.min((halfHeightCam - headScreenH) * 2 * 0.95 / Z_TO_SCREEN, 30));
+  return Math.max(2, Math.min((halfHeightCam - headScreenH) * 2 * 0.88 / Z_TO_SCREEN, 60));
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -170,20 +176,37 @@ function screenToWorldXZ(
   return [target.x, target.z];
 }
 
+// Mobile is decided by the VIEWPORT width, not the canvas aspect — on short
+// screens the canvas itself can be landscape even though the phone is portrait.
+function isMobileViewport(): boolean {
+  return typeof window !== "undefined" && window.innerWidth < 640;
+}
+
+// World units shown across the canvas width — fits the (responsive) crowd width
+// plus a small margin. Narrower on mobile so avatars + platform are larger.
+function viewWidthFor(mobile: boolean): number {
+  return mobile ? CROWD_WIDTH_MOBILE + 1 : CROWD_WIDTH_DESKTOP + 2;
+}
+
 // ─── camera controller ────────────────────────────────────────────────────────
 
 // Aim above the ground so the crowd (which stands at Y≥0) is vertically centred,
 // instead of the ground line sitting mid-canvas with empty floor below it.
-const CAMERA_LOOK_Y = 1.2;
+// Camera look-target height. Desktop aims above the ground to fill the empty
+// floor; mobile (tall canvas) aims lower so the crowd fills the top.
+function cameraLookY(mobile: boolean): number {
+  return mobile ? -0.5 : 1.2;
+}
 
 function CrowdCamera() {
   const { size, camera } = useThree();
+  const mobile = isMobileViewport();
   useEffect(() => {
     const ortho = camera as THREE.OrthographicCamera;
-    ortho.zoom = size.width / 26;
-    ortho.lookAt(0, CAMERA_LOOK_Y, 0);
+    ortho.zoom = size.width / viewWidthFor(mobile);
+    ortho.lookAt(0, cameraLookY(mobile), 0);
     ortho.updateProjectionMatrix();
-  }, [size.width, camera]);
+  }, [size.width, size.height, mobile, camera]);
   return null;
 }
 
@@ -213,8 +236,9 @@ function PlatformBillboardInner({
     if (!meshRef.current) return;
     meshRef.current.position.x = platformXRef.current;
     // Pin the bar surface to the bottom of the canvas (independent of crowd depth).
+    // Surface = sprite top minus the top border; place it at floorY.
     const floorY = worldYAtScreenBottom(camera, preJoinZ, PLATFORM_BOTTOM_MARGIN);
-    meshRef.current.position.y = floorY - height / 2 - PLATFORM_SURFACE_Y;
+    meshRef.current.position.y = floorY - height / 2 + PLATFORM_TOP_BORDER_FRAC * height;
     meshRef.current.quaternion.copy(camera.quaternion);
   });
 
@@ -321,10 +345,15 @@ function PreJoinAvatar({ library, avatarConfig, platformXRef, onPreJoinCommit, s
     const dt = Math.min(delta * 1000, 50);
 
     if (!isDraggingRef.current && !isDroppedRef.current) {
+      // Bounce the bar, but clamp so the (responsive-width) platform never slides
+      // past the view edge. EDGE_SLACK lets it reach a bit into the view margin.
+      const EDGE_SLACK = 0.5;
+      const platHalfFrac = Math.max(0, (PLATFORM_WIDTH / 2) - EDGE_SLACK) / CROWD_WIDTH;
+      const barLo = Math.max(0, platHalfFrac - BAR_FRAC / 2);
+      const barHi = Math.min(1 - BAR_FRAC, (1 - platHalfFrac) - BAR_FRAC / 2);
       barFracRef.current += dirRef.current * SPEED * dt;
-      const maxPos = 1 - BAR_FRAC;
-      if (barFracRef.current >= maxPos) { barFracRef.current = maxPos; dirRef.current = -1; }
-      if (barFracRef.current <= 0) { barFracRef.current = 0; dirRef.current = 1; }
+      if (barFracRef.current >= barHi) { barFracRef.current = barHi; dirRef.current = -1; }
+      if (barFracRef.current <= barLo) { barFracRef.current = barLo; dirRef.current = 1; }
 
       // Confine the avatar to the inner platform (between the arrow boxes). Blend
       // halfway between the old BAR_FRAC bound and the actual rendered platform
@@ -562,6 +591,12 @@ function CrowdScene({
   onHeadScreen,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
+  // Responsive world widths (single ContinuumScene mounts at a time, so module-level
+  // is safe). Set before any posToX / platform math reads them this render.
+  const portrait = isMobileViewport();
+  CROWD_WIDTH = portrait ? CROWD_WIDTH_MOBILE : CROWD_WIDTH_DESKTOP;
+  PLATFORM_WIDTH = portrait ? PLATFORM_WIDTH_MOBILE : PLATFORM_WIDTH_DESKTOP;
+
   // Per-avatar spin trigger: clicking an avatar spins it (same entrance spin).
   const [clickSpin, setClickSpin] = useState<{ userId: string; at: number } | null>(null);
 
@@ -576,7 +611,7 @@ function CrowdScene({
   }, [hasCurrentInCrowd]);
 
   // Crowd depth: how much world-Z the crowd spans, capped so no avatar clips the canvas
-  const halfHeightCam = (size.height / size.width) * 13;
+  const halfHeightCam = (size.height / size.width) * (viewWidthFor(portrait) / 2);
 
   // Cap real participants at CROWD_CAP; bots are always shown regardless
   const allParticipants = useMemo(() => Object.values(participants), [participants]);
@@ -595,7 +630,12 @@ function CrowdScene({
   // must be ≤ halfHeightCam. Solve for max scale:
   const maxScaleForHeight = Math.max(BASE_AVATAR_SCALE * 0.5,
     (halfHeightCam - Z_TO_SCREEN - ELEV_COS * AVATAR_Y) / (ELEV_COS * 3.3));
-  const scaleMult = Math.min(scaleMultRaw, maxScaleForHeight / BASE_AVATAR_SCALE);
+  // On short (squarer) portrait canvases (e.g. iPhone SE), scale the avatars up so
+  // they fill the vertical space instead of sitting small in the middle. Taller
+  // phones (aspect ≳ 1.45) stay at ~1×.
+  const canvasAspect = size.height / size.width;
+  const shortBoost = portrait ? Math.min(1.7, Math.max(1, 1.23 / canvasAspect)) : 1;
+  const scaleMult = Math.min(scaleMultRaw, maxScaleForHeight / BASE_AVATAR_SCALE) * shortBoost;
 
   const AVATAR_SCALE = BASE_AVATAR_SCALE * scaleMult;
   const CURRENT_SCALE = BASE_CURRENT_SCALE * scaleMult;
@@ -833,10 +873,9 @@ export function ContinuumScene({
   }, []);
 
   return (
-    // Constant height in both states so the crowd doesn't re-scale/jump when the
-    // current user adds or removes their own avatar. Uses most of the viewport,
-    // leaving margin above (hair) and below (platform + pole labels).
-    <div style={{ width: "100%", height: "clamp(440px, 62vh, 820px)" }}>
+    // Absolutely fill the flex parent (sized to fit the viewport) so the canvas
+    // reliably takes the full available height instead of collapsing.
+    <div style={{ position: "absolute", inset: 0 }}>
       {library && (
         <Canvas
           orthographic
