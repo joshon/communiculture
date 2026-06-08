@@ -47,7 +47,8 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
     width: "100%",
     padding: `${sc(9)} ${sc(18)}`,
     fontFamily: INTER,
-    fontSize: sc(14),
+    // Desktop: fixed 16px to match the breadcrumbs. Mobile: scales up.
+    fontSize: isMobile ? sc(14) : 16,
     background: "none",
     border: "none",
     textAlign: "left",
@@ -78,7 +79,11 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
           top: `calc(${size} * 2/3 - var(--scale, 1) * 18px - var(--tile, 3px) * 4.5)`,
           right: `calc(100% + var(--tile, 3px) * 17)`,
           zIndex: 9999,
-          ...(isMobile && { "--scale": "1.5" } as React.CSSProperties),
+          // Mobile scales up; desktop is pinned to the ~1500px-wide size (1500/1440)
+          // so the menu doesn't grow with viewport width.
+          ...((isMobile
+            ? { "--scale": "1.5" }
+            : { "--scale": "1.0417", "--tile": "2px" }) as Record<string, string>),
         }}>
           <PixelBox shadowDir="bottom-left" style={{ minWidth: isMobile ? "min(calc(var(--scale,1.5) * 160px), calc(100vw - 90px))" : sc(160) }}>
             <style>{`.cc-mi{color:rgba(0,0,0,0.6)}.cc-mi:hover{color:#000}`}</style>
