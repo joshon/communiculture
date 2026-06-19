@@ -5,6 +5,7 @@ import { meshBounds } from "@react-three/drei";
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { CharacterGroup } from "@/components/avatar/AvatarRenderer";
+import { SpinningAsterisk } from "@/components/avatar/SpinningAsterisk";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR, type AvatarConfig } from "@/store/avatarStore";
@@ -839,22 +840,6 @@ interface Props {
 
 const SEEDING_POSITIONS = [10, 30, 50, 70, 90];
 
-function SeedingDot({ posX, phase }: { posX: number; phase: number }) {
-  const meshRef = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
-    if (!meshRef.current) return;
-    const t = (clock.getElapsedTime() + phase) * 2.5;
-    const s = 0.7 + 0.3 * Math.sin(t);
-    meshRef.current.scale.setScalar(s);
-  });
-  return (
-    <mesh ref={meshRef} position={[posX, 1.0, 0]}>
-      <sphereGeometry args={[0.28, 16, 16]} />
-      <meshBasicMaterial color="#0083FF" transparent opacity={0.75} />
-    </mesh>
-  );
-}
-
 export function ContinuumScene({
   currentUserId, currentUserAvatarConfig,
   localPosition, localPositionZ,
@@ -905,11 +890,11 @@ export function ContinuumScene({
             botConfig={BOT_CONFIG}
             onHeadScreen={onHeadScreen}
           />
-          {isSeeding && SEEDING_POSITIONS.map((pos, i) => (
-            <SeedingDot
+          {isSeeding && SEEDING_POSITIONS.map((pos) => (
+            <SpinningAsterisk
               key={pos}
-              posX={(pos / 100 - 0.5) * CROWD_WIDTH}
-              phase={i * 0.4}
+              position={[(pos / 100 - 0.5) * CROWD_WIDTH, 2.2, 0]}
+              size={1.6}
             />
           ))}
         </Canvas>

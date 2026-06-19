@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { CharacterGroup } from "@/components/avatar/AvatarRenderer";
+import { SpinningAsterisk } from "@/components/avatar/SpinningAsterisk";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { getAvatarLibrary } from "@/lib/avatarLibraryCache";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
@@ -64,45 +65,6 @@ function variantsFromConfig(cfg: unknown): Record<AvatarPart, number> {
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
 
-// ─── spinning asterisk loading placeholder ───────────────────────────────────
-let _astTex: THREE.CanvasTexture | null = null;
-function getAsteriskTexture(): THREE.CanvasTexture | null {
-  if (typeof document === "undefined") return null;
-  if (_astTex) return _astTex;
-  const S = 128;
-  const c = document.createElement("canvas");
-  c.width = c.height = S;
-  const ctx = c.getContext("2d")!;
-  ctx.translate(S / 2, S / 2);
-  ctx.strokeStyle = "#0083FF";
-  ctx.lineWidth = 16;
-  ctx.lineCap = "round";
-  for (let i = 0; i < 3; i++) {
-    const a = (i * Math.PI) / 3;
-    ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * 44, Math.sin(a) * 44);
-    ctx.lineTo(-Math.cos(a) * 44, -Math.sin(a) * 44);
-    ctx.stroke();
-  }
-  _astTex = new THREE.CanvasTexture(c);
-  return _astTex;
-}
-
-function AsteriskSprite({ x }: { x: number }) {
-  const ref = useRef<THREE.Mesh>(null);
-  const tex = useMemo(() => getAsteriskTexture(), []);
-  useFrame((_, delta) => {
-    if (ref.current) ref.current.rotation.z -= delta * 3.2;
-  });
-  if (!tex) return null;
-  return (
-    <mesh ref={ref} position={[x, ASTERISK_Y, 0]}>
-      <planeGeometry args={[1.2, 1.2]} />
-      <meshBasicMaterial map={tex} transparent depthWrite={false} toneMapped={false} />
-    </mesh>
-  );
-}
-
 // ─── entrance spin-in wrapper ────────────────────────────────────────────────
 function SpinIn({ children }: { children: React.ReactNode }) {
   const ref = useRef<THREE.Group>(null);
@@ -151,7 +113,7 @@ function PersonSlot({
   });
 
   const x = slotIndex * SLOT_W;
-  if (!ready) return <AsteriskSprite x={x} />;
+  if (!ready) return <SpinningAsterisk position={[x, ASTERISK_Y, 0]} />;
 
   return (
     <group

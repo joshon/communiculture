@@ -210,6 +210,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
   const [visibility, setVisibility]   = useState<Visibility>("PUBLIC_LINK");
   const [category, setCategory]       = useState<Option | null>(null);
   const [password, setPassword]       = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [prepopulate, setPrepopulate]   = useState(false);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
@@ -360,14 +361,33 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
 
               {visibility === "PASSWORD" && (
                 <Field label="Password">
-                  <input
-                    type="password"
-                    required
-                    placeholder="Set a password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={{ ...inputStyle, resize: undefined, overflow: undefined, lineHeight: undefined, display: undefined }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      required
+                      // This is the continuum's share password — NOT the user's
+                      // account password. new-password + a distinct name stop the
+                      // browser from offering to update the site login.
+                      name="continuumSharePassword"
+                      autoComplete="new-password"
+                      placeholder="Set a password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ ...inputStyle, paddingRight: 44, resize: undefined, overflow: undefined, lineHeight: undefined, display: undefined }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((s) => !s)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      style={{
+                        position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                        background: "none", border: "none", cursor: "pointer", padding: 0,
+                        color: "#888", display: "flex", alignItems: "center",
+                      }}
+                    >
+                      {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                 </Field>
               )}
 
@@ -436,5 +456,25 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
         </div>
       </main>
     </div>
+  );
+}
+
+function EyeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.5 13.5 0 0 0 2 12s3.5 7 10 7a9.12 9.12 0 0 0 5.39-1.61" />
+      <path d="M14.12 14.12A3 3 0 1 1 9.88 9.88" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
   );
 }
