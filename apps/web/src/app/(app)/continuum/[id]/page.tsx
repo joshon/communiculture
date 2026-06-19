@@ -38,6 +38,11 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
 
   const isOwner = continuum.ownerId === userId;
   const isTeamMember = continuum.team?.members.some((m) => m.userId === userId);
+  // Already placed themselves here → no gate, regardless of visibility.
+  const isParticipant = !!(await prisma.continuumParticipant.findUnique({
+    where: { continuumId_userId: { continuumId: params.id, userId } },
+    select: { id: true },
+  }).catch(() => null));
   const tokenMatches = !!shareToken && shareToken === continuum.shareToken;
   const publicLinkOk = continuum.visibility === "PUBLIC_LINK" && tokenMatches;
 
@@ -52,7 +57,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     showPasswordGate = !passwordOk;
   }
 
-  if (!isOwner && !isTeamMember && !publicLinkOk && !passwordOk) {
+  if (!isOwner && !isTeamMember && !publicLinkOk && !passwordOk && !isParticipant) {
     if (showPasswordGate) {
       return <ContinuumPasswordGate continuumId={continuum.id} token={shareToken ?? ""} title={continuum.title} />;
     }
