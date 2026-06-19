@@ -3,11 +3,11 @@ export const dynamic = "force-dynamic"; // always fetch fresh participants
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ContinuumView } from "@/components/continuum/ContinuumView";
-import { getToken } from "next-auth/jwt";
+import { ContinuumPasswordGate } from "@/components/continuum/ContinuumPasswordGate";
 import { cookies } from "next/headers";
-import type { NextRequest } from "next/server";
+import crypto from "crypto";
 
 interface Props {
   params: { id: string };
@@ -16,11 +16,17 @@ interface Props {
 
 export default async function ContinuumPage({ params, searchParams }: Props) {
   const isSeeding = searchParams.seeding === "1";
+  const shareToken = searchParams.token;
+
+  // Send anonymous visitors to log in, then back to this exact link (so shared
+  // links work instead of 404ing).
   const session = await getServerSession(authOptions);
-  if (!session) notFound();
+  if (!session) {
+    const back = `/continuum/${params.id}${shareToken ? `?token=${encodeURIComponent(shareToken)}` : ""}`;
+    redirect(`/login?callbackUrl=${encodeURIComponent(back)}`);
+  }
 
   const userId = session.user.id;
-  const shareToken = searchParams.token;
 
   // Access control
   const continuum = await prisma.continuum.findUnique({
@@ -32,9 +38,26 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
 
   const isOwner = continuum.ownerId === userId;
   const isTeamMember = continuum.team?.members.some((m) => m.userId === userId);
-  const hasShareToken = continuum.visibility === "PUBLIC_LINK" && shareToken === continuum.shareToken;
+  const tokenMatches = !!shareToken && shareToken === continuum.shareToken;
+  const publicLinkOk = continuum.visibility === "PUBLIC_LINK" && tokenMatches;
 
-  if (!isOwner && !isTeamMember && !hasShareToken) notFound();
+  // Password-protected: a matching share token gets the visitor to the gate;
+  // entering the password sets a cookie (keyed off the password hash) that grants
+  // access until the password changes.
+  let passwordOk = false;
+  let showPasswordGate = false;
+  if (continuum.visibility === "PASSWORD" && tokenMatches && continuum.passwordHash) {
+    const expected = crypto.createHash("sha256").update(continuum.id + continuum.passwordHash).digest("hex");
+    passwordOk = cookies().get(`cc_pw_${continuum.id}`)?.value === expected;
+    showPasswordGate = !passwordOk;
+  }
+
+  if (!isOwner && !isTeamMember && !publicLinkOk && !passwordOk) {
+    if (showPasswordGate) {
+      return <ContinuumPasswordGate continuumId={continuum.id} token={shareToken ?? ""} title={continuum.title} />;
+    }
+    notFound();
+  }
 
   const [currentUser, participants, messages, owner] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } }),
