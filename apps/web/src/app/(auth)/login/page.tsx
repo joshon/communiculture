@@ -5,12 +5,19 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect, Suspense } from "react";
-import { FormField } from "@/components/ui/FormField";
 import { OAuthButton } from "@/components/ui/OAuthButton";
-import { PillButton } from "@/components/ui/PillButton";
 
 const BLUE = "#0083FF";
 const INTER = "Inter, sans-serif";
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box",
+  border: "1.5px solid #AAAAAA", borderRadius: 10,
+  padding: "12px 16px",
+  fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)",
+  color: "#1a1a1a", background: "white", outline: "none",
+  marginBottom: 10,
+};
 
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
@@ -20,96 +27,91 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Rule() {
-  return <div style={{ borderTop: "1px solid #D8D8D8", margin: "24px 0" }} />;
-}
-
 function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
 
-  const [siEmail,    setSiEmail]    = useState("");
-  const [siPassword, setSiPassword] = useState("");
-  const [siError,    setSiError]    = useState("");
-  const [siLoading,  setSiLoading]  = useState(false);
-
-  const [mlEmail,   setMlEmail]   = useState("");
-  const [mlLoading, setMlLoading] = useState(false);
-  const [mlError,   setMlError]   = useState("");
+  // Progressive email flow: "email" → ("password" for returning users with a
+  // password) OR ("sent" — magic link emailed, for new/passwordless accounts).
+  const [step, setStep]       = useState<"email" | "password" | "sent">("email");
+  const [email, setEmail]     = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState("");
 
   // sessionStorage survives NextAuth soft-navigations within the same tab
-  const [mlSent,   setMlSentState] = useState(false);
-  const [mlSentTo, setMlSentTo]    = useState("");
   useEffect(() => {
     if (sessionStorage.getItem("mlSent") === "1") {
-      setMlSentState(true);
-      setMlSentTo(sessionStorage.getItem("mlSentTo") ?? "");
+      setEmail(sessionStorage.getItem("mlSentTo") ?? "");
+      setStep("sent");
     }
-    // Clear when the user leaves this page (navigates away, logs in, etc.)
     return () => {
       sessionStorage.removeItem("mlSent");
       sessionStorage.removeItem("mlSentTo");
     };
   }, []);
 
-  function markMlSent(email: string) {
+  function markSent(e: string) {
     sessionStorage.setItem("mlSent", "1");
-    sessionStorage.setItem("mlSentTo", email);
-    setMlSentState(true);
-    setMlSentTo(email);
+    sessionStorage.setItem("mlSentTo", e);
+    setStep("sent");
   }
 
-  const [suName,    setSuName]    = useState("");
-  const [suEmail,   setSuEmail]   = useState("");
-  const [suPass,    setSuPass]    = useState("");
-  const [suConfirm, setSuConfirm] = useState("");
-  const [suError,   setSuError]   = useState("");
-  const [suLoading, setSuLoading] = useState(false);
+  function resetToEmail() {
+    sessionStorage.removeItem("mlSent");
+    sessionStorage.removeItem("mlSentTo");
+    setPassword("");
+    setError("");
+    setStep("email");
+  }
 
-  async function handleMagicLink() {
-    setMlError(""); setMlLoading(true);
+  async function sendMagicLink(e: string) {
+    setError(""); setLoading(true);
     try {
-      const res = await signIn("email", { email: mlEmail, redirect: false, callbackUrl });
-      if (res?.error) { setMlError("could not send link — try again"); return; }
-      markMlSent(mlEmail);
+      const res = await signIn("email", { email: e, redirect: false, callbackUrl });
+      if (res?.error) { setError("could not send link — try again"); return; }
+      markSent(e);
     } catch {
-      setMlError("could not send link — try again");
+      setError("could not send link — try again");
     } finally {
-      setMlLoading(false);
+      setLoading(false);
     }
   }
 
-  async function handleSignIn() {
-    setSiError(""); setSiLoading(true);
-    const res = await signIn("credentials", { email: siEmail, password: siPassword, redirect: false });
-    setSiLoading(false);
-    if (res?.error) { setSiError("invalid email or password"); return; }
+  // Step 1: look up the email. Has a password → ask for it; otherwise email a link.
+  async function handleEmailContinue() {
+    const e = email.trim();
+    if (!e) { setError("enter your email"); return; }
+    setError(""); setLoading(true);
+    try {
+      const res = await fetch("/api/auth/check-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.hasPassword) {
+        setStep("password");
+      } else {
+        const r = await signIn("email", { email: e, redirect: false, callbackUrl });
+        if (r?.error) setError("could not send link — try again");
+        else markSent(e);
+      }
+    } catch {
+      setError("something went wrong — try again");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Step 2 (returning, has password): credentials login.
+  async function handlePasswordLogin() {
+    if (!password) { setError("enter your password"); return; }
+    setError(""); setLoading(true);
+    const res = await signIn("credentials", { email: email.trim(), password, redirect: false });
+    setLoading(false);
+    if (res?.error) { setError("incorrect password"); return; }
     router.push(callbackUrl);
   }
-
-  async function handleSignUp() {
-    setSuError("");
-    if (suPass !== suConfirm) { setSuError("passwords do not match"); return; }
-    if (suPass.length < 8)    { setSuError("password must be at least 8 characters"); return; }
-    setSuLoading(true);
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: suName, email: suEmail, password: suPass }),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      let msg = "something went wrong";
-      try { msg = JSON.parse(text).error ?? msg; } catch {}
-      setSuError(msg); setSuLoading(false); return;
-    }
-    const r2 = await signIn("credentials", { email: suEmail, password: suPass, redirect: false });
-    setSuLoading(false);
-    if (r2?.error) { setSuError("account created — please sign in"); setMode("signin"); return; }
-    router.push("/profile/avatar");
-  }
-
-  const isSignIn = mode === "signin";
 
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
@@ -120,7 +122,6 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
           style={{ width: "clamp(140px, 30vw, 208px)", height: "auto", display: "block" }} priority />
       </Link>
 
-      {/* Responsive layout */}
       <main style={{
         display: "flex",
         justifyContent: "center",
@@ -130,115 +131,126 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
         paddingLeft: "clamp(16px, 5vw, 48px)",
         paddingRight: "clamp(16px, 5vw, 48px)",
       }}>
-        <div className="login-grid">
+        <div style={{ width: "100%", maxWidth: 400 }}>
 
-          {/* ── Left column: credentials + OAuth ── */}
-          <div>
-            <SectionHeader>{isSignIn ? "Log in" : "Sign up"}</SectionHeader>
+          <SectionHeader>Log in or sign up</SectionHeader>
 
-            <form onSubmit={(e) => { e.preventDefault(); isSignIn ? handleSignIn() : handleSignUp(); }}>
-              {!isSignIn && (
-                <FormField label="Name" type="text" value={suName} onChange={setSuName} autoComplete="name" />
-              )}
-              <FormField
-                label="Email" type="email"
-                value={isSignIn ? siEmail : suEmail}
-                onChange={isSignIn ? setSiEmail : setSuEmail}
-                autoComplete="email"
-              />
-              <FormField
-                label="Password" type="password"
-                value={isSignIn ? siPassword : suPass}
-                onChange={isSignIn ? setSiPassword : setSuPass}
-                autoComplete={isSignIn ? "current-password" : "new-password"}
-              />
-              {!isSignIn && (
-                <FormField
-                  label="Confirm" type="password"
-                  value={suConfirm} onChange={setSuConfirm}
-                  autoComplete="new-password"
+          {/* ── Step: enter email ── */}
+          {step === "email" && (
+            <>
+              <form onSubmit={(e) => { e.preventDefault(); void handleEmailContinue(); }}>
+                <input
+                  type="email"
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  style={inputStyle}
                 />
-              )}
-
-              {(isSignIn ? siError : suError) && (
-                <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
-                  {isSignIn ? siError : suError}
+                <WideButton type="submit" loading={loading} label="Continue with email" />
+                {error && (
+                  <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "8px 0 0" }}>{error}</p>
+                )}
+                <p style={{ fontFamily: INTER, fontSize: 13, lineHeight: 1.5, color: "#9a9a9a", margin: "10px 0 0" }}>
+                  We&rsquo;ll email you a sign-in link, or ask for your password if your account has one.
                 </p>
-              )}
+              </form>
 
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 16, marginTop: 4 }}>
+              {/* Google — works for new + existing */}
+              <div style={{ marginTop: 16 }}>
+                <OAuthButton onClick={() => signIn("google", { callbackUrl })} icon={<GoogleIcon />} label="Continue with Google" />
+              </div>
+            </>
+          )}
+
+          {/* ── Step: enter password (returning user) ── */}
+          {step === "password" && (
+            <form onSubmit={(e) => { e.preventDefault(); void handlePasswordLogin(); }}>
+              <p style={{ fontFamily: INTER, fontSize: 14, color: "#6b6b6b", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ color: "#1a1a1a", fontWeight: 500 }}>{email.trim()}</span>
                 <button
                   type="button"
-                  onClick={() => setMode(isSignIn ? "signup" : "signin")}
-                  style={{
-                    fontFamily: INTER, fontSize: 16, fontWeight: 500, color: BLUE,
-                    background: "none", border: "none", cursor: "pointer",
-                    textDecoration: "underline", padding: 0,
-                  }}
-                >
-                  {isSignIn ? "Create a new account" : "Existing account? Log in"}
-                </button>
-                <PillButton
-                  type="submit" arrow variant="secondary"
-                  label={isSignIn ? "Log in" : "Sign up"}
-                  loading={isSignIn ? siLoading : suLoading}
-                />
-              </div>
-            </form>
-
-            <Rule />
-            <SectionHeader>or log in with</SectionHeader>
-
-            <OAuthButton onClick={() => signIn("google",   { callbackUrl })} icon={<GoogleIcon />}    label="Google" />
-          </div>
-
-          {/* ── Divider (vertical on desktop, horizontal on mobile) ── */}
-          <div className="login-divider" />
-
-          {/* ── Right column: magic link ── */}
-          <div>
-            <SectionHeader>or sign in with email link</SectionHeader>
-
-            {mlSent ? (
-              <div>
-                <p style={{ fontFamily: INTER, color: BLUE, fontSize: 16, lineHeight: 1.6, marginBottom: 16 }}>
-                  Check your email — we sent a sign-in link to {mlSentTo}
-                </p>
-                <button
-                  onClick={() => {
-                    sessionStorage.removeItem("mlSent");
-                    sessionStorage.removeItem("mlSentTo");
-                    setMlSentState(false);
-                    setMlSentTo("");
-                    setMlEmail("");
-                  }}
+                  onClick={resetToEmail}
                   style={{
                     fontFamily: INTER, fontSize: 14, fontWeight: 500, color: BLUE,
                     background: "none", border: "none", cursor: "pointer",
                     textDecoration: "underline", padding: 0,
                   }}
                 >
-                  Try another email
+                  use a different email
                 </button>
-              </div>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); void handleMagicLink(); }}>
-                <FormField label="Email" type="email" value={mlEmail} onChange={setMlEmail} autoComplete="email" />
-                {mlError && (
-                  <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "-8px 0 16px", paddingLeft: 130 }}>
-                    {mlError}
-                  </p>
-                )}
-                <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <PillButton type="submit" arrow label="Send link" loading={mlLoading} />
-                </div>
-              </form>
-            )}
-          </div>
+              </p>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                autoFocus
+                style={inputStyle}
+              />
+              <WideButton type="submit" loading={loading} label="Log in" />
+              {error && (
+                <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "8px 0 0" }}>{error}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => void sendMagicLink(email.trim())}
+                style={{
+                  fontFamily: INTER, fontSize: 14, fontWeight: 500, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer",
+                  textDecoration: "underline", padding: 0, marginTop: 14,
+                }}
+              >
+                Email me a sign-in link instead
+              </button>
+            </form>
+          )}
+
+          {/* ── Step: magic link sent ── */}
+          {step === "sent" && (
+            <div style={{ border: `1.5px solid ${BLUE}`, borderRadius: 10, padding: "16px 18px" }}>
+              <p style={{ fontFamily: INTER, color: BLUE, fontSize: 15, lineHeight: 1.6, margin: "0 0 10px" }}>
+                Check your email — we sent a sign-in link to {email.trim()}
+              </p>
+              <button
+                onClick={resetToEmail}
+                style={{
+                  fontFamily: INTER, fontSize: 14, fontWeight: 500, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer",
+                  textDecoration: "underline", padding: 0,
+                }}
+              >
+                Try another email
+              </button>
+            </div>
+          )}
 
         </div>
       </main>
     </div>
+  );
+}
+
+function WideButton({ label, loading, type = "button", onClick }: {
+  label: string; loading?: boolean; type?: "button" | "submit"; onClick?: () => void;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={loading}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        width: "100%", border: "none", borderRadius: 10,
+        padding: "13px 20px",
+        fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)", fontWeight: 600,
+        color: "white", background: BLUE,
+        cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1,
+      }}
+    >
+      {loading ? "…" : <>{label} <span aria-hidden>→</span></>}
+    </button>
   );
 }
 
