@@ -12,10 +12,17 @@ export function GlobalAvatarCapture() {
   const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
 
-  // Pre-load the library so it's ready the moment a capture is queued
+  // Load the library so it's ready when a capture is queued. Re-runs while a
+  // capture is pending but the library still isn't loaded, so a transient fetch
+  // failure self-heals on the next capture instead of breaking captures for good.
   useEffect(() => {
-    getAvatarLibrary().then(setLibrary).catch(() => {});
-  }, []);
+    if (library) return;
+    let cancelled = false;
+    getAvatarLibrary()
+      .then((l) => { if (!cancelled) setLibrary(l); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [library, pendingCapture]);
 
   const handleCapture = async (dataUrl: string) => {
     setThumbnailUrl(dataUrl);

@@ -25,19 +25,30 @@ function Capturer({
 }) {
   const { gl } = useThree();
   // 0 = idle; >0 = frames remaining before capture (useFrame fires before render,
-  // so we wait 2 frames: frame N renders the scene, frame N+1 captures it)
+  // so we let the scene paint for a few frames before reading the canvas).
   const framesLeft = useRef(0);
+  const attempts = useRef(0);
 
   useEffect(() => {
-    framesLeft.current = 2;
+    framesLeft.current = 3;
+    attempts.current = 0;
   }, [colorsKey]);
 
   useFrame(() => {
     if (framesLeft.current <= 0) return;
     framesLeft.current -= 1;
-    if (framesLeft.current === 0) {
-      onCapture(gl.domElement.toDataURL("image/png"));
+    if (framesLeft.current > 0) return;
+
+    const url = gl.domElement.toDataURL("image/png");
+    // A blank/unpainted frame compresses to a tiny PNG. If the scene hasn't
+    // painted yet (cold WebGL context after mount), wait a few more frames and
+    // retry rather than saving a blank thumbnail over the user's avatar.
+    if (url.length < 4000 && attempts.current < 10) {
+      attempts.current += 1;
+      framesLeft.current = 2;
+      return;
     }
+    onCapture(url);
   });
 
   return null;
