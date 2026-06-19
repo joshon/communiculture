@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import { SiteHeader } from "@/components/ui/SiteHeader";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
@@ -21,17 +21,7 @@ export default function TermsPage() {
   return (
     <div style={{ minHeight: "100vh", background: "white" }}>
 
-      <div style={{ borderBottom: "1px solid #f0f0f0", padding: "20px clamp(20px,5vw,48px)" }}>
-        <div style={{ maxWidth: 680, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Link href="/">
-            <Image src="/logo.svg" alt="Communiculture" width={160} height={31}
-              style={{ width: "clamp(120px,20vw,160px)", height: "auto", display: "block" }} />
-          </Link>
-          <Link href="/login" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
-            sign in →
-          </Link>
-        </div>
-      </div>
+      <SiteHeader />
 
       <main style={{
         maxWidth: 680,

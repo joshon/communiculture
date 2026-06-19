@@ -1,37 +1,35 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
-import { signOut, useSession } from "next-auth/react";
-import { useAvatarStore } from "@/store/avatarStore";
 import { PixelBox } from "@/components/ui/PixelBox";
-import { useIsMobile } from "@/hooks/useIsMobile";
 
 const BLUE = "#0083FF";
-const DARK = "#1A1A1A";
 const INTER = "var(--font-inter), Inter, sans-serif";
 
 // CSS calc helpers that respond to --scale
 const sc = (px: number) => `calc(var(--scale, 1) * ${px}px)`;
 
 // SVG is 44×18 at 2px/design-pixel (22×9 design pixels).
-// --tile is now square size (1/2/3 px); scale factor = tile/2 per SVG unit → tile*22 wide, tile*9 tall.
 const ARROW_W = "calc(var(--tile, 3px) * 22)";
 const ARROW_H = "calc(var(--tile, 3px) * 9)";
 
 interface Props {
-  thumbnailUrl: string | null;
-  size: string;
+  /** Rendered logo width (CSS length). */
+  logoWidth: string;
+  isMobile: boolean;
 }
 
-export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: Props) {
-  const storeThumbnailUrl = useAvatarStore((s) => s.thumbnailUrl);
-  const thumbnailUrl = storeThumbnailUrl ?? serverThumbnailUrl;
-  const { data: session } = useSession();
-  const userName = session?.user?.name;
+/**
+ * Site-wide menu anchored to the Communiculture logo. Visually it is the
+ * DashboardAvatarHead user menu mirrored to the left: the dropdown opens to the
+ * right of the logo, the pixel arrow is flipped to point back at the logo, and
+ * the checkerboard shadow falls to the bottom-right.
+ */
+export function LogoMenu({ logoWidth, isMobile }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile(1024);
 
   useEffect(() => {
     if (!open) return;
@@ -47,7 +45,6 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
     width: "100%",
     padding: `${sc(9)} ${sc(18)}`,
     fontFamily: INTER,
-    // Desktop: fixed 16px to match the breadcrumbs. Mobile: scales up.
     fontSize: isMobile ? sc(14) : 16,
     background: "none",
     border: "none",
@@ -62,50 +59,49 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
     <div ref={ref} style={{ flexShrink: 0, position: "relative" }}>
       <button
         onClick={() => setOpen((o) => !o)}
+        aria-label="Site menu"
         style={{ display: "block", background: "none", border: "none", padding: 0, cursor: "pointer" }}
       >
-        {thumbnailUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumbnailUrl} alt="your avatar"
-            style={{ width: size, height: size, objectFit: "contain", display: "block" }} />
-        ) : (
-          <div style={{ width: size, height: size }} />
-        )}
+        <Image
+          src="/logo.svg"
+          alt="communi*culture"
+          width={208}
+          height={41}
+          priority
+          style={{ width: logoWidth, height: "auto", display: "block" }}
+        />
       </button>
 
       {open && (
         <div style={{
           position: "absolute",
-          top: `calc(${size} * 2/3 - var(--scale, 1) * 18px - var(--tile, 3px) * 4.5)`,
-          right: `calc(100% + var(--tile, 3px) * 17)`,
+          top: 0,
+          left: `calc(100% + var(--tile, 3px) * 17)`,
           zIndex: 9999,
-          // Mobile scales up; desktop is pinned to the ~1500px-wide size (1500/1440)
-          // so the menu doesn't grow with viewport width.
           ...((isMobile
             ? { "--scale": "1.5" }
             : { "--scale": "1.0417", "--tile": "2px" }) as Record<string, string>),
         }}>
-          <PixelBox shadowDir="bottom-left" style={{ minWidth: isMobile ? "min(calc(var(--scale,1.5) * 160px), calc(100vw - 90px))" : sc(160) }}>
+          <PixelBox shadowDir="bottom-right" style={{ minWidth: isMobile ? "min(calc(var(--scale,1.5) * 180px), calc(100vw - 90px))" : sc(180) }}>
             <style>{`.cc-mi{color:rgba(0,0,0,0.6)}.cc-mi:hover{color:#000}`}</style>
 
             {/*
-              Arrow tab: pixel-art arrow, flipped so the connector bar aligns with
-              the box's right border and the stepped tip points right toward the avatar.
-              Coordinates are on a 2px grid; all rotation/matrix transforms removed.
+              Arrow tab: the user-menu arrow mirrored horizontally (scaleX(-1)) so the
+              connector bar aligns with the box's LEFT border and the stepped tip points
+              left toward the logo.
             */}
             <svg
               aria-hidden
               style={{
                 position: "absolute",
                 top: sc(10),
-                // Position so the SVG left edge is at the outer right border edge.
-                // The tip (SVG x=0) sits flush with the border; arrow body extends right.
-                right: `calc(var(--tile, 3px) * -17)`,
+                left: `calc(var(--tile, 3px) * -17)`,
                 width: ARROW_W,
                 height: ARROW_H,
                 display: "block",
                 overflow: "visible",
                 pointerEvents: "none",
+                transform: "scaleX(-1)",
                 zIndex: 2,
               }}
               viewBox="0 0 44 18"
@@ -155,7 +151,7 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
               <path d="M16 12 H42 V14 H16 Z" fill="white" />
               <path d="M18 14 H42 V16 H18 Z" fill="white" />
 
-              {/* Orange chevrons ( << ) */}
+              {/* Orange chevrons */}
               <rect x="24" y="4"  width="4" height="2" fill="#DA5F44" />
               <rect x="22" y="6"  width="4" height="2" fill="#DA5F44" />
               <rect x="20" y="8"  width="4" height="2" fill="#DA5F44" />
@@ -169,16 +165,15 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
               <rect x="34" y="12" width="4" height="2" fill="#DA5F44" />
             </svg>
 
-            {userName && (
-              <div style={{ ...itemStyle, color: "#000", fontWeight: 700, cursor: "default" }}>
-                {userName}
-              </div>
-            )}
-            {userName && <div style={{ borderTop: `1px solid ${BLUE}` }} />}
-            <Link href="/profile" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit profile</Link>
-            <Link href="/profile/avatar" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Edit avatar</Link>
+            <div style={{ ...itemStyle, color: "#000", fontWeight: 700, cursor: "default" }}>
+              Communiculture
+            </div>
             <div style={{ borderTop: `1px solid ${BLUE}` }} />
-            <button onClick={() => signOut({ callbackUrl: "/login" })} className="cc-mi" style={itemStyle}>Log out</button>
+            <Link href="/dashboard" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Continuums</Link>
+            <div style={{ borderTop: `1px solid ${BLUE}` }} />
+            <Link href="/about" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>About Communiculture</Link>
+            <Link href="/terms" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Terms</Link>
+            <Link href="/privacy" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Privacy</Link>
           </PixelBox>
         </div>
       )}
