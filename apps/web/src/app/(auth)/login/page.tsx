@@ -10,6 +10,17 @@ import { OAuthButton } from "@/components/ui/OAuthButton";
 const BLUE = "#0083FF";
 const INTER = "Inter, sans-serif";
 
+// Don't let a hung SMTP send (or slow API) leave the button spinning forever
+// with no feedback — surface an error after this long.
+const SEND_TIMEOUT_MS = 20_000;
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+  ]);
+}
+
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box",
   border: "1.5px solid #AAAAAA", borderRadius: 10,
@@ -67,11 +78,11 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
   async function sendMagicLink(e: string) {
     setError(""); setLoading(true);
     try {
-      const res = await signIn("email", { email: e, redirect: false, callbackUrl });
+      const res = await withTimeout(signIn("email", { email: e, redirect: false, callbackUrl }), SEND_TIMEOUT_MS);
       if (res?.error) { setError("could not send link — try again"); return; }
       markSent(e);
     } catch {
-      setError("could not send link — try again");
+      setError("the sign-in email is taking too long to send — try again, or use Google");
     } finally {
       setLoading(false);
     }
@@ -83,21 +94,21 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
     if (!e) { setError("enter your email"); return; }
     setError(""); setLoading(true);
     try {
-      const res = await fetch("/api/auth/check-email", {
+      const res = await withTimeout(fetch("/api/auth/check-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: e }),
-      });
+      }), SEND_TIMEOUT_MS);
       const data = await res.json().catch(() => ({}));
       if (data?.hasPassword) {
         setStep("password");
       } else {
-        const r = await signIn("email", { email: e, redirect: false, callbackUrl });
+        const r = await withTimeout(signIn("email", { email: e, redirect: false, callbackUrl }), SEND_TIMEOUT_MS);
         if (r?.error) setError("could not send link — try again");
         else markSent(e);
       }
     } catch {
-      setError("something went wrong — try again");
+      setError("the sign-in email is taking too long to send — try again, or use Google");
     } finally {
       setLoading(false);
     }
