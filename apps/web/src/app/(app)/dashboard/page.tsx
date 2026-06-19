@@ -47,7 +47,8 @@ export default async function DashboardPage() {
       where: {
         OR: [
           { ownerId: userId },
-          { AND: [{ visibility: "PUBLIC_LINK" }, { deletedAt: null }] },
+          // Discovery feed (Popular / Recent) = publicly listed continuums only.
+          { AND: [{ visibility: "PUBLIC" }, { deletedAt: null }] },
           { AND: [{ team: { members: { some: { userId } } } }, { deletedAt: null }] },
           { AND: [{ participants: { some: { userId } } }, { deletedAt: null }] },
         ],
@@ -83,6 +84,7 @@ export default async function DashboardPage() {
       createdAt: c.createdAt.toISOString(),
       deletedAt: c.deletedAt?.toISOString() ?? null,
       ownerId: c.ownerId,
+      visibility: c.visibility,
       shareToken: c.visibility === "PUBLIC_LINK" ? (c.shareToken ?? null) : null,
       participantCount: c._count.participants,
       myPosition: c.participants.find(p => p.userId === userId)?.position ?? null,

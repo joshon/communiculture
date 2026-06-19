@@ -20,6 +20,7 @@ export interface ContinuumItem {
   createdAt: string;
   deletedAt: string | null;
   ownerId: string;
+  visibility: string;
   shareToken: string | null;
   participantCount: number;
   myPosition: number | null;
@@ -156,7 +157,10 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
 
   const filtered = useMemo(() => {
     let list = [...items];
-    if (tab === "yours") list = list.filter(c => c.ownerId === userId);
+    // Popular / Recent are discovery feeds — only publicly listed continuums.
+    // Your continuums = owned (any visibility); Where you stand = participating.
+    if (tab === "popular" || tab === "recent") list = list.filter(c => c.visibility === "PUBLIC");
+    else if (tab === "yours") list = list.filter(c => c.ownerId === userId);
     else if (tab === "standing") list = list.filter(c => c.myPosition !== null);
     if (tab === "popular") list.sort((a, b) => b.participantCount - a.participantCount);
     else list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
