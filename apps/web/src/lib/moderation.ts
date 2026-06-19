@@ -54,6 +54,48 @@ function getClient(): Anthropic {
   return client;
 }
 
+/**
+ * Synchronous moderation check — blocks the caller until Claude returns a verdict.
+ * Use this to gate creation of content (e.g. a continuum's title + labels) BEFORE it
+ * is persisted or seeded, so offensive prompts never go live.
+ *
+ * Fails open: if no API key is configured or the call errors, content is allowed
+ * (the debounced enqueueForModeration backstop still runs separately). This keeps
+ * creation working during a Claude outage or in local dev without a key.
+ */
+export async function moderateNow(
+  content: string
+): Promise<{ approved: boolean; reason: string | null }> {
+  if (!process.env.ANTHROPIC_API_KEY) return { approved: true, reason: null };
+
+  try {
+    const response = await getClient().messages.create({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 256,
+      system: MODERATION_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `Moderate these items:\n${JSON.stringify({ id: "item", content })}`,
+        },
+      ],
+    });
+
+    const rawText = response.content[0]?.type === "text" ? response.content[0].text.trim() : "[]";
+    const raw = rawText.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
+    const results: ModerationResult[] = JSON.parse(raw);
+    const rejected = results.find((r) => r.status === "rejected");
+    if (rejected) {
+      console.warn(`[moderation] sync rejected — ${rejected.reason}`);
+      return { approved: false, reason: rejected.reason };
+    }
+    return { approved: true, reason: null };
+  } catch (err) {
+    console.error("[moderation] sync check failed, allowing:", err);
+    return { approved: true, reason: null };
+  }
+}
+
 export function enqueueForModeration(item: QueueItem) {
   if (!process.env.ANTHROPIC_API_KEY) return;
   queue.push(item);

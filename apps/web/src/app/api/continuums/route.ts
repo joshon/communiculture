@@ -8,7 +8,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import fs from "fs/promises";
 import path from "path";
 import { canCreateContinuum } from "@/lib/plans";
-import { enqueueForModeration } from "@/lib/moderation";
+import { moderateNow } from "@/lib/moderation";
 
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
@@ -157,6 +157,29 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "password_required" }, { status: 400 });
   }
 
+  // Gate creation on a synchronous moderation check of the prompt itself, so an
+  // offensive title/labels never gets persisted, seeded with bot comments, or shown.
+  const moderationContent = [
+    `Title: ${title.trim()}`,
+    `Left label: ${leftLabel.trim()}`,
+    `Right label: ${rightLabel.trim()}`,
+    description?.trim() ? `Description: ${description.trim()}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const verdict = await moderateNow(moderationContent);
+  if (!verdict.approved) {
+    return NextResponse.json(
+      {
+        error: "content_rejected",
+        message:
+          "This continuum can't be created — its wording targets a group in a way the platform doesn't allow. Try rephrasing the question.",
+      },
+      { status: 422 }
+    );
+  }
+
   const needsShareToken = visibility === "PUBLIC_LINK" || visibility === "PASSWORD";
   const shareToken = needsShareToken ? nanoid() : null;
   const passwordHash = password ? await bcrypt.hash(password.trim(), 10) : null;
@@ -174,23 +197,6 @@ export async function POST(req: Request) {
       category: category?.trim() || null,
       passwordHash,
     },
-  });
-
-  // Moderate continuum content (title + labels + description) asynchronously
-  const moderationContent = [
-    `Title: ${continuum.title}`,
-    `Left label: ${continuum.leftLabel}`,
-    `Right label: ${continuum.rightLabel}`,
-    continuum.description ? `Description: ${continuum.description}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
-
-  enqueueForModeration({
-    id: `continuum:${continuum.id}`,
-    type: "continuum",
-    entityId: continuum.id,
-    content: moderationContent,
   });
 
   const isSeeding = !!(prepopulate && process.env.ANTHROPIC_API_KEY);

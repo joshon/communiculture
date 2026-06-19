@@ -243,6 +243,14 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
         setError("You've used all your continuums — buy a pack to create more.");
         return;
       }
+      if (res.status === 422) {
+        const data = await res.json().catch(() => null);
+        setError(
+          data?.message ??
+            "This continuum can't be created — try rephrasing the question so it doesn't target a group."
+        );
+        return;
+      }
       if (!res.ok) { setError("Something went wrong. Try again."); return; }
       const continuum = await res.json();
       router.push(`/continuum/${continuum.id}${prepopulate ? "?seeding=1" : ""}`);

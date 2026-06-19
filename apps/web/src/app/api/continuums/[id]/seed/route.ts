@@ -21,6 +21,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
+  // Never seed bot comments onto a prompt that moderation has rejected.
+  if (continuum.moderationStatus === "REJECTED") {
+    return NextResponse.json({ error: "content_rejected" }, { status: 422 });
+  }
+
   // Idempotent — skip if bots already exist
   const existing = await prisma.continuumParticipant.count({
     where: { continuumId: params.id, user: { isSynthetic: true } },
