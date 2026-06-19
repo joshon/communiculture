@@ -12,7 +12,7 @@ import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR, type AvatarConfig } from "@/store/avatarStore";
 
 // ─── tunable layout constants ────────────────────────────────────────────────
-const SLOT_W = 1.4;            // world units between neighbours — hands overlap a little
+const SLOT_W = 1.6;            // world units between neighbours — hands overlap a little
 const AVATAR_SCALE = 1.0;
 const AVATAR_Y = 0.05;         // feet just above the ground line
 const ASTERISK_Y = 2.2;        // placeholder sits where the body will appear
