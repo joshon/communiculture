@@ -61,10 +61,16 @@ export function ContinuumPasswordGate({
 
           <form onSubmit={submit}>
             <div style={{ position: "relative", marginBottom: 6 }}>
+              {/* type=text + -webkit-text-security (not type=password) so the
+                  browser's password manager ignores this — it's a continuum
+                  access code, not the user's account credential. */}
               <input
-                type={show ? "text" : "password"}
-                name="continuumSharePassword"
+                type="text"
+                name="continuum-access-code"
                 autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -75,6 +81,7 @@ export function ContinuumPasswordGate({
                   padding: "12px 44px 12px 16px",
                   fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)",
                   color: "#1a1a1a", background: "white", outline: "none",
+                  ["WebkitTextSecurity" as keyof React.CSSProperties]: show ? "none" : "disc",
                 }}
               />
               <button

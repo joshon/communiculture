@@ -362,18 +362,21 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
               {visibility === "PASSWORD" && (
                 <Field label="Password">
                   <div style={{ position: "relative" }}>
+                    {/* type=text + -webkit-text-security (not type=password) so the
+                        browser's password manager ignores this — it's the
+                        continuum's share password, not the user's account login. */}
                     <input
-                      type={showPassword ? "text" : "password"}
+                      type="text"
                       required
-                      // This is the continuum's share password — NOT the user's
-                      // account password. new-password + a distinct name stop the
-                      // browser from offering to update the site login.
-                      name="continuumSharePassword"
-                      autoComplete="new-password"
+                      name="continuum-access-code"
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
                       placeholder="Set a password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      style={{ ...inputStyle, paddingRight: 44, resize: undefined, overflow: undefined, lineHeight: undefined, display: undefined }}
+                      style={{ ...inputStyle, paddingRight: 44, resize: undefined, overflow: undefined, lineHeight: undefined, display: undefined, ["WebkitTextSecurity" as keyof React.CSSProperties]: showPassword ? "none" : "disc" }}
                     />
                     <button
                       type="button"
