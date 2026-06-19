@@ -12,22 +12,29 @@ import { AVATAR_PARTS } from "@/components/avatar-builder/types";
 import { DEFAULT_AVATAR, type AvatarConfig } from "@/store/avatarStore";
 
 // ─── tunable layout constants ────────────────────────────────────────────────
-const SLOT_W = 2.2;            // world units between neighbours (arms nearly touch)
+const SLOT_W = 1.4;            // world units between neighbours — hands overlap a little
 const AVATAR_SCALE = 1.0;
 const AVATAR_Y = 0.05;         // feet just above the ground line
 const ASTERISK_Y = 2.2;        // placeholder sits where the body will appear
-const VIEW_WIDTH_DESKTOP = 26; // world units across the canvas at zoom 1
-const VIEW_WIDTH_MOBILE = 14;  // narrower → bigger avatars on phones
+const VIEW_WIDTH_DESKTOP = 22; // world units across the canvas at zoom 1
+const VIEW_WIDTH_MOBILE = 13;  // narrower → bigger avatars on phones
 const MAX_ANGLE = (32 * Math.PI) / 180; // max turn-toward-centre
-const MOUNT_HALF = 24;         // slots mounted each side of centre → 49 total (≤ 100)
+const MOUNT_HALF = 30;         // slots mounted each side of centre → 61 total (≤ 100)
 const SPIN_TURNS = 3;
 const SPIN_DURATION = 1.4;
 const ZOOM_MIN = 0.55;
 const ZOOM_MAX = 2.4;
 const ZOOM_KEY_STEP = 1.15;
+// momentum: friction decay (per second) and impulse helpers
+const FRICTION_DECAY = 2.6;    // higher = stops sooner
+const MAX_VELOCITY = 70;       // slots/sec cap
+const KEY_IMPULSE = 5;         // arrow-key nudge velocity
+const VELOCITY_EPS = 0.04;     // below this we snap to rest
+const FLICK_IDLE_MS = 120;     // ignore stale velocity if the finger paused before release
 const BREADCRUMBS = [{ label: "home", href: "/dashboard" }, { label: "everyone" }];
 
 const clampZoom = (z: number) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+const clampVel = (v: number) => Math.max(-MAX_VELOCITY, Math.min(MAX_VELOCITY, v));
 
 interface Person {
   id: string;
@@ -176,12 +183,13 @@ function PersonSlot({
 
 // ─── the moving strip ────────────────────────────────────────────────────────
 function Strip({
-  people, library, scrollPosRef, targetRef, zoomRef, initialCenter, onPick,
+  people, library, scrollPosRef, velocityRef, draggingRef, zoomRef, initialCenter, onPick,
 }: {
   people: Person[];
   library: AvatarVariantLibrary;
   scrollPosRef: React.MutableRefObject<number>;
-  targetRef: React.MutableRefObject<number>;
+  velocityRef: React.MutableRefObject<number>;
+  draggingRef: React.MutableRefObject<boolean>;
   zoomRef: React.MutableRefObject<number>;
   initialCenter: number;
   onPick: (id: string) => void;
@@ -198,9 +206,14 @@ function Strip({
   }, [camera]);
 
   useFrame((_, delta) => {
-    // Smooth-damp the strip toward the scroll target.
-    const k = Math.min(1, delta * 9);
-    scrollPosRef.current += (targetRef.current - scrollPosRef.current) * k;
+    const dt = Math.min(delta, 0.05);
+    // While dragging, the pointer handler drives scrollPos directly. On release,
+    // glide with friction (momentum) until we settle.
+    if (!draggingRef.current) {
+      scrollPosRef.current += velocityRef.current * dt;
+      velocityRef.current *= Math.exp(-FRICTION_DECAY * dt);
+      if (Math.abs(velocityRef.current) < VELOCITY_EPS) velocityRef.current = 0;
+    }
     if (groupRef.current) groupRef.current.position.x = -scrollPosRef.current * SLOT_W;
     const c = Math.round(scrollPosRef.current);
     if (c !== center) setCenter(c);
@@ -252,7 +265,8 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
   }, [people, currentUserId]);
 
   const scrollPosRef = useRef(initialCenter);
-  const targetRef = useRef(initialCenter);
+  const velocityRef = useRef(0);     // slots/sec, for flick momentum
+  const draggingRef = useRef(false); // a 1-finger drag is in progress
   const zoomRef = useRef(1);
   // True once a gesture has moved enough to count as a drag/pinch — used to
   // suppress the click→navigate that would otherwise fire when a drag ends on
@@ -283,9 +297,10 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
     if (!el) return;
 
     const pointers = new Map<number, { x: number; y: number }>();
-    let dragging = false;
     let startX = 0;
-    let startTarget = 0;
+    let startPos = 0;          // scrollPos when the drag began
+    let lastPos = 0;           // scrollPos at the previous move (for velocity)
+    let lastMoveT = 0;
     let pinching = false;
     let pinchStartDist = 0;
     let pinchStartZoom = 1;
@@ -293,6 +308,15 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
     const dist = () => {
       const [a, b] = [...pointers.values()];
       return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const beginDrag = (x: number) => {
+      draggingRef.current = true;
+      velocityRef.current = 0;
+      startX = x;
+      startPos = scrollPosRef.current;
+      lastPos = scrollPosRef.current;
+      lastMoveT = performance.now();
+      el.style.cursor = "grabbing";
     };
 
     // NB: no setPointerCapture — capturing on the wrapper would stop the child
@@ -303,14 +327,11 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
       draggedRef.current = false;
       if (pointers.size === 2) {
         pinching = true;
-        dragging = false;
+        draggingRef.current = false;
         pinchStartDist = dist();
         pinchStartZoom = zoomRef.current;
       } else if (pointers.size === 1) {
-        dragging = true;
-        startX = e.clientX;
-        startTarget = targetRef.current;
-        el.style.cursor = "grabbing";
+        beginDrag(e.clientX);
       }
     };
     const onMove = (e: PointerEvent) => {
@@ -321,10 +342,19 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
         draggedRef.current = true;
         return;
       }
-      if (dragging) {
+      if (draggingRef.current) {
         const dx = e.clientX - startX;
         if (Math.abs(dx) > 6) draggedRef.current = true;
-        targetRef.current = startTarget - dx / pxPerSlot();
+        const newPos = startPos - dx / pxPerSlot();
+        const now = performance.now();
+        const dtm = (now - lastMoveT) / 1000;
+        if (dtm > 0) {
+          const vInst = (newPos - lastPos) / dtm;
+          velocityRef.current = clampVel(velocityRef.current * 0.6 + vInst * 0.4);
+        }
+        lastPos = newPos;
+        lastMoveT = now;
+        scrollPosRef.current = newPos;
       }
     };
     const onUp = (e: PointerEvent) => {
@@ -332,27 +362,28 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
       pointers.delete(e.pointerId);
       if (pointers.size < 2) pinching = false;
       if (pointers.size === 0) {
-        dragging = false;
+        draggingRef.current = false;
+        // Drop stale velocity if the finger paused before lifting (no flick).
+        if (performance.now() - lastMoveT > FLICK_IDLE_MS) velocityRef.current = 0;
         el.style.cursor = "grab";
       } else if (pointers.size === 1 && !pinching) {
         // one finger remains after a pinch — resume dragging from there
         const [p] = [...pointers.values()];
-        dragging = true;
-        startX = p.x;
-        startTarget = targetRef.current;
+        beginDrag(p.x);
       }
     };
     const onWheel = (e: WheelEvent) => {
       e.preventDefault(); // keep the gesture in-app (no browser back-swipe)
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
-        targetRef.current += e.deltaX / pxPerSlot(); // horizontal swipe travels
+        scrollPosRef.current += e.deltaX / pxPerSlot(); // horizontal swipe travels
+        velocityRef.current = 0;
       } else {
         zoomRef.current = clampZoom(zoomRef.current * Math.exp(-e.deltaY * 0.0015)); // wheel zooms
       }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") targetRef.current += 1;
-      else if (e.key === "ArrowLeft") targetRef.current -= 1;
+      if (e.key === "ArrowRight") velocityRef.current = clampVel(velocityRef.current + KEY_IMPULSE);
+      else if (e.key === "ArrowLeft") velocityRef.current = clampVel(velocityRef.current - KEY_IMPULSE);
       else if (e.key === "+" || e.key === "=") zoomRef.current = clampZoom(zoomRef.current * ZOOM_KEY_STEP);
       else if (e.key === "-" || e.key === "_") zoomRef.current = clampZoom(zoomRef.current / ZOOM_KEY_STEP);
     };
@@ -392,7 +423,8 @@ export function EveryoneGallery({ people, currentUserId }: { people: Person[]; c
               people={people}
               library={library}
               scrollPosRef={scrollPosRef}
-              targetRef={targetRef}
+              velocityRef={velocityRef}
+              draggingRef={draggingRef}
               zoomRef={zoomRef}
               initialCenter={initialCenter}
               onPick={onPick}
