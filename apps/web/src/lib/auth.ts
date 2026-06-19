@@ -113,12 +113,13 @@ export const authOptions: NextAuthOptions = {
         token.onboardingComplete = dbUser?.onboardingComplete ?? false;
       }
       if (trigger === "update") {
-        // Refresh onboardingComplete after profile save
+        // Refresh onboardingComplete + name after profile/onboarding save
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { onboardingComplete: true },
+          select: { onboardingComplete: true, name: true },
         });
         token.onboardingComplete = dbUser?.onboardingComplete ?? false;
+        if (dbUser?.name) token.name = dbUser.name;
       }
       return token;
     },

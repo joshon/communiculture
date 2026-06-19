@@ -40,7 +40,7 @@ export default async function DashboardPage() {
   const [userRecord, continuums, totalOwned] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { avatarConfig: true, avatarThumbnail: true, lifetimeContinuums: true, continuumCredits: true },
+      select: { name: true, avatarConfig: true, avatarThumbnail: true, lifetimeContinuums: true, continuumCredits: true },
     }).catch(() => null),
 
     prisma.continuum.findMany({
@@ -59,6 +59,9 @@ export default async function DashboardPage() {
     // Count ALL continuums ever created by this user (including deleted) for limit purposes
     prisma.continuum.count({ where: { ownerId: userId } }),
   ]);
+
+  // First-run onboarding: choose a name (and optionally a password) before the avatar.
+  if (!userRecord?.name?.trim()) redirect("/welcome");
 
   const cfg = userRecord?.avatarConfig as Record<string, unknown> | null;
   if (!cfg || cfg.format !== "v2") redirect("/profile/avatar");
