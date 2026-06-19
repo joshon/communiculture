@@ -7,7 +7,7 @@ import { AppHeader } from "@/components/ui/AppHeader";
 import { ContinuumPreviewBar } from "@/components/dashboard/ContinuumPreviewBar";
 
 const INTER = "Inter, sans-serif";
-const AVATAR_SIZE = "52px";
+const AVATAR_SIZE = "60px";
 
 function formatDate(iso: string) {
   const d = new Date(iso);
