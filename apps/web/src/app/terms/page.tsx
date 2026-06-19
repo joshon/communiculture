@@ -59,7 +59,7 @@ export default function TermsPage() {
 
         <Section title="Your account">
           <p style={{ margin: "0 0 12px" }}>
-            You may create an account using Google, Microsoft, Facebook, or email. You are responsible for keeping your account secure and for all activity that occurs under it.
+            You may create an account using Google or email. You are responsible for keeping your account secure and for all activity that occurs under it.
           </p>
           <p style={{ margin: 0 }}>
             You must be at least 13 years old to use this service. By creating an account you confirm that you meet this requirement.

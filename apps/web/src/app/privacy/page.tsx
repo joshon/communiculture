@@ -57,7 +57,7 @@ export default function PrivacyPage() {
         <Section title="What we collect">
           <p style={{ margin: "0 0 12px" }}>When you sign in and use Communiculture, we collect:</p>
           <ul style={{ margin: "0 0 12px", paddingLeft: 20 }}>
-            <li style={{ marginBottom: 8 }}><strong>Account info</strong> — your name, email address, and profile image from whichever sign-in method you use (Google, Microsoft, Facebook, or email)</li>
+            <li style={{ marginBottom: 8 }}><strong>Account info</strong> — your name, email address, and profile image from whichever sign-in method you use (Google or email)</li>
             <li style={{ marginBottom: 8 }}><strong>Avatar configuration</strong> — the colors and style choices you make for your blocky avatar</li>
             <li style={{ marginBottom: 8 }}><strong>Continuum positions</strong> — where you place yourself on each continuum question</li>
             <li style={{ marginBottom: 8 }}><strong>Comments</strong> — any text you add to explain your position</li>
@@ -80,10 +80,10 @@ export default function PrivacyPage() {
 
         <Section title="Third-party sign-in">
           <p style={{ margin: "0 0 12px" }}>
-            If you sign in with Google, Microsoft, or Facebook, we receive your name, email, and profile image from that provider. We do not receive your password or any other account data from those services.
+            If you sign in with Google, we receive your name, email, and profile image from that provider. We do not receive your password or any other account data from those services.
           </p>
           <p style={{ margin: 0 }}>
-            Each provider has their own privacy policy: <a href="https://policies.google.com/privacy" style={{ color: BLUE }}>Google</a> · <a href="https://privacy.microsoft.com/en-us/privacystatement" style={{ color: BLUE }}>Microsoft</a> · <a href="https://www.facebook.com/policy" style={{ color: BLUE }}>Facebook</a>
+            Google has its own privacy policy: <a href="https://policies.google.com/privacy" style={{ color: BLUE }}>Google</a>
           </p>
         </Section>
 
@@ -99,11 +99,6 @@ export default function PrivacyPage() {
           </p>
         </Section>
 
-        <Section title="Data deletion (Facebook users)">
-          <p style={{ margin: 0 }}>
-            If you signed in with Facebook and would like your data removed, you can request deletion by emailing <a href="mailto:josh@theyrule.net" style={{ color: BLUE }}>josh@theyrule.net</a> with the subject "Data Deletion Request." We will delete your account and all associated data within 30 days and confirm by email.
-          </p>
-        </Section>
 
         <Section title="Cookies">
           <p style={{ margin: 0 }}>
