@@ -47,8 +47,8 @@ export function DashboardAvatarHead({ thumbnailUrl: serverThumbnailUrl, size }: 
     width: "100%",
     padding: `${sc(9)} ${sc(18)}`,
     fontFamily: INTER,
-    // Desktop: fixed 16px to match the breadcrumbs. Mobile: scales up.
-    fontSize: isMobile ? sc(14) : 16,
+    // Always 14px to match the dashboard tabs (Popular / Recent / …).
+    fontSize: 14,
     background: "none",
     border: "none",
     textAlign: "left",
