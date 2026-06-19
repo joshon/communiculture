@@ -893,8 +893,8 @@ export function ContinuumScene({
           {isSeeding && SEEDING_POSITIONS.map((pos) => (
             <SpinningAsterisk
               key={pos}
-              position={[(pos / 100 - 0.5) * CROWD_WIDTH, 2.2, 0]}
-              size={1.6}
+              position={[(pos / 100 - 0.5) * CROWD_WIDTH, 1.0, 0]}
+              size={0.55}
             />
           ))}
         </Canvas>

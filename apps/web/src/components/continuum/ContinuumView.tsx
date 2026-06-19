@@ -748,8 +748,12 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
 
-  // Seeding placeholders — trigger seed endpoint then poll until 5 bots arrive
-  const [isSeeding, setIsSeeding] = useState(!!initialSeeding);
+  // Seeding placeholders — trigger seed endpoint then poll until 5 bots arrive.
+  // If the bots are already here (e.g. a refresh with ?seeding=1 still in the
+  // URL), don't show the placeholders at all.
+  const [isSeeding, setIsSeeding] = useState(
+    !!initialSeeding && !participants.some((p) => p.user.isSynthetic)
+  );
   useEffect(() => {
     if (!isSeeding) return;
 
