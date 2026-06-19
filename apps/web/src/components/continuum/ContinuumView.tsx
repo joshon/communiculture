@@ -72,10 +72,30 @@ interface Props {
 
 // ─── share modal ─────────────────────────────────────────────────────────────
 
-function ShareModal({ url, visibility, onClose }: { url: string; visibility: string; onClose: () => void }) {
+function ShareModal({ url, visibility, continuumId, isOwner, onClose }: { url: string; visibility: string; continuumId: string; isOwner: boolean; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const [qrCopied, setQrCopied] = useState(false);
   const qrContainerRef = useRef<HTMLDivElement>(null);
+
+  // Owner-only password reset (we can't show the old one — only set a new one).
+  const [pw, setPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwSaved, setPwSaved] = useState(false);
+  const savePw = async () => {
+    if (!pw.trim()) return;
+    setPwSaving(true); setPwSaved(false);
+    try {
+      const res = await fetch(`/api/continuums/${continuumId}/password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (res.ok) { setPwSaved(true); setPw(""); }
+    } finally {
+      setPwSaving(false);
+    }
+  };
 
   // Auto-copy link on open
   useEffect(() => {
@@ -97,6 +117,7 @@ function ShareModal({ url, visibility, onClose }: { url: string; visibility: str
   const accessLabel =
     visibility === "PUBLIC_LINK" ? "Anyone with this link can view and participate." :
     visibility === "TEAM"        ? "Team members with this link can participate." :
+    visibility === "PASSWORD"    ? "People with this link and the password can participate." :
                                    "People with this link can participate.";
 
   return (
@@ -153,6 +174,56 @@ function ShareModal({ url, visibility, onClose }: { url: string; visibility: str
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
+
+          {/* Owner password reset (PASSWORD continuums) */}
+          {visibility === "PASSWORD" && isOwner && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a", marginBottom: 4 }}>Password</div>
+              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", lineHeight: 1.5 }}>
+                The current password can&rsquo;t be shown — set a new one here to share or rotate it.
+              </p>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ position: "relative", flex: 1 }}>
+                  <input
+                    type="text"
+                    name="continuum-access-code"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    placeholder="New password"
+                    value={pw}
+                    onChange={(e) => { setPw(e.target.value); setPwSaved(false); }}
+                    style={{
+                      width: "100%", boxSizing: "border-box",
+                      border: "1.5px solid #1a1a1a", padding: "8px 34px 8px 12px",
+                      fontFamily: INTER, fontSize: 12, color: "#1a1a1a", background: "white", outline: "none",
+                      ["WebkitTextSecurity" as keyof React.CSSProperties]: showPw ? "none" : "disc",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    aria-label={showPw ? "Hide password" : "Show password"}
+                    style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0, color: "#888", display: "flex" }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                      <circle cx="12" cy="12" r="3" />
+                      {showPw && <line x1="2" y1="2" x2="22" y2="22" />}
+                    </svg>
+                  </button>
+                </div>
+                <button
+                  onClick={savePw}
+                  disabled={pwSaving || !pw.trim()}
+                  style={{ fontFamily: INTER, fontSize: 12, fontWeight: 600, color: BLUE, background: "none", border: "none", cursor: pw.trim() ? "pointer" : "default", padding: 0, opacity: pw.trim() ? 1 : 0.5, flexShrink: 0 }}
+                >
+                  {pwSaving ? "…" : pwSaved ? "Saved!" : "Save"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* QR code */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
@@ -1094,6 +1165,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         <ShareModal
           url={shareUrl}
           visibility={continuum.visibility}
+          continuumId={continuum.id}
+          isOwner={continuum.ownerId === currentUserId}
           onClose={() => setShowShareModal(false)}
         />
       )}
