@@ -10,6 +10,9 @@ import { PixelBox } from "@/components/ui/PixelBox";
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
 const AVATAR_SIZE = "52px";
+// A continuum is "full" once it hits the crowd cap (real participants); below
+// that it still has room, i.e. it's open to join.
+const FULL_AT = 100;
 
 type SortKey = "popular" | "active" | "created";
 type SortDir = "asc" | "desc";
@@ -274,7 +277,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       return c.visibility === "PUBLIC";
     });
 
-    if (filters.has("open")) list = list.filter(c => !c.closedAt);
+    if (filters.has("open")) list = list.filter(c => c.participantCount < FULL_AT);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(c => matchesQuery(c, q));
