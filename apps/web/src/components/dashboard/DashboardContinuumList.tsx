@@ -217,7 +217,8 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1.5px solid #e0e0e0", overflowX: "auto" }}>
+      <style>{`.cc-tabs-scroll::-webkit-scrollbar{display:none}`}</style>
+      <div className="cc-tabs-scroll" style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1.5px solid #e0e0e0", overflowX: "auto", scrollbarWidth: "none", ["msOverflowStyle" as keyof React.CSSProperties]: "none" }}>
         {TABS.map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)} style={{ fontFamily: INTER, fontSize: 14, fontWeight: tab === key ? 600 : 400, color: tab === key ? BLUE : "#888", background: "none", border: "none", borderBottom: tab === key ? `2px solid ${BLUE}` : "2px solid transparent", cursor: "pointer", padding: "0 16px 10px", marginBottom: -1.5, whiteSpace: "nowrap", flexShrink: 0 }}>
             {label}
