@@ -13,7 +13,7 @@ const AVATAR_SIZE = "52px";
 
 type SortKey = "popular" | "active" | "created";
 type SortDir = "asc" | "desc";
-type FilterKey = "open" | "full" | "mine" | "in";
+type FilterKey = "open" | "mine" | "in";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "popular", label: "Popular" },
@@ -22,12 +22,11 @@ const SORTS: { key: SortKey; label: string }[] = [
 ];
 
 // Boolean filter chips. "mine"/"in" widen the scope to your own / participating
-// continuums (any visibility); "open"/"full" narrow whatever's in view.
+// continuums (any visibility); "open" narrows whatever's in view.
 const FILTERS: { key: FilterKey; label: string }[] = [
-  { key: "open", label: "Open" },
-  { key: "full", label: "Full" },
-  { key: "mine", label: "Mine" },
-  { key: "in", label: "I'm in" },
+  { key: "open", label: "Are open" },
+  { key: "mine", label: "You own" },
+  { key: "in", label: "You are in" },
 ];
 
 export interface ContinuumItem {
@@ -210,7 +209,6 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
     const valid = new Set(FILTERS.map(f => f.key));
     return new Set((sp.get("f")?.split(",") ?? []).filter((k): k is FilterKey => valid.has(k as FilterKey)));
   });
-  const [topic, setTopic] = useState<string | null>(() => sp.get("topic"));
   const [query, setQuery] = useState(() => sp.get("q") ?? "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [items, setItems] = useState(initialItems);
@@ -232,11 +230,10 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
     if (sort !== "popular") p.set("sort", sort);
     if (sortDir !== "desc") p.set("dir", sortDir);
     if (filters.size) p.set("f", [...filters].join(","));
-    if (topic) p.set("topic", topic);
     if (query.trim()) p.set("q", query.trim());
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [sort, sortDir, filters, topic, query]);
+  }, [sort, sortDir, filters, query]);
 
   const toggleFilter = (key: FilterKey) => {
     setFilters(prev => {
@@ -251,17 +248,16 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
     router.refresh();
   };
 
-  const topics = useMemo(
-    () => Array.from(new Set(items.map(c => c.category).filter((x): x is string => !!x))).sort(),
-    [items]
-  );
+  const matchesQuery = (c: ContinuumItem, q: string) =>
+    c.title.toLowerCase().includes(q) ||
+    c.leftLabel.toLowerCase().includes(q) ||
+    c.rightLabel.toLowerCase().includes(q) ||
+    (!!c.category && c.category.toLowerCase().includes(q));
 
   const suggestions = useMemo(() => {
     if (!query.trim() || query.length < 2) return [];
     const q = query.toLowerCase();
-    return items
-      .filter(c => c.title.toLowerCase().includes(q) || c.leftLabel.toLowerCase().includes(q) || c.rightLabel.toLowerCase().includes(q))
-      .slice(0, 6);
+    return items.filter(c => matchesQuery(c, q)).slice(0, 6);
   }, [items, query]);
 
   const filtered = useMemo(() => {
@@ -279,11 +275,9 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
     });
 
     if (filters.has("open")) list = list.filter(c => !c.closedAt);
-    if (filters.has("full")) list = list.filter(c => c.participantCount > 0);
-    if (topic) list = list.filter(c => c.category === topic);
     if (query.trim()) {
       const q = query.toLowerCase();
-      list = list.filter(c => c.title.toLowerCase().includes(q) || c.leftLabel.toLowerCase().includes(q) || c.rightLabel.toLowerCase().includes(q));
+      list = list.filter(c => matchesQuery(c, q));
     }
 
     // desc = "more / newer first"; the direction toggle flips it.
@@ -294,20 +288,14 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       : new Date(c.createdAt).getTime();
     list = [...list].sort((a, b) => dir * (metric(a) - metric(b)));
     return list;
-  }, [items, sort, sortDir, filters, topic, query, userId]);
+  }, [items, sort, sortDir, filters, query, userId]);
 
   const showBar = filters.has("in");
   const emptyMsg = query.trim()
     ? "No continuums match your search."
-    : (filters.size > 0 || topic)
+    : filters.size > 0
     ? "Nothing matches these filters."
     : "Nothing here yet.";
-
-  const selectStyle: React.CSSProperties = {
-    fontFamily: INTER, fontSize: 13, color: "#1a1a1a",
-    border: "1.5px solid #ddd", borderRadius: 999, background: "white",
-    padding: "5px 10px", cursor: "pointer", outline: "none",
-  };
 
   return (
     <div>
@@ -316,7 +304,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
         <div style={{ position: "relative" }}>
           <input
             type="text"
-            placeholder="Search questions and positions…"
+            placeholder="Search questions, positions, and topics…"
             value={query}
             onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
             onFocus={() => setShowSuggestions(true)}
@@ -367,6 +355,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
 
         <span style={{ width: "1.5px", height: 18, background: "#e0e0e0", margin: "0 4px" }} />
 
+        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", marginRight: 2 }}>Continuums that:</span>
         {FILTERS.map(({ key, label }) => {
           const active = filters.has(key);
           return (
@@ -388,17 +377,6 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             </button>
           );
         })}
-
-        {topics.length > 0 && (
-          <select
-            value={topic ?? ""}
-            onChange={e => setTopic(e.target.value || null)}
-            style={{ ...selectStyle, ...(topic ? { borderColor: BLUE, color: BLUE, fontWeight: 600 } : null) }}
-          >
-            <option value="">All topics</option>
-            {topics.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-        )}
       </div>
 
       {/* List */}
