@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { PillButton } from "@/components/ui/PillButton";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 import { AvatarRenderer } from "@/components/avatar/AvatarRenderer";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { AVATAR_PARTS } from "@/components/avatar-builder/types";
@@ -15,6 +17,46 @@ const INTER = "Inter, sans-serif";
 
 function Rule() {
   return <div style={{ borderTop: "1px solid #D8D8D8", margin: "24px 0" }} />;
+}
+
+function CreditsSection({ totalOwned, allowed, purchased, indent, headingSize }: {
+  totalOwned: number;
+  allowed: number | null; // null = unlimited (lifetime)
+  purchased: number;
+  indent: string | number;
+  headingSize: number;
+}) {
+  const unlimited = allowed === null;
+  const remaining = unlimited ? null : Math.max(0, allowed - totalOwned);
+  return (
+    <>
+      <Rule />
+      <p style={{ fontFamily: INTER, fontSize: headingSize, fontWeight: 500, color: "#1a1a1a", marginBottom: 16 }}>
+        Credits
+      </p>
+      <div style={{ paddingLeft: indent }}>
+        {unlimited ? (
+          <p style={{ fontFamily: INTER, fontSize: 15, color: "#1a1a1a", margin: 0 }}>
+            <strong>Unlimited</strong> continuums
+            <span style={{ color: "#888", marginLeft: 8, fontSize: 13 }}>· {totalOwned} created</span>
+          </p>
+        ) : (
+          <>
+            <p style={{ fontFamily: INTER, fontSize: 15, color: "#1a1a1a", margin: "0 0 4px" }}>
+              <strong>{totalOwned}</strong> of <strong>{allowed}</strong> continuums used
+              {remaining === 0 && <span style={{ color: "#cc2222", marginLeft: 6, fontSize: 13 }}>— limit reached</span>}
+            </p>
+            <p style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: "0 0 14px" }}>
+              {FREE_CONTINUUM_LIMIT} free + {purchased} purchased{remaining ? ` — ${remaining} remaining` : ""}
+            </p>
+            <Link href="/billing" style={{ fontFamily: INTER, fontSize: 14, color: BLUE, textDecoration: "underline" }}>
+              Buy more →
+            </Link>
+          </>
+        )}
+      </div>
+    </>
+  );
 }
 
 function LineInput({ label, type = "text", value, onChange, readOnly }: {
@@ -140,12 +182,13 @@ function AvatarPreview({ avatarConfig, onClick, width, height, zoom }: {
   );
 }
 
-export function ProfileClient({ user }: {
+export function ProfileClient({ user, credits }: {
   user: {
     name: string; email: string; slogan: string; url: string;
     avatarConfig: object; avatarThumbnail: string | null;
     connectedProviders: string[]; hasPassword: boolean;
   };
+  credits: { totalOwned: number; allowed: number | null; purchased: number };
 }) {
   const { width: previewW, height: previewH, zoom: previewZoom } = useAvatarPreviewSize();
   const isMobile = useIsMobile(1024);
@@ -268,6 +311,14 @@ export function ProfileClient({ user }: {
             </div>
           )}
 
+          <CreditsSection
+            totalOwned={credits.totalOwned}
+            allowed={credits.allowed}
+            purchased={credits.purchased}
+            indent={MOBILE_INDENT}
+            headingSize={18}
+          />
+
         </main>
       </div>
     );
@@ -349,6 +400,14 @@ export function ProfileClient({ user }: {
                 </div>
               </>
             )}
+
+            <CreditsSection
+              totalOwned={credits.totalOwned}
+              allowed={credits.allowed}
+              purchased={credits.purchased}
+              indent={FIELD_INDENT}
+              headingSize={22}
+            />
 
           </div>
 
