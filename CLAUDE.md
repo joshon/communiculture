@@ -65,6 +65,8 @@ The asterisk (*) is at approximately x=60% from the left of the SVG.
 
 ## Buttons
 
+**Label capitalization (buttons & links):** sentence case — capitalize only the first letter of the first word and any proper nouns. E.g. `New continuum`, `Log out`, `About Communiculture`, `Email me a sign-in link`. Not `+ new continuum`, not Title Case. (Exception: the breadcrumb nav is intentionally all-lowercase.)
+
 Use `<PillButton>` from `components/ui/PillButton.tsx` for all call-to-action buttons. Three tiers:
 
 | Tier | `variant` prop | Appearance | When to use |

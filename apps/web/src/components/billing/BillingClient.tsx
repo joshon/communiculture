@@ -79,7 +79,7 @@ export function BillingClient({ totalOwned, allowed, continuumCredits, packs, ju
               padding: "12px 24px", borderRadius: 999,
             }}
           >
-            + new continuum
+            New continuum
           </Link>
         </div>
       )}
