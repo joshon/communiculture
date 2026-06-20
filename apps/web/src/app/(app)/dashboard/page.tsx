@@ -23,6 +23,8 @@ export default async function DashboardPage() {
     ownerId: true,
     visibility: true,
     shareToken: true,
+    category: true,
+    closedAt: true,
     _count: {
       select: {
         participants: { where: { user: { isSynthetic: false } } },
@@ -85,6 +87,8 @@ export default async function DashboardPage() {
       deletedAt: c.deletedAt?.toISOString() ?? null,
       ownerId: c.ownerId,
       visibility: c.visibility,
+      category: c.category ?? null,
+      closedAt: c.closedAt?.toISOString() ?? null,
       shareToken: c.visibility === "PUBLIC_LINK" ? (c.shareToken ?? null) : null,
       participantCount: c._count.participants,
       myPosition: c.participants.find(p => p.userId === userId)?.position ?? null,

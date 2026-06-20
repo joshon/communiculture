@@ -10,7 +10,23 @@ const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
 const AVATAR_SIZE = "52px";
 
-type Tab = "popular" | "recent" | "yours" | "standing";
+type SortKey = "popular" | "newest" | "oldest";
+type FilterKey = "open" | "full" | "mine" | "in";
+
+const SORTS: { key: SortKey; label: string }[] = [
+  { key: "popular", label: "Popular" },
+  { key: "newest", label: "Newest" },
+  { key: "oldest", label: "Oldest" },
+];
+
+// Boolean filter chips. "mine"/"in" widen the scope to your own / participating
+// continuums (any visibility); "open"/"full" narrow whatever's in view.
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "open", label: "Open" },
+  { key: "full", label: "Full" },
+  { key: "mine", label: "Mine" },
+  { key: "in", label: "I'm in" },
+];
 
 export interface ContinuumItem {
   id: string;
@@ -21,6 +37,8 @@ export interface ContinuumItem {
   deletedAt: string | null;
   ownerId: string;
   visibility: string;
+  category: string | null;
+  closedAt: string | null;
   shareToken: string | null;
   participantCount: number;
   myPosition: number | null;
@@ -33,13 +51,6 @@ interface Props {
   userId: string;
   thumbnailUrl: string | null;
 }
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "popular",  label: "Popular" },
-  { key: "recent",   label: "Recent" },
-  { key: "yours",    label: "Your continuums" },
-  { key: "standing", label: "Where you stand" },
-];
 
 function formatDate(iso: string) {
   const d = new Date(iso);
@@ -62,6 +73,8 @@ function ContinuumRow({
     ? `/continuum/${c.id}`
     : `/continuum/${c.id}?token=${c.shareToken}`;
 
+  const canDelete = !!onDelete && c.ownerId === userId;
+
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -80,12 +93,12 @@ function ContinuumRow({
           <span style={{ fontFamily: INTER, fontSize: 13, color: "#aaa" }}>
             {c.participantCount} {c.participantCount === 1 ? "response" : "responses"}
           </span>
-          {onDelete && !confirming && (
+          {canDelete && !confirming && (
             <button onClick={handleDelete} disabled={deleting} style={{ fontFamily: INTER, fontSize: 12, color: "#ccc", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
               {deleting ? "deleting…" : "delete"}
             </button>
           )}
-          {onDelete && confirming && !deleting && (
+          {canDelete && confirming && !deleting && (
             <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span style={{ fontFamily: INTER, fontSize: 11, color: "#888" }}>won&apos;t free a slot —</span>
               <button onClick={handleDelete} style={{ fontFamily: INTER, fontSize: 12, color: "#cc2222", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>confirm</button>
@@ -123,10 +136,18 @@ function ContinuumRow({
 
 export function DashboardContinuumList({ items: initialItems, archived, userId, thumbnailUrl }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const initialTab = (searchParams.get("tab") as Tab | null) ?? "popular";
-  const [tab, setTab] = useState<Tab>(initialTab);
-  const [query, setQuery] = useState("");
+  const sp = useSearchParams();
+
+  const [sort, setSort] = useState<SortKey>(() => {
+    const s = sp.get("sort");
+    return s === "newest" || s === "oldest" ? s : "popular";
+  });
+  const [filters, setFilters] = useState<Set<FilterKey>>(() => {
+    const valid = new Set(FILTERS.map(f => f.key));
+    return new Set((sp.get("f")?.split(",") ?? []).filter((k): k is FilterKey => valid.has(k as FilterKey)));
+  });
+  const [topic, setTopic] = useState<string | null>(() => sp.get("topic"));
+  const [query, setQuery] = useState(() => sp.get("q") ?? "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [items, setItems] = useState(initialItems);
   const [showArchived, setShowArchived] = useState(false);
@@ -134,18 +155,41 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false);
     }
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, []);
 
+  // Keep the URL in sync (shareable / restorable) without re-running the server
+  // component — replaceState doesn't trigger a navigation.
+  useEffect(() => {
+    const p = new URLSearchParams();
+    if (sort !== "popular") p.set("sort", sort);
+    if (filters.size) p.set("f", [...filters].join(","));
+    if (topic) p.set("topic", topic);
+    if (query.trim()) p.set("q", query.trim());
+    const qs = p.toString();
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [sort, filters, topic, query]);
+
+  const toggleFilter = (key: FilterKey) => {
+    setFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const handleDelete = (id: string) => {
     setItems(prev => prev.filter(c => c.id !== id));
     router.refresh();
   };
+
+  const topics = useMemo(
+    () => Array.from(new Set(items.map(c => c.category).filter((x): x is string => !!x))).sort(),
+    [items]
+  );
 
   const suggestions = useMemo(() => {
     if (!query.trim() || query.length < 2) return [];
@@ -156,34 +200,51 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
   }, [items, query]);
 
   const filtered = useMemo(() => {
-    let list = [...items];
-    // Popular / Recent are discovery feeds — only publicly listed continuums.
-    // Your continuums = owned (any visibility); Where you stand = participating.
-    if (tab === "popular" || tab === "recent") list = list.filter(c => c.visibility === "PUBLIC");
-    else if (tab === "yours") list = list.filter(c => c.ownerId === userId);
-    else if (tab === "standing") list = list.filter(c => c.myPosition !== null);
-    if (tab === "popular") list.sort((a, b) => b.participantCount - a.participantCount);
-    else list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const wantMine = filters.has("mine");
+    const wantIn = filters.has("in");
+
+    // Scope: with no mine/in filter this is a discovery feed (publicly listed
+    // only). "Mine"/"I'm in" widen it to your own / participating continuums
+    // (any visibility), unioned.
+    let list = items.filter(c => {
+      if (wantMine || wantIn) {
+        return (wantMine && c.ownerId === userId) || (wantIn && c.myPosition !== null);
+      }
+      return c.visibility === "PUBLIC";
+    });
+
+    if (filters.has("open")) list = list.filter(c => !c.closedAt);
+    if (filters.has("full")) list = list.filter(c => c.participantCount > 0);
+    if (topic) list = list.filter(c => c.category === topic);
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter(c => c.title.toLowerCase().includes(q) || c.leftLabel.toLowerCase().includes(q) || c.rightLabel.toLowerCase().includes(q));
     }
-    return list;
-  }, [items, tab, query, userId]);
 
-  const showBar = tab === "standing";
+    list = [...list];
+    if (sort === "popular") list.sort((a, b) => b.participantCount - a.participantCount);
+    else if (sort === "newest") list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    else list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return list;
+  }, [items, sort, filters, topic, query, userId]);
+
+  const showBar = filters.has("in");
   const emptyMsg = query.trim()
     ? "No continuums match your search."
-    : tab === "yours" ? "You haven't created any continuums yet."
-    : tab === "standing" ? "You haven't placed yourself in any continuums yet."
+    : (filters.size > 0 || topic)
+    ? "Nothing matches these filters."
     : "Nothing here yet.";
 
-  const isOwnerTab = tab === "yours";
+  const selectStyle: React.CSSProperties = {
+    fontFamily: INTER, fontSize: 13, color: "#1a1a1a",
+    border: "1.5px solid #ddd", borderRadius: 999, background: "white",
+    padding: "5px 10px", cursor: "pointer", outline: "none",
+  };
 
   return (
     <div>
       {/* Search */}
-      <div ref={searchRef} style={{ position: "relative", marginBottom: 24 }}>
+      <div ref={searchRef} style={{ position: "relative", marginBottom: 16 }}>
         <div style={{ position: "relative" }}>
           <input
             type="text"
@@ -216,14 +277,57 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
         )}
       </div>
 
-      {/* Tabs */}
-      <style>{`.cc-tabs-scroll::-webkit-scrollbar{display:none}`}</style>
-      <div className="cc-tabs-scroll" style={{ display: "flex", gap: 0, marginBottom: 28, borderBottom: "1.5px solid #e0e0e0", overflowX: "auto", scrollbarWidth: "none", ["msOverflowStyle" as keyof React.CSSProperties]: "none" }}>
-        {TABS.map(({ key, label }) => (
-          <button key={key} onClick={() => setTab(key)} style={{ fontFamily: INTER, fontSize: 14, fontWeight: tab === key ? 600 : 400, color: tab === key ? BLUE : "#888", background: "none", border: "none", borderBottom: tab === key ? `2px solid ${BLUE}` : "2px solid transparent", cursor: "pointer", padding: "0 16px 10px", marginBottom: -1.5, whiteSpace: "nowrap", flexShrink: 0 }}>
+      {/* Sort · Filters · Topic — wraps on narrow screens */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 24 }}>
+        <span style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", marginRight: 2 }}>sort</span>
+        {SORTS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setSort(key)}
+            style={{
+              fontFamily: INTER, fontSize: 13, fontWeight: sort === key ? 600 : 400,
+              color: sort === key ? BLUE : "#888", background: "none", border: "none",
+              cursor: "pointer", padding: "2px 2px",
+            }}
+          >
             {label}
           </button>
         ))}
+
+        <span style={{ width: "1.5px", height: 18, background: "#e0e0e0", margin: "0 4px" }} />
+
+        {FILTERS.map(({ key, label }) => {
+          const active = filters.has(key);
+          return (
+            <button
+              key={key}
+              onClick={() => toggleFilter(key)}
+              aria-pressed={active}
+              style={{
+                fontFamily: INTER, fontSize: 13,
+                padding: "5px 12px", borderRadius: 999,
+                border: `1.5px solid ${active ? BLUE : "#ddd"}`,
+                background: active ? BLUE : "white",
+                color: active ? "white" : "#555",
+                fontWeight: active ? 600 : 400,
+                cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+
+        {topics.length > 0 && (
+          <select
+            value={topic ?? ""}
+            onChange={e => setTopic(e.target.value || null)}
+            style={{ ...selectStyle, ...(topic ? { borderColor: BLUE, color: BLUE, fontWeight: 600 } : null) }}
+          >
+            <option value="">All topics</option>
+            {topics.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        )}
       </div>
 
       {/* List */}
@@ -237,7 +341,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             userId={userId}
             showBar={showBar}
             thumbnailUrl={thumbnailUrl}
-            onDelete={isOwnerTab ? handleDelete : undefined}
+            onDelete={filters.has("mine") ? handleDelete : undefined}
           />
         ))
       )}
