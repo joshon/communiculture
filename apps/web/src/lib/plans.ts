@@ -1,4 +1,4 @@
-export const FREE_CONTINUUM_LIMIT = 5;
+export const FREE_CONTINUUM_LIMIT = 2;
 
 interface UserLimits {
   lifetimeContinuums: boolean;

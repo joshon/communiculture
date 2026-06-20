@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { PACKS } from "@/lib/stripe";
+import { FREE_CONTINUUM_LIMIT } from "@/lib/plans";
 import Link from "next/link";
 
 const INTER = "Inter, sans-serif";
@@ -55,7 +56,7 @@ export function BillingClient({ totalOwned, allowed, continuumCredits, packs, ju
               )}
             </p>
             <p style={{ margin: 0, fontSize: 13, color: "#888" }}>
-              5 free + {continuumCredits} purchased
+              {FREE_CONTINUUM_LIMIT} free + {continuumCredits} purchased
               {remaining !== null && remaining > 0 && ` — ${remaining} remaining`}
             </p>
           </>
