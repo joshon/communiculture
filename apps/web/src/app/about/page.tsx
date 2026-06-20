@@ -68,7 +68,7 @@ export default function AboutPage() {
           </p>
           <p style={{ margin: "0 0 16px" }}>
             In 2002, the project was rebuilt at <A href="https://futurefarmers.com">Futurefarmers</A> with{" "}
-            <A href="https://futurefarmers.com">Amy Franceschini</A> and illustrator Brian Won. Built in a very early version of Flash and PHP.
+            <A href="https://futurefarmers.com">Amy Franceschini</A> and illustrator <A href="https://brianwon.com/about">Brian Won</A>. Built in a very early version of Flash and PHP.
           </p>
           <p style={{ margin: "0 0 16px" }}>
             <A href="https://vimeo.com/165099530">Watch the 2002 version on Vimeo →</A>
