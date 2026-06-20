@@ -45,6 +45,7 @@ export default async function BillingPage({ searchParams }: { searchParams: { su
           allowed={allowed}
           continuumCredits={user?.continuumCredits ?? 0}
           packs={PACKS}
+          justPurchased={!!searchParams.success}
         />
       </div>
     </div>

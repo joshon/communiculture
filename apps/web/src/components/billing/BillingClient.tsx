@@ -12,9 +12,10 @@ interface Props {
   allowed: number | null; // null = lifetime
   continuumCredits: number;
   packs: typeof PACKS;
+  justPurchased?: boolean;
 }
 
-export function BillingClient({ totalOwned, allowed, continuumCredits, packs }: Props) {
+export function BillingClient({ totalOwned, allowed, continuumCredits, packs, justPurchased }: Props) {
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleBuy = async (pack: string) => {
@@ -61,8 +62,30 @@ export function BillingClient({ totalOwned, allowed, continuumCredits, packs }: 
         )}
       </div>
 
+      {/* After a purchase: encourage creating, not buying again */}
+      {justPurchased && (
+        <div style={{ marginBottom: 32 }}>
+          <p style={{ fontFamily: INTER, fontSize: 15, color: "#1a1a1a", margin: "0 0 16px" }}>
+            {remaining !== null && remaining > 0
+              ? `You've got ${remaining} continuum${remaining === 1 ? "" : "s"} ready — go make one.`
+              : "All set — go make a continuum."}
+          </p>
+          <Link
+            href="/continuum/new"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 8,
+              background: BLUE, color: "white", textDecoration: "none",
+              fontFamily: INTER, fontSize: 16, fontWeight: 700,
+              padding: "12px 24px", borderRadius: 999,
+            }}
+          >
+            + new continuum
+          </Link>
+        </div>
+      )}
+
       {/* Pack cards */}
-      {!isLifetime && (
+      {!isLifetime && !justPurchased && (
         <>
           <p style={{ fontFamily: INTER, fontSize: 14, color: "#555", marginBottom: 16 }}>
             Buy more continuums — one-time purchase, never expires.
