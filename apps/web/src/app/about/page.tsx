@@ -74,8 +74,8 @@ export default function AboutPage() {
             <A href="https://vimeo.com/165099530">Watch the 2002 version on Vimeo →</A>
           </p>
           <p style={{ margin: 0 }}>
-            In 2026, Josh rebuilt communiculture from scratch with{" "}
-            <A href="https://claude.ai">Claude</A> — with a real-time, multiplayer web app with 3D avatars, live positioning, mobile support, all building on the original Futurefarmers design.
+            In 2026, Josh rebuilt Communiculture from scratch with{" "}
+            <A href="https://claude.ai">Claude</A> — a real-time, multiplayer web app with 3D Avatars (trying to keep the spirit of <A href="https://brianwon.com/about">Brian Won</A>&rsquo;s originals — apologies to the extent they don&rsquo;t, Brian!), live positioning, and mobile support, all building on the original Futurefarmers design with <A href="https://futurefarmers.com">Amy Franceschini</A>.
           </p>
         </Section>
 
