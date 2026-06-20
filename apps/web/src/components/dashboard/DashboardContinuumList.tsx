@@ -304,9 +304,10 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
             onFocus={() => setShowSuggestions(true)}
             style={{
-              width: "100%", boxSizing: "border-box", padding: "10px 36px 10px 14px",
+              width: "100%", boxSizing: "border-box", padding: "10px 36px 10px 2px",
               fontFamily: INTER, fontSize: 15, color: "#1a1a1a",
-              border: "1.5px solid #1a1a1a", outline: "none", background: "white", borderRadius: 0,
+              border: "none", borderBottom: `1.5px solid ${BLUE}`,
+              outline: "none", background: "transparent", borderRadius: 0,
             }}
           />
           {query && (
@@ -314,7 +315,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
           )}
         </div>
         {showSuggestions && suggestions.length > 0 && (
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: "1.5px solid #1a1a1a", borderTop: "none", zIndex: 100 }}>
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: `1.5px solid ${BLUE}`, borderTop: "none", zIndex: 100 }}>
             {suggestions.map(c => {
               const href = c.ownerId === userId || !c.shareToken ? `/continuum/${c.id}` : `/continuum/${c.id}?token=${c.shareToken}`;
               return (
