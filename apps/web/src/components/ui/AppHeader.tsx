@@ -32,7 +32,7 @@ export function AppHeader({ breadcrumbs = [], authenticated = true }: AppHeaderP
       fontFamily: INTER, fontSize: isMobile ? 14 : 16, color: "#0083FF",
       textDecoration: "none", whiteSpace: "nowrap",
     }}>
-      sign in →
+      Sign in →
     </Link>
   );
 

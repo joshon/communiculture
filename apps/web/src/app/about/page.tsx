@@ -93,10 +93,10 @@ export default function AboutPage() {
 
         <div style={{ borderTop: "1px solid #f0f0f0", paddingTop: 32, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16 }}>
           <Link href="/" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
-            ← back to communiculture
+            ← Back to Communiculture
           </Link>
           <Link href="/login" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
-            sign in and participate →
+            Sign in and participate →
           </Link>
         </div>
 

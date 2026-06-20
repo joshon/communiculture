@@ -106,7 +106,7 @@ export default function TermsPage() {
             Privacy Policy
           </Link>
           <Link href="/" style={{ fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "none" }}>
-            ← back to communiculture
+            ← Back to Communiculture
           </Link>
         </div>
 

@@ -188,7 +188,7 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
                     textDecoration: "underline", padding: 0,
                   }}
                 >
-                  use a different email
+                  Use a different email
                 </button>
               </p>
               <input

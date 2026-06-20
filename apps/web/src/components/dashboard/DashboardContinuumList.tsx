@@ -100,14 +100,14 @@ function ContinuumRow({
           </span>
           {canDelete && !confirming && (
             <button onClick={handleDelete} disabled={deleting} style={{ fontFamily: INTER, fontSize: 12, color: "#ccc", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>
-              {deleting ? "deleting…" : "delete"}
+              {deleting ? "Deleting…" : "Delete"}
             </button>
           )}
           {canDelete && confirming && !deleting && (
             <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
               <span style={{ fontFamily: INTER, fontSize: 11, color: "#888" }}>won&apos;t free a slot —</span>
-              <button onClick={handleDelete} style={{ fontFamily: INTER, fontSize: 12, color: "#cc2222", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>confirm</button>
-              <button onClick={e => { e.preventDefault(); setConfirming(false); }} style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: 0 }}>cancel</button>
+              <button onClick={handleDelete} style={{ fontFamily: INTER, fontSize: 12, color: "#cc2222", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}>Confirm</button>
+              <button onClick={e => { e.preventDefault(); setConfirming(false); }} style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Cancel</button>
             </span>
           )}
         </div>
@@ -398,7 +398,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             onClick={() => setShowArchived(v => !v)}
             style={{ fontFamily: INTER, fontSize: 13, color: "#aaa", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
           >
-            {showArchived ? "hide" : "show"} archived continuums ({archived.length})
+            {showArchived ? "Hide" : "Show"} archived continuums ({archived.length})
           </button>
           {showArchived && (
             <div style={{ marginTop: 16, opacity: 0.6 }}>

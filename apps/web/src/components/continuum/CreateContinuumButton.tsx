@@ -22,7 +22,7 @@ export function CreateContinuumButton({ canCreate, totalOwned, allowed }: Props)
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
         <p style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: 0 }}>
           {countLabel} —{" "}
-          <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>buy more</Link>
+          <Link href="/billing" style={{ color: BLUE, textDecoration: "underline" }}>Buy more</Link>
         </p>
       </div>
     );

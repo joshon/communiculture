@@ -367,9 +367,9 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
               textDecoration: "underline", padding: 0,
             }}
           >
-            reset
+            Reset
           </button>
-          <PillButton onClick={handleRandomize} variant="secondary" label="random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
+          <PillButton onClick={handleRandomize} variant="secondary" label="Random" fontSize={H(14)} style={{ paddingTop: 6, paddingBottom: 6, paddingLeft: 16, paddingRight: 16 }} />
         </div>
       </div>
     );

@@ -118,7 +118,7 @@ export function BillingClient({ totalOwned, allowed, continuumCredits, packs, ju
                     opacity: loading ? 0.6 : 1,
                   }}
                 >
-                  {loading === key ? "loading…" : "buy"}
+                  {loading === key ? "Loading…" : "Buy"}
                 </button>
               </div>
             ))}
