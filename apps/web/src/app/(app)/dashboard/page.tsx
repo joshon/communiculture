@@ -19,6 +19,7 @@ export default async function DashboardPage() {
     leftLabel: true,
     rightLabel: true,
     createdAt: true,
+    updatedAt: true,
     deletedAt: true,
     ownerId: true,
     visibility: true,
@@ -34,6 +35,7 @@ export default async function DashboardPage() {
       select: {
         position: true,
         userId: true,
+        updatedAt: true,
         user: { select: { isSynthetic: true } },
       },
     },
@@ -89,6 +91,12 @@ export default async function DashboardPage() {
       visibility: c.visibility,
       category: c.category ?? null,
       closedAt: c.closedAt?.toISOString() ?? null,
+      // Most recent signal of activity: continuum edits or anyone joining/moving.
+      lastActivityAt: new Date(Math.max(
+        c.createdAt.getTime(),
+        c.updatedAt.getTime(),
+        ...c.participants.map(p => p.updatedAt.getTime()),
+      )).toISOString(),
       shareToken: c.visibility === "PUBLIC_LINK" ? (c.shareToken ?? null) : null,
       participantCount: c._count.participants,
       myPosition: c.participants.find(p => p.userId === userId)?.position ?? null,

@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { ContinuumPreviewBar } from "./ContinuumPreviewBar";
+import { PixelBox } from "@/components/ui/PixelBox";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
 const AVATAR_SIZE = "52px";
 
-type SortKey = "popular" | "newest" | "oldest";
+type SortKey = "popular" | "active" | "created";
+type SortDir = "asc" | "desc";
 type FilterKey = "open" | "full" | "mine" | "in";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "popular", label: "Popular" },
-  { key: "newest", label: "Newest" },
-  { key: "oldest", label: "Oldest" },
+  { key: "active", label: "Last active" },
+  { key: "created", label: "Date created" },
 ];
 
 // Boolean filter chips. "mine"/"in" widen the scope to your own / participating
@@ -39,6 +41,7 @@ export interface ContinuumItem {
   visibility: string;
   category: string | null;
   closedAt: string | null;
+  lastActivityAt: string;
   shareToken: string | null;
   participantCount: number;
   myPosition: number | null;
@@ -134,14 +137,75 @@ function ContinuumRow({
   );
 }
 
+// Sort-criteria dropdown using the pixel menu box (same as the logo menu).
+function SortMenu({ value, onChange }: { value: SortKey; onChange: (k: SortKey) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const current = SORTS.find(s => s.key === value) ?? SORTS[0];
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  return (
+    <div ref={ref} style={{ position: "relative", display: "inline-block" }}>
+      <style>{`.cc-sort-mi{color:rgba(0,0,0,0.6)}.cc-sort-mi:hover{color:#000}`}</style>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "inline-flex", alignItems: "center", gap: 8,
+          fontFamily: INTER, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
+          border: "1.5px solid #ddd", borderRadius: 999, background: "white",
+          padding: "5px 12px", cursor: "pointer", whiteSpace: "nowrap",
+        }}
+      >
+        {current.label}
+        <svg width="11" height="7" viewBox="0 0 11 7" fill="none" aria-hidden>
+          <path d="M1 1l4.5 4.5L10 1" stroke="#0083FF" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 6, zIndex: 50, ["--tile" as keyof React.CSSProperties]: "2px" }}>
+          <PixelBox shadowDir="bottom-right" style={{ minWidth: 150 }}>
+            {SORTS.map(s => (
+              <button
+                key={s.key}
+                onClick={() => { onChange(s.key); setOpen(false); }}
+                className="cc-sort-mi"
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  fontFamily: INTER, fontSize: 14,
+                  color: s.key === value ? BLUE : undefined,
+                  fontWeight: s.key === value ? 600 : 400,
+                  background: "none", border: "none", cursor: "pointer",
+                  padding: "9px 16px", whiteSpace: "nowrap",
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </PixelBox>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DashboardContinuumList({ items: initialItems, archived, userId, thumbnailUrl }: Props) {
   const router = useRouter();
   const sp = useSearchParams();
 
   const [sort, setSort] = useState<SortKey>(() => {
     const s = sp.get("sort");
-    return s === "newest" || s === "oldest" ? s : "popular";
+    return s === "active" || s === "created" ? s : "popular";
   });
+  const [sortDir, setSortDir] = useState<SortDir>(() => (sp.get("dir") === "asc" ? "asc" : "desc"));
   const [filters, setFilters] = useState<Set<FilterKey>>(() => {
     const valid = new Set(FILTERS.map(f => f.key));
     return new Set((sp.get("f")?.split(",") ?? []).filter((k): k is FilterKey => valid.has(k as FilterKey)));
@@ -166,12 +230,13 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
   useEffect(() => {
     const p = new URLSearchParams();
     if (sort !== "popular") p.set("sort", sort);
+    if (sortDir !== "desc") p.set("dir", sortDir);
     if (filters.size) p.set("f", [...filters].join(","));
     if (topic) p.set("topic", topic);
     if (query.trim()) p.set("q", query.trim());
     const qs = p.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [sort, filters, topic, query]);
+  }, [sort, sortDir, filters, topic, query]);
 
   const toggleFilter = (key: FilterKey) => {
     setFilters(prev => {
@@ -221,12 +286,15 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       list = list.filter(c => c.title.toLowerCase().includes(q) || c.leftLabel.toLowerCase().includes(q) || c.rightLabel.toLowerCase().includes(q));
     }
 
-    list = [...list];
-    if (sort === "popular") list.sort((a, b) => b.participantCount - a.participantCount);
-    else if (sort === "newest") list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    else list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    // desc = "more / newer first"; the direction toggle flips it.
+    const dir = sortDir === "asc" ? 1 : -1;
+    const metric = (c: ContinuumItem) =>
+      sort === "popular" ? c.participantCount
+      : sort === "active" ? new Date(c.lastActivityAt).getTime()
+      : new Date(c.createdAt).getTime();
+    list = [...list].sort((a, b) => dir * (metric(a) - metric(b)));
     return list;
-  }, [items, sort, filters, topic, query, userId]);
+  }, [items, sort, sortDir, filters, topic, query, userId]);
 
   const showBar = filters.has("in");
   const emptyMsg = query.trim()
@@ -279,20 +347,23 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
 
       {/* Sort · Filters · Topic — wraps on narrow screens */}
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 24 }}>
-        <span style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", marginRight: 2 }}>sort</span>
-        {SORTS.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setSort(key)}
-            style={{
-              fontFamily: INTER, fontSize: 13, fontWeight: sort === key ? 600 : 400,
-              color: sort === key ? BLUE : "#888", background: "none", border: "none",
-              cursor: "pointer", padding: "2px 2px",
-            }}
-          >
-            {label}
-          </button>
-        ))}
+        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", marginRight: 2 }}>Sort by:</span>
+        <SortMenu value={sort} onChange={setSort} />
+        <button
+          onClick={() => setSortDir(d => (d === "asc" ? "desc" : "asc"))}
+          aria-label={sortDir === "desc" ? "Descending — switch to ascending" : "Ascending — switch to descending"}
+          title={sortDir === "desc" ? "Descending" : "Ascending"}
+          style={{
+            display: "inline-flex", alignItems: "center", justifyContent: "center",
+            border: "1.5px solid #ddd", borderRadius: 8, background: "white",
+            width: 30, height: 30, cursor: "pointer", padding: 0,
+          }}
+        >
+          <svg width="12" height="16" viewBox="0 0 12 16" fill="none" aria-hidden>
+            <path d="M3 5.5L6 2.5L9 5.5" stroke={sortDir === "asc" ? BLUE : "#bbb"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M3 10.5L6 13.5L9 10.5" stroke={sortDir === "desc" ? BLUE : "#bbb"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
         <span style={{ width: "1.5px", height: 18, background: "#e0e0e0", margin: "0 4px" }} />
 
