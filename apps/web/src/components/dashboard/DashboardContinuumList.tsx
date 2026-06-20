@@ -264,26 +264,16 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
   }, [items, query]);
 
   const filtered = useMemo(() => {
-    const wantMine = filters.has("mine");
-    const wantIn = filters.has("in");
+    const q = query.trim().toLowerCase();
 
-    // Scope: with no You-own/You-are-in chip this is a discovery feed (publicly
-    // listed only). Those chips reveal your own / participating continuums (any
-    // visibility) and AND together — "continuums that you own AND you're in".
+    // No chip = every continuum you can see; each chip narrows from there.
     let list = items.filter(c => {
-      if (wantMine || wantIn) {
-        if (wantMine && c.ownerId !== userId) return false;
-        if (wantIn && c.myPosition === null) return false;
-        return true;
-      }
-      return c.visibility === "PUBLIC";
+      if (filters.has("mine") && c.ownerId !== userId) return false;
+      if (filters.has("in") && c.myPosition === null) return false;
+      if (filters.has("open") && c.participantCount >= FULL_AT) return false;
+      if (q && !matchesQuery(c, q)) return false;
+      return true;
     });
-
-    if (filters.has("open")) list = list.filter(c => c.participantCount < FULL_AT);
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter(c => matchesQuery(c, q));
-    }
 
     // desc = "more / newer first"; the direction toggle flips it.
     const dir = sortDir === "asc" ? 1 : -1;
