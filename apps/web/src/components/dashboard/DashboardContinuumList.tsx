@@ -267,12 +267,14 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
     const wantMine = filters.has("mine");
     const wantIn = filters.has("in");
 
-    // Scope: with no mine/in filter this is a discovery feed (publicly listed
-    // only). "Mine"/"I'm in" widen it to your own / participating continuums
-    // (any visibility), unioned.
+    // Scope: with no You-own/You-are-in chip this is a discovery feed (publicly
+    // listed only). Those chips reveal your own / participating continuums (any
+    // visibility) and AND together — "continuums that you own AND you're in".
     let list = items.filter(c => {
       if (wantMine || wantIn) {
-        return (wantMine && c.ownerId === userId) || (wantIn && c.myPosition !== null);
+        if (wantMine && c.ownerId !== userId) return false;
+        if (wantIn && c.myPosition === null) return false;
+        return true;
       }
       return c.visibility === "PUBLIC";
     });
