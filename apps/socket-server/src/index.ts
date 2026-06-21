@@ -1,3 +1,6 @@
+// Must be the very first import: loads the root .env into process.env BEFORE
+// any env-dependent module (@communiculture/db, next-auth) is evaluated.
+import "./load-env";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import Redis from "ioredis";
