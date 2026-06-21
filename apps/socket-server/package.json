@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "tsx src/index.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -13,11 +13,11 @@
     "@socket.io/redis-adapter": "^8.3.0",
     "ioredis": "^5.3.2",
     "next-auth": "^4.24.7",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "tsx": "^4.11.0"
   },
   "devDependencies": {
     "@types/node": "^20",
-    "tsx": "^4.11.0",
     "typescript": "^5.4.0"
   }
 }
