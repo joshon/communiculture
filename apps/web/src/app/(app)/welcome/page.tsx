@@ -6,18 +6,28 @@ import { WelcomeClient } from "@/components/onboarding/WelcomeClient";
 
 export const dynamic = "force-dynamic";
 
-// First-run onboarding: capture a display name (required) and, optionally, a
-// password for faster future sign-ins. Skipped once the user has a name.
-export default async function WelcomePage() {
+// Only allow internal return paths (no open redirects).
+function safeNext(next?: string): string | null {
+  if (!next) return null;
+  if (next.startsWith("/") && !next.startsWith("//")) return next;
+  return null;
+}
+
+// First-run onboarding: capture a display name (required) and let the user see /
+// customise their avatar, then continue to wherever they were headed.
+export default async function WelcomePage({ searchParams }: { searchParams: { next?: string } }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { name: true, passwordHash: true },
+    select: { name: true, avatarConfig: true },
   });
 
-  if (user?.name?.trim()) redirect("/dashboard");
+  const next = safeNext(searchParams.next) ?? "/dashboard";
 
-  return <WelcomeClient email={session.user.email ?? ""} hasPassword={!!user?.passwordHash} />;
+  // Already onboarded → straight to the destination.
+  if (user?.name?.trim()) redirect(next);
+
+  return <WelcomeClient next={next} initialAvatarConfig={user?.avatarConfig ?? null} />;
 }

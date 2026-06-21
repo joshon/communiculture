@@ -76,6 +76,16 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     if (banned) notFound();
   }
 
+  // Signed-in but not onboarded (no display name yet) → send them through the
+  // focused onboarding (name + avatar) first, then back to this continuum.
+  if (userId) {
+    const me = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    if (!me?.name?.trim()) {
+      const back = `/continuum/${params.id}${shareToken ? `?token=${encodeURIComponent(shareToken)}` : ""}`;
+      redirect(`/welcome?next=${encodeURIComponent(back)}`);
+    }
+  }
+
   const [currentUser, participants, messages, owner] = await Promise.all([
     userId
       ? prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } })

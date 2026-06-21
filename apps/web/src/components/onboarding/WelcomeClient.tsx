@@ -1,55 +1,99 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
+import { AvatarEditor } from "@/components/avatar/AvatarEditor";
+import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
+import { useAvatarStore } from "@/store/avatarStore";
+import { PillButton } from "@/components/ui/PillButton";
 
-const BLUE = "#0083FF";
 const INTER = "Inter, sans-serif";
 
-const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box",
-  border: "1.5px solid #AAAAAA", borderRadius: 10,
-  padding: "12px 16px",
-  fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)",
-  color: "#1a1a1a", background: "white", outline: "none",
-};
+interface V2Config {
+  format: "v2";
+  colors: Record<AvatarPart, string>;
+  variants: Record<AvatarPart, number>;
+}
 
-export function WelcomeClient({ email, hasPassword }: { email: string; hasPassword: boolean }) {
+function parseAvatarConfig(raw: unknown): { colors: Record<AvatarPart, string>; variants: Record<AvatarPart, number> } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+  if (obj.format === "v2" && obj.colors && obj.variants) {
+    return { colors: obj.colors as V2Config["colors"], variants: obj.variants as V2Config["variants"] };
+  }
+  return null;
+}
+
+export function WelcomeClient({ next, initialAvatarConfig }: { next: string; initialAvatarConfig: unknown }) {
   const router = useRouter();
   const { update } = useSession();
+  const setEditingConfig = useAvatarStore((s) => s.setEditingConfig);
+  const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
+  const editingColors = useAvatarStore((s) => s.editingColors);
+  const editingVariants = useAvatarStore((s) => s.editingVariants);
+
   const [name, setName] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const parsed = parseAvatarConfig(initialAvatarConfig);
+  const initialColors = editingColors ?? parsed?.colors;
+  const initialVariants = editingVariants ?? parsed?.variants;
+  const autoSpin = !parsed && !editingColors;
+
+  useEffect(() => {
+    fetch("/api/dev/avatar-library")
+      .then((r) => r.json())
+      .then((d: { library?: AvatarVariantLibrary } | null) => { if (d?.library) setLibrary(d.library); })
+      .catch(() => {});
+  }, []);
+
+  const handleAvatarSave = useCallback(
+    async (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => {
+      setPendingCapture({ colors, variants });
+      const avatarConfig: V2Config = { format: "v2", colors, variants };
+      await fetch("/api/users/avatar", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarConfig }),
+      }).catch(() => {});
+    },
+    [setPendingCapture]
+  );
+
+  const handleAvatarChange = useCallback(
+    (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => setEditingConfig(colors, variants),
+    [setEditingConfig]
+  );
+
+  const continueLabel = next.startsWith("/continuum/") ? "Continue to the continuum" : "Continue";
+
+  async function handleContinue() {
+    if (loading) return;
     const n = name.trim();
     if (!n) { setError("please choose a name"); return; }
-    if (password && password.length < 8) { setError("password must be at least 8 characters"); return; }
-
     setError(""); setLoading(true);
     try {
+      // Make sure the latest avatar is saved (in case the editor's debounce
+      // hasn't fired yet).
+      if (editingColors && editingVariants) {
+        await fetch("/api/users/avatar", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarConfig: { format: "v2", colors: editingColors, variants: editingVariants } }),
+        }).catch(() => {});
+      }
       const res = await fetch("/api/users/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: n }),
       });
       if (!res.ok) { setError("something went wrong — try again"); return; }
-
-      if (password) {
-        const pw = await fetch("/api/users/password", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password }),
-        });
-        if (!pw.ok) { setError("couldn't save your password — try a different one"); return; }
-      }
-
-      await update();  // refresh the session so the new name shows immediately
-      router.push("/dashboard");
+      await update(); // refresh session so the new name/onboarding state applies
+      router.push(next);
     } catch {
       setError("something went wrong — try again");
     } finally {
@@ -58,78 +102,68 @@ export function WelcomeClient({ email, hasPassword }: { email: string; hasPasswo
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "white" }}>
-      <div style={{ position: "fixed", top: 24, left: "clamp(16px, 4vw, 32px)", zIndex: 10 }}>
-        <Image src="/logo.svg" alt="communi*culture" width={208} height={41}
-          style={{ width: "clamp(140px, 30vw, 208px)", height: "auto", display: "block" }} priority />
+    <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: "white", overflow: "hidden" }}>
+      {/* Minimal top — logo only, no navigation */}
+      <div style={{ padding: "16px clamp(16px, 4vw, 32px) 4px", flexShrink: 0 }}>
+        <Image
+          src="/logo.svg"
+          alt="communi*culture"
+          width={361}
+          height={65}
+          priority
+          style={{ width: "clamp(120px, 20vw, 180px)", height: "auto", display: "block" }}
+        />
       </div>
 
-      <main style={{
-        display: "flex", justifyContent: "center", alignItems: "flex-start",
-        paddingTop: "clamp(100px, 16vw, 140px)", paddingBottom: 80,
-        paddingLeft: "clamp(16px, 5vw, 48px)", paddingRight: "clamp(16px, 5vw, 48px)",
-      }}>
-        <div style={{ width: "100%", maxWidth: 400 }}>
-          <div style={{ fontFamily: INTER, fontSize: "clamp(18px, 4vw, 22px)", fontWeight: 500, color: "#1a1a1a", marginBottom: 8 }}>
-            Welcome to communiculture
+      {/* Name (mandatory) */}
+      <div style={{ width: "100%", maxWidth: 520, margin: "0 auto", padding: "8px clamp(16px, 4vw, 32px) 0", flexShrink: 0 }}>
+        <h1 style={{ fontFamily: INTER, fontSize: "clamp(20px, 4vw, 26px)", fontWeight: 700, color: "#1a1a1a", margin: "0 0 4px" }}>
+          Set up your profile
+        </h1>
+        <p style={{ fontFamily: INTER, fontSize: 14, color: "#888", margin: "0 0 14px" }}>
+          Choose a name and make your avatar your own.
+        </p>
+        <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
+          Your name
+        </label>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Josh"
+          autoFocus
+          maxLength={60}
+          style={{
+            width: "100%", boxSizing: "border-box", border: "1.5px solid #AAAAAA", borderRadius: 10,
+            padding: "12px 16px", fontFamily: INTER, fontSize: 16, color: "#1a1a1a", outline: "none",
+          }}
+        />
+      </div>
+
+      {/* Avatar editor fills the middle */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 10 }}>
+        {library ? (
+          <AvatarEditor
+            library={library}
+            initialColors={initialColors}
+            initialVariants={initialVariants}
+            autoSpin={autoSpin}
+            onSave={handleAvatarSave}
+            onChange={handleAvatarChange}
+          />
+        ) : (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
+            loading…
           </div>
-          <p style={{ fontFamily: INTER, fontSize: 14, color: "#9a9a9a", margin: "0 0 28px" }}>
-            Signed in as {email}. Pick a name to show on the continuums.
-          </p>
+        )}
+      </div>
 
-          <form onSubmit={handleSubmit}>
-            <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
-              Your name
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Josh On"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoComplete="name"
-              autoFocus
-              style={{ ...inputStyle, marginBottom: 20 }}
-            />
-
-            {!hasPassword && (
-              <>
-                <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
-                  Password <span style={{ color: "#aaa" }}>— optional</span>
-                </label>
-                <input
-                  type="password"
-                  placeholder="Set one to log in without email next time"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="new-password"
-                  style={{ ...inputStyle, marginBottom: 6 }}
-                />
-                <p style={{ fontFamily: INTER, fontSize: 12, lineHeight: 1.5, color: "#aaa", margin: "0 0 20px" }}>
-                  Skip this and we&rsquo;ll always email you a sign-in link instead.
-                </p>
-              </>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                width: "100%", border: "none", borderRadius: 10, padding: "13px 20px",
-                fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)", fontWeight: 600,
-                color: "white", background: BLUE,
-                cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1,
-              }}
-            >
-              {loading ? "…" : <>Continue <span aria-hidden>→</span></>}
-            </button>
-
-            {error && (
-              <p style={{ fontFamily: INTER, color: "#c00", fontSize: 14, margin: "10px 0 0" }}>{error}</p>
-            )}
-          </form>
+      {/* CTA */}
+      <div style={{ padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+        {error && <span style={{ fontFamily: INTER, color: "#c00", fontSize: 13 }}>{error}</span>}
+        <div style={{ marginLeft: "auto" }}>
+          <PillButton variant="primary" label={loading ? "…" : continueLabel} onClick={handleContinue} />
         </div>
-      </main>
+      </div>
     </div>
   );
 }
