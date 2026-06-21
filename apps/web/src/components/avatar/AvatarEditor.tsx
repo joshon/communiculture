@@ -289,19 +289,6 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
 
   const { ref: canvasContainerRef, zoom: canvasZoom, width: canvasW, height: canvasH } = useEditorCanvasSize();
 
-  const avatarRenderer = (
-    <AvatarRenderer
-      library={library}
-      variantIndices={variants}
-      colors={colors}
-      selectedPart={selectedPart}
-      onPartClick={handlePartClick}
-      showOutline={true}
-      showLabels={true}
-      spinning={isSpinning}
-    />
-  );
-
   const desktopAvatarRenderer = (
     <AvatarRenderer
       library={library}
@@ -341,8 +328,12 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
         </div>
 
         {/* 3D canvas — capped at 60svh so palette+buttons always have room */}
-        <div style={{ flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}>
-          {avatarRenderer}
+        {/* Measure the actual avatar area and fit the avatar to it (via fixedZoom)
+            so it scales down in constrained embeds like onboarding instead of
+            overflowing. On the full-screen editor the area is tall, so this is a
+            no-op. */}
+        <div ref={canvasContainerRef} style={{ flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}>
+          {desktopAvatarRenderer}
         </div>
 
         {/* Color palette — wider rows */}
