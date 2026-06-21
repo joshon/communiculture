@@ -1023,6 +1023,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
   const handlePositionCommit = useCallback(
     (posX: number, posZ: number) => {
+      // Broadcast the placement immediately. This is the ONLY live signal others
+      // get for a first-time placement: the pre-join drag commits through here
+      // and never fires onPositionChange (which is what emits during later
+      // moves). Without this, dragging yourself in is invisible to other tabs.
+      getSocket(sessionToken).emit("position:update", { continuumId: continuum.id, position: posX, positionZ: posZ });
       if (commitTimer.current) clearTimeout(commitTimer.current);
       commitTimer.current = setTimeout(async () => {
         await fetch(`/api/continuums/${continuum.id}/position`, {
@@ -1044,7 +1049,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         }
       }, 300);
     },
-    [continuum.id, currentUserId, addParticipant, session, currentUserAvatarConfig]
+    [continuum.id, sessionToken, currentUserId, addParticipant, session, currentUserAvatarConfig]
   );
 
   // ── comment handler ──
