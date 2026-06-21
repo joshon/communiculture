@@ -1,8 +1,12 @@
-[build]
-dockerfilePath = "apps/socket-server/Dockerfile"
-buildCommand = ""
-
+# Built with Railpack (builder set on the service). The build/start commands
+# come from the RAILPACK_BUILD_CMD / RAILPACK_START_CMD service variables:
+#   build: pnpm --filter @communiculture/db db:generate && pnpm --filter @communiculture/socket-server build
+#   start: pnpm --filter @communiculture/socket-server start   (runs via tsx)
+# No Dockerfile: the repo's Dockerfiles assume a repo-root build context, but
+# this service's root directory is /apps/socket-server, so a Dockerfile build
+# can't reach sibling packages (packages/db). Railpack handles the pnpm
+# workspace correctly.
 [deploy]
-startCommand = "node apps/socket-server/dist/index.js"
+startCommand = "pnpm --filter @communiculture/socket-server start"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
