@@ -66,6 +66,8 @@ interface Props {
   participants: ParticipantData[];
   messages: MessageData[];
   sessionToken: string;
+  /** False for anonymous viewers — render read-only with an "add yourself" CTA. */
+  authenticated?: boolean;
   currentUserAvatarConfig: AvatarConfig;
   seeding?: boolean;
 }
@@ -840,8 +842,11 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
 
 // ─── main view ────────────────────────────────────────────────────────────────
 
-export function ContinuumView({ continuum, participants, messages, sessionToken, currentUserAvatarConfig, seeding: initialSeeding }: Props) {
+export function ContinuumView({ continuum, participants, messages, sessionToken, authenticated = true, currentUserAvatarConfig, seeding: initialSeeding }: Props) {
   const { data: session } = useSession();
+  // Anonymous viewers (server says not authenticated, or no client session):
+  // read-only view with an "add yourself" CTA, no socket, no placement.
+  const isAnon = !authenticated;
   const {
     setParticipants, setConnected, updatePositionXZ, updateComment,
     addParticipant, removeParticipant, setContinuumId, participants: storeParticipants,
@@ -953,6 +958,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         comment: p.comment,
       }))
     );
+
+    // Anonymous viewers get a read-only snapshot — no socket (they can't auth).
+    if (!sessionToken) return;
 
     const socket = getSocket(sessionToken);
 
@@ -1124,11 +1132,14 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     }).catch(() => { /* non-fatal — local clear already applied */ });
   }, [continuum.id, updateComment]);
 
-  // ── share modal ──
+  // ── share modal ── anyone can share. A publicly-listed continuum shares its
+  // plain URL; otherwise include the share token so the recipient can view.
   const [showShareModal, setShowShareModal] = useState(false);
-  const shareUrl = continuum.shareToken
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/continuum/${continuum.id}?token=${continuum.shareToken}`
-    : null;
+  const shareOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const shareUrl =
+    continuum.visibility === "PUBLIC"
+      ? `${shareOrigin}/continuum/${continuum.id}`
+      : `${shareOrigin}/continuum/${continuum.id}${continuum.shareToken ? `?token=${continuum.shareToken}` : ""}`;
 
   // ── export menu ──
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -1152,7 +1163,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     setSelectedUserId(currentUserId); // open comment bubble automatically
   }, [handlePositionCommit, currentUserId]);
 
-  if (!session) return null;
+  // Authenticated pages wait for the client session to load; anonymous viewers
+  // render immediately (their session is null by design).
+  if (!isAnon && !session) return null;
 
   const breadcrumbs = [
     { label: "home", href: "/dashboard" },
@@ -1162,7 +1175,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
   return (
     <div style={{ minHeight: "100dvh", background: "white", display: "flex", flexDirection: "column" }}>
-      <AppHeader breadcrumbs={breadcrumbs} />
+      <AppHeader breadcrumbs={breadcrumbs} authenticated={!isAnon} />
 
       <main style={{
         flex: 1,
@@ -1198,6 +1211,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             selectedUserId={selectedUserId}
             onSelectUser={handleSelectUser}
             isInCrowd={isInCrowd}
+            readOnly={isAnon}
             onPreJoinCommit={handlePreJoinCommit}
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
@@ -1245,6 +1259,23 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           display: "flex", justifyContent: "flex-end", alignItems: "center",
           gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
+          {/* Anonymous viewers: prompt to sign up, then return to this continuum */}
+          {isAnon && (
+            <div style={{ marginRight: "auto" }}>
+              <PillButton
+                variant="primary"
+                label="Add yourself to the continuum"
+                onClick={() => {
+                  const back =
+                    typeof window !== "undefined"
+                      ? window.location.pathname + window.location.search
+                      : `/continuum/${continuum.id}`;
+                  window.location.href = `/login?callbackUrl=${encodeURIComponent(back)}`;
+                }}
+              />
+            </div>
+          )}
+
           {/* Moderation toggle — owners/admins only, off by default. When on,
               a "Delete this comment" action appears on others' bubbles. */}
           {canModerate && (

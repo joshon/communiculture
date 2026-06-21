@@ -19,31 +19,25 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
   const isSeeding = searchParams.seeding === "1";
   const shareToken = searchParams.token;
 
-  // Send anonymous visitors to log in, then back to this exact link (so shared
-  // links work instead of 404ing).
+  // Continuums are publicly viewable — anonymous visitors are allowed for
+  // listed/link/password continuums. userId is null for anonymous viewers.
   const session = await getServerSession(authOptions);
-  if (!session) {
-    const back = `/continuum/${params.id}${shareToken ? `?token=${encodeURIComponent(shareToken)}` : ""}`;
-    redirect(`/login?callbackUrl=${encodeURIComponent(back)}`);
-  }
+  const userId = session?.user?.id ?? null;
 
-  const userId = session.user.id;
-
-  // Access control
   const continuum = await prisma.continuum.findUnique({
     where: { id: params.id },
     include: { team: { include: { members: true } } },
   });
-
   if (!continuum) notFound();
 
-  const isOwner = continuum.ownerId === userId;
-  const isTeamMember = continuum.team?.members.some((m) => m.userId === userId);
+  const isOwner = !!userId && continuum.ownerId === userId;
+  const isTeamMember = !!userId && !!continuum.team?.members.some((m) => m.userId === userId);
   // Already placed themselves here → no gate, regardless of visibility.
-  const isParticipant = !!(await prisma.continuumParticipant.findUnique({
-    where: { continuumId_userId: { continuumId: params.id, userId } },
-    select: { id: true },
-  }).catch(() => null));
+  const isParticipant =
+    !!userId &&
+    !!(await prisma.continuumParticipant
+      .findUnique({ where: { continuumId_userId: { continuumId: params.id, userId } }, select: { id: true } })
+      .catch(() => null));
   const tokenMatches = !!shareToken && shareToken === continuum.shareToken;
   const publiclyListed = continuum.visibility === "PUBLIC"; // anyone can view a listed continuum
   const publicLinkOk = continuum.visibility === "PUBLIC_LINK" && tokenMatches;
@@ -63,13 +57,19 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     if (showPasswordGate) {
       return <ContinuumPasswordGate continuumId={continuum.id} token={shareToken ?? ""} title={continuum.title} />;
     }
+    // Anonymous visitor hitting a private/team continuum → let them sign in and
+    // come back (membership may grant access).
+    if (!userId) {
+      const back = `/continuum/${params.id}${shareToken ? `?token=${encodeURIComponent(shareToken)}` : ""}`;
+      redirect(`/login?callbackUrl=${encodeURIComponent(back)}`);
+    }
     notFound();
   }
 
   // Banned from this continuum by the owner/admin → no access (owner & site
   // admins are exempt so they can still moderate).
-  const viewerIsAdmin = isAdminEmail(session.user.email);
-  if (!isOwner && !viewerIsAdmin) {
+  const viewerIsAdmin = isAdminEmail(session?.user?.email);
+  if (userId && !isOwner && !viewerIsAdmin) {
     const banned = await prisma.continuumBan
       .findUnique({ where: { continuumId_userId: { continuumId: params.id, userId } }, select: { id: true } })
       .catch(() => null);
@@ -77,7 +77,9 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
   }
 
   const [currentUser, participants, messages, owner] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } }),
+    userId
+      ? prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } })
+      : Promise.resolve(null),
     prisma.continuumParticipant.findMany({
       where: { continuumId: params.id },
       include: {
@@ -96,12 +98,14 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     }),
   ]);
 
-  // Get JWT token for socket auth (server-side)
+  // JWT token for socket auth — only signed-in viewers get a live socket;
+  // anonymous viewers see a read-only snapshot.
   const cookieStore = cookies();
-  const sessionToken =
-    cookieStore.get("next-auth.session-token")?.value ??
-    cookieStore.get("__Secure-next-auth.session-token")?.value ??
-    "";
+  const sessionToken = userId
+    ? cookieStore.get("next-auth.session-token")?.value ??
+      cookieStore.get("__Secure-next-auth.session-token")?.value ??
+      ""
+    : "";
 
   // Hidden comments (by AI moderation, or deleted by the owner/admin) are
   // blanked for everyone — a deleted comment should be gone for all viewers,
@@ -116,6 +120,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
       participants={safeParticipants as any}
       messages={messages as any}
       sessionToken={sessionToken}
+      authenticated={!!userId}
       currentUserAvatarConfig={(currentUser?.avatarConfig ?? {}) as any}
       seeding={isSeeding}
     />

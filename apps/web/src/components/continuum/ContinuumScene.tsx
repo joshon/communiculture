@@ -574,6 +574,7 @@ interface SceneProps {
   selectedUserId: string | null;
   onSelectUser: (uid: string | null) => void;
   isInCrowd: boolean;
+  readOnly?: boolean;
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
@@ -586,7 +587,7 @@ function CrowdScene({
   currentUserId, currentUserAvatarConfig,
   localPosition, localPositionZ,
   selectedUserId, onSelectUser,
-  isInCrowd, onPreJoinCommit,
+  isInCrowd, readOnly, onPreJoinCommit,
   onPositionChange, onPositionCommit,
   botConfig,
   onHeadScreen,
@@ -796,7 +797,7 @@ function CrowdScene({
         );
       })}
 
-      {!isInCrowd && (
+      {!isInCrowd && !readOnly && (
         <>
           {/* Layer order: crowd (< 4N) < platform bar < the user's own avatar,
               so the bar sits above the crowd but the user stands on top of it. */}
@@ -831,6 +832,7 @@ interface Props {
   selectedUserId: string | null;
   onSelectUser: (uid: string | null) => void;
   isInCrowd: boolean;
+  readOnly?: boolean;
   onPreJoinCommit: (posX: number, posZ: number) => void;
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
@@ -844,7 +846,7 @@ export function ContinuumScene({
   currentUserId, currentUserAvatarConfig,
   localPosition, localPositionZ,
   selectedUserId, onSelectUser,
-  isInCrowd, onPreJoinCommit,
+  isInCrowd, readOnly, onPreJoinCommit,
   onPositionChange, onPositionCommit,
   onHeadScreen, isSeeding,
 }: Props) {
@@ -884,6 +886,7 @@ export function ContinuumScene({
             selectedUserId={selectedUserId}
             onSelectUser={onSelectUser}
             isInCrowd={isInCrowd}
+            readOnly={readOnly}
             onPreJoinCommit={onPreJoinCommit}
             onPositionChange={onPositionChange}
             onPositionCommit={onPositionCommit}
