@@ -947,6 +947,24 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     socket.on("user:leave", ({ userId }: { userId: string }) => {
       removeParticipant(userId);
     });
+    // Roster of who's already connected when we join — add anyone we don't
+    // already know (placed users come from the DB and keep their position).
+    socket.on("presence:sync", ({ users }: { users: Array<{ userId: string; userName: string; userImage: string; avatarConfig?: AvatarConfig }> }) => {
+      const existing = useContinuumStore.getState().participants;
+      users.forEach((u) => {
+        if (!u.userId || u.userId === currentUserId || existing[u.userId]) return;
+        addParticipant({
+          userId: u.userId,
+          name: u.userName,
+          image: u.userImage,
+          avatarConfig: (u.avatarConfig ?? {}) as AvatarConfig,
+          isSynthetic: false,
+          position: 50,
+          positionZ: 50,
+          comment: null,
+        });
+      });
+    });
     // Live comments — show others' comments as they're written, no refresh.
     socket.on("comment:broadcast", ({ userId, comment }: { userId: string; comment: string }) => {
       updateComment(userId, comment);
@@ -959,6 +977,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       socket.off("position:broadcast");
       socket.off("user:join");
       socket.off("user:leave");
+      socket.off("presence:sync");
       socket.off("comment:broadcast");
     };
   }, [continuum.id]);

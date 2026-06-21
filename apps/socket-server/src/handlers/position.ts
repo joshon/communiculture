@@ -1,8 +1,27 @@
 import type { Server, Socket } from "socket.io";
 
 export function registerPositionHandlers(io: Server, socket: Socket) {
-  socket.on("join:continuum", (continuumId: string) => {
+  socket.on("join:continuum", async (continuumId: string) => {
     socket.join(continuumId);
+
+    // Sync the joiner with everyone already connected here so the crowd matches
+    // regardless of who opened first (deduped by user — multiple tabs collapse).
+    try {
+      const sockets = await io.in(continuumId).fetchSockets();
+      const seen = new Set<string>();
+      const users = sockets
+        .filter((s) => s.id !== socket.id && s.data.userId && !seen.has(s.data.userId) && seen.add(s.data.userId))
+        .map((s) => ({
+          userId: s.data.userId,
+          userName: s.data.userName,
+          userImage: s.data.userImage,
+          avatarConfig: s.data.avatarConfig ?? {},
+        }));
+      socket.emit("presence:sync", { continuumId, users });
+    } catch {
+      /* non-fatal */
+    }
+
     socket.to(continuumId).emit("user:join", {
       userId: socket.data.userId,
       userName: socket.data.userName,
