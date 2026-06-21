@@ -10,7 +10,6 @@ import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
 import { AppHeader } from "@/components/ui/AppHeader";
-import { ReportModal, type ReportTarget } from "./ReportModal";
 import { PillButton } from "@/components/ui/PillButton";
 import { SpeechBubble } from "@/components/ui/SpeechBubble";
 import { type AvatarConfig } from "@/store/avatarStore";
@@ -676,12 +675,11 @@ interface BubbleProps {
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
   onRemove?: () => void;
-  reportMode?: boolean;
-  continuumId?: string;
-  onReport?: (t: ReportTarget) => void;
+  canModerate?: boolean;
+  onDeleteComment?: () => void;
 }
 
-function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit, onRemove, reportMode, continuumId, onReport }: BubbleProps) {
+function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit, onRemove, canModerate, onDeleteComment }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -825,18 +823,12 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
             {name && !userId && (
               <div style={{ fontSize: 12, color: "#888", textAlign: "right" }}>— {name}</div>
             )}
-            {reportMode && userId && onReport && (
-              <div style={{ display: "flex", gap: 12, marginTop: 8, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>
-                {comment && (
-                  <button
-                    onClick={() => onReport({ targetType: "COMMENT", targetId: userId, continuumId, label: `Comment by ${name ?? "this person"}` })}
-                    style={{ fontFamily: INTER, fontSize: 11, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
-                  >⚑ Report comment</button>
-                )}
+            {canModerate && comment && onDeleteComment && (
+              <div style={{ marginTop: 8, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>
                 <button
-                  onClick={() => onReport({ targetType: "USER", targetId: userId, continuumId, label: name ?? "this person" })}
+                  onClick={() => { if (confirm("Delete this comment? It will be removed for everyone.")) onDeleteComment(); }}
                   style={{ fontFamily: INTER, fontSize: 11, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
-                >⚑ Report person</button>
+                >Delete this comment</button>
               </div>
             )}
           </>
@@ -928,10 +920,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const selectedParticipant = selectedUserId ? storeParticipants[selectedUserId] : null;
 
-  // Per-viewer "report mode": when on, flag affordances appear on others'
-  // comments/avatars. Off by default so flagging isn't ever-present.
-  const [reportMode, setReportMode] = useState(false);
-  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
+  // The continuum's owner can delete (hide) other people's comments. Site
+  // admins can too; everyone else relies on the automatic AI moderation.
+  const canModerate =
+    continuum.ownerId === currentUserId ||
+    !!(session?.user as { isAdmin?: boolean } | undefined)?.isAdmin;
 
   // Styling for users who are *connected* but haven't placed themselves yet.
   // We remember their avatar config here (from join/presence) but DON'T render
@@ -1114,6 +1107,18 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     await fetch(`/api/continuums/${continuum.id}/position`, { method: "DELETE" });
   }, [continuum.id, sessionToken, currentUserId, removeParticipant]);
 
+  // ── owner/admin: delete (hide) someone else's comment on this continuum ──
+  const handleDeleteComment = useCallback(async (targetUserId: string) => {
+    // Optimistically clear it locally; the server hides it (commentHidden) so it
+    // stays gone for everyone on reload.
+    updateComment(targetUserId, null);
+    await fetch("/api/admin/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "hide_comment", continuumId: continuum.id, userId: targetUserId }),
+    }).catch(() => { /* non-fatal — local clear already applied */ });
+  }, [continuum.id, updateComment]);
+
   // ── share modal ──
   const [showShareModal, setShowShareModal] = useState(false);
   const shareUrl = continuum.shareToken
@@ -1210,17 +1215,12 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
                 arrowCenterY={arrowCenterY}
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
                 onRemove={selectedUserId === currentUserId ? handleRemoveSelf : undefined}
-                reportMode={reportMode && selectedUserId !== currentUserId}
-                continuumId={continuum.id}
-                onReport={setReportTarget}
+                canModerate={canModerate && selectedUserId !== currentUserId}
+                onDeleteComment={selectedUserId && selectedUserId !== currentUserId ? () => handleDeleteComment(selectedUserId) : undefined}
               />
             );
           })()}
         </div>
-
-        {reportTarget && (
-          <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />
-        )}
 
         {/* Position labels */}
         <div style={{
@@ -1240,27 +1240,6 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           display: "flex", justifyContent: "flex-end", alignItems: "center",
           gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
-          {/* Report mode toggle — when on, flag links appear on others' bubbles */}
-          {reportMode && (
-            <button
-              onClick={() => setReportTarget({ targetType: "CONTINUUM", targetId: continuum.id, continuumId: continuum.id, label: `Continuum: "${continuum.title}"` })}
-              style={{ fontFamily: INTER, fontSize: 14, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", marginRight: -8 }}
-            >
-              ⚑ Report this continuum
-            </button>
-          )}
-          <button
-            onClick={() => setReportMode((v) => !v)}
-            style={{
-              fontFamily: INTER, fontSize: 16, color: reportMode ? "#c00" : "#999",
-              fontWeight: reportMode ? 600 : 400,
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-            }}
-            title="Turn on to flag comments, people, or this continuum"
-          >
-            {reportMode ? "Done reporting" : "Report"}
-          </button>
-
           {/* Export button + dropdown */}
           <div style={{ position: "relative" }}>
             <button

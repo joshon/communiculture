@@ -46,8 +46,9 @@ export async function POST(req: Request) {
       type,
       message: message.slice(0, MAX_LEN),
       userId,
-      // Only keep a contact email for anonymous submissions.
-      email: userId ? null : email || null,
+      // Optional reply-to email the submitter chose to share (logged in or not).
+      // No promise of a response — it just gives us the option to reply.
+      email: email || null,
     },
   });
 

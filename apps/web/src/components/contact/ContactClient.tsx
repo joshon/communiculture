@@ -29,7 +29,7 @@ export function ContactClient({ loggedIn }: { loggedIn: boolean }) {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, message, email: loggedIn ? undefined : email || undefined }),
+        body: JSON.stringify({ type, message, email: email.trim() || undefined }),
       });
       if (res.ok) { setSent(true); return; }
       if (res.status === 429) setError("you've sent a few already — please try again later");
@@ -50,13 +50,14 @@ export function ContactClient({ loggedIn }: { loggedIn: boolean }) {
         Contact
       </h1>
       <p style={{ fontFamily: INTER, fontSize: 15, color: "#888", margin: "0 0 28px", lineHeight: 1.6 }}>
-        A bug, an idea, or anything else — we read everything.
+        A bug, an idea, or anything else — drop it here. It&rsquo;s a small team, so we
+        can&rsquo;t promise we&rsquo;ll read or reply to everything.
       </p>
 
       {sent ? (
         <div style={{ border: `1.5px solid ${BLUE}`, borderRadius: 10, padding: "18px 20px" }}>
           <p style={{ fontFamily: INTER, color: BLUE, fontSize: 15, lineHeight: 1.6, margin: "0 0 10px" }}>
-            Thanks — we&rsquo;ve got it.
+            Thanks — got it.{email.trim() ? " If we follow up, it'll be to that email." : ""}
           </p>
           <Link href="/dashboard" style={{ fontFamily: INTER, fontSize: 14, color: BLUE, textDecoration: "underline" }}>
             Back to communiculture
@@ -108,25 +109,21 @@ export function ContactClient({ loggedIn }: { loggedIn: boolean }) {
             }}
           />
 
-          {!loggedIn && (
-            <>
-              <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
-                Email <span style={{ color: "#aaa" }}>— optional, if you&rsquo;d like a reply</span>
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                autoComplete="email"
-                style={{
-                  width: "100%", boxSizing: "border-box", padding: "12px 14px",
-                  fontFamily: INTER, fontSize: 15, color: "#1a1a1a",
-                  border: "1.5px solid #AAAAAA", borderRadius: 10, outline: "none", marginBottom: 20,
-                }}
-              />
-            </>
-          )}
+          <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
+            Email <span style={{ color: "#aaa" }}>— optional. Leave it if you&rsquo;d like the chance of a reply (no promises).</span>
+          </label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+            style={{
+              width: "100%", boxSizing: "border-box", padding: "12px 14px",
+              fontFamily: INTER, fontSize: 15, color: "#1a1a1a",
+              border: "1.5px solid #AAAAAA", borderRadius: 10, outline: "none", marginBottom: 20,
+            }}
+          />
 
           <button
             type="submit"

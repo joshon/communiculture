@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { AppHeader } from "@/components/ui/AppHeader";
 
 const BLUE = "#0083FF";
@@ -12,24 +11,15 @@ interface Feedback {
   id: string; type: string; message: string; status: string;
   email: string | null; userName: string | null; userEmail: string | null; createdAt: string;
 }
-interface Report {
-  id: string; targetType: string; targetId: string; continuumId: string | null;
-  category: string; note: string | null; snapshot: string | null; status: string;
-  reporterName: string | null; reporterEmail: string | null; resolvedBy: string | null; createdAt: string;
-}
 interface Action {
   id: string; adminEmail: string; action: string; targetType: string; targetId: string;
   detail: string | null; createdAt: string;
 }
 
-const CAT_COLOR: Record<string, string> = {
-  HATE: "#c00", HARASSMENT: "#e0561c", SPAM: "#888", MISINFORMATION: "#a06b00", OTHER: "#666",
-};
-
 function fmt(d: string) { return new Date(d).toLocaleString(); }
 
-export function AdminClient({ feedback, reports, actions }: { feedback: Feedback[]; reports: Report[]; actions: Action[] }) {
-  const [tab, setTab] = useState<"reports" | "feedback" | "audit">("reports");
+export function AdminClient({ feedback, actions }: { feedback: Feedback[]; actions: Action[] }) {
+  const [tab, setTab] = useState<"feedback" | "audit">("feedback");
   const [busy, setBusy] = useState<string | null>(null);
   const router = useRouter();
 
@@ -48,7 +38,6 @@ export function AdminClient({ feedback, reports, actions }: { feedback: Feedback
     }
   }
 
-  const openReports = reports.filter((r) => r.status === "OPEN" || r.status === "REVIEWING").length;
   const newFeedback = feedback.filter((f) => f.status === "NEW").length;
 
   const tabStyle = (active: boolean): React.CSSProperties => ({
@@ -65,47 +54,11 @@ export function AdminClient({ feedback, reports, actions }: { feedback: Feedback
         <h1 style={{ fontFamily: INTER, fontSize: 28, fontWeight: 700, color: "#1a1a1a", margin: "0 0 20px" }}>Admin</h1>
 
         <div style={{ display: "flex", gap: 24, borderBottom: "1px solid #eee", marginBottom: 24 }}>
-          <button style={tabStyle(tab === "reports")} onClick={() => setTab("reports")}>
-            Reports{openReports ? ` (${openReports})` : ""}
-          </button>
           <button style={tabStyle(tab === "feedback")} onClick={() => setTab("feedback")}>
             Feedback{newFeedback ? ` (${newFeedback})` : ""}
           </button>
           <button style={tabStyle(tab === "audit")} onClick={() => setTab("audit")}>Audit log</button>
         </div>
-
-        {tab === "reports" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {reports.length === 0 && <Empty>No reports yet.</Empty>}
-            {reports.map((r) => {
-              const resolved = r.status === "ACTIONED" || r.status === "DISMISSED";
-              return (
-                <Card key={r.id} dim={resolved}>
-                  <Row>
-                    <Badge color={CAT_COLOR[r.category] ?? "#666"}>{r.category}</Badge>
-                    <span style={meta}>{r.targetType}</span>
-                    <span style={{ ...meta, marginLeft: "auto" }}>{r.status}</span>
-                  </Row>
-                  <p style={body}>{r.snapshot ?? <em style={{ color: "#aaa" }}>(content unavailable)</em>}</p>
-                  {r.note && <p style={{ ...body, color: "#666" }}>“{r.note}”</p>}
-                  <p style={subtle}>by {r.reporterName ?? r.reporterEmail ?? "?"} · {fmt(r.createdAt)}{r.resolvedBy ? ` · resolved by ${r.resolvedBy}` : ""}</p>
-                  <Row>
-                    {r.continuumId && <Link href={`/continuum/${r.continuumId}`} style={linkBtn}>open continuum →</Link>}
-                    {r.targetType === "COMMENT" && r.continuumId && (
-                      <Btn busy={busy === `hide-${r.id}`} onClick={() => act(`hide-${r.id}`, { action: "hide_comment", continuumId: r.continuumId, userId: r.targetId })}>Hide comment</Btn>
-                    )}
-                    {r.targetType === "USER" && (
-                      <Btn danger busy={busy === `ban-${r.id}`} onClick={() => { if (confirm("Site-ban this user?")) act(`ban-${r.id}`, { action: "ban_user", userId: r.targetId, reason: `report ${r.id}` }); }}>Site ban</Btn>
-                    )}
-                    {!resolved && <Btn busy={busy === `rev-${r.id}`} onClick={() => act(`rev-${r.id}`, { action: "resolve_report", reportId: r.id, status: "REVIEWING" })}>Reviewing</Btn>}
-                    <Btn busy={busy === `act-${r.id}`} onClick={() => act(`act-${r.id}`, { action: "resolve_report", reportId: r.id, status: "ACTIONED" })}>Actioned</Btn>
-                    <Btn busy={busy === `dis-${r.id}`} onClick={() => act(`dis-${r.id}`, { action: "resolve_report", reportId: r.id, status: "DISMISSED" })}>Dismiss</Btn>
-                  </Row>
-                </Card>
-              );
-            })}
-          </div>
-        )}
 
         {tab === "feedback" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -146,7 +99,6 @@ export function AdminClient({ feedback, reports, actions }: { feedback: Feedback
 const meta: React.CSSProperties = { fontFamily: INTER, fontSize: 12, color: "#999", textTransform: "uppercase", letterSpacing: "0.04em" };
 const body: React.CSSProperties = { fontFamily: INTER, fontSize: 14, color: "#1a1a1a", margin: "8px 0 4px", lineHeight: 1.5, whiteSpace: "pre-wrap" };
 const subtle: React.CSSProperties = { fontFamily: INTER, fontSize: 12, color: "#aaa", margin: "4px 0 10px" };
-const linkBtn: React.CSSProperties = { fontFamily: INTER, fontSize: 13, color: BLUE, textDecoration: "underline" };
 
 function Card({ children, dim }: { children: React.ReactNode; dim?: boolean }) {
   return <div style={{ border: "1px solid #eee", borderRadius: 10, padding: "14px 16px", opacity: dim ? 0.55 : 1 }}>{children}</div>;

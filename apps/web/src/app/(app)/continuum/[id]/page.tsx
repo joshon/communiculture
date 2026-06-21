@@ -103,12 +103,11 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     cookieStore.get("__Secure-next-auth.session-token")?.value ??
     "";
 
-  // Hidden comments (by AI moderation / owner / admin) are blanked for other
-  // viewers. The comment's author still sees their own; owners/admins see all.
+  // Hidden comments (by AI moderation, or deleted by the owner/admin) are
+  // blanked for everyone — a deleted comment should be gone for all viewers,
+  // including the owner who removed it.
   const safeParticipants = participants.map((p) =>
-    (p as { commentHidden?: boolean }).commentHidden && p.userId !== userId && !isOwner && !viewerIsAdmin
-      ? { ...p, comment: null }
-      : p
+    (p as { commentHidden?: boolean }).commentHidden ? { ...p, comment: null } : p
   );
 
   return (

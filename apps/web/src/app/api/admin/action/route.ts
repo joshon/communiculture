@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma, type ReportStatus } from "@communiculture/db";
+import { prisma } from "@communiculture/db";
 import { isAdminEmail, logAdminAction } from "@/lib/admin";
 
 // Central moderation-action endpoint. Every action is reversible and
@@ -11,9 +11,6 @@ import { isAdminEmail, logAdminAction } from "@/lib/admin";
 //   hide_comment / unhide_comment   → admin OR the continuum's owner
 //   ban_continuum / unban_continuum → admin OR the continuum's owner
 //   ban_user / unban_user           → admin only (site-wide)
-//   resolve_report                  → admin only
-const RESOLVE_STATUSES: ReportStatus[] = ["OPEN", "REVIEWING", "ACTIONED", "DISMISSED"];
-
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   const email = session?.user?.email ?? null;
@@ -108,28 +105,6 @@ export async function POST(req: Request) {
           targetType: "USER",
           targetId: targetUserId,
           detail: reason,
-        });
-        return ok();
-      }
-
-      // ── Resolve a report (admin only) ───────────────────────────────────────
-      case "resolve_report": {
-        if (!admin) return forbidden();
-        const reportId = String(body.reportId ?? "");
-        const status = RESOLVE_STATUSES.includes(body.status as ReportStatus)
-          ? (body.status as ReportStatus)
-          : null;
-        if (!reportId || !status) return bad();
-        await prisma.report.update({
-          where: { id: reportId },
-          data: { status, resolvedBy: email, resolvedAt: new Date() },
-        });
-        await logAdminAction({
-          actorEmail: email,
-          action: "resolve_report",
-          targetType: "REPORT",
-          targetId: reportId,
-          detail: status,
         });
         return ok();
       }
