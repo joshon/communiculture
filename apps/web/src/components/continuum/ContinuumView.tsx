@@ -254,6 +254,12 @@ function AboutModal({ continuum, onClose }: { continuum: ContinuumData; onClose:
   const date = new Date(createdAt);
   const formatted = date.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
+  const visibilityLabel =
+    continuum.visibility === "PUBLIC" ? "Publicly listed" :
+    continuum.visibility === "PUBLIC_LINK" ? "Unlisted — link only" :
+    continuum.visibility === "PASSWORD" ? "Password protected" :
+    "Private";
+
   return (
     <div
       onClick={onClose}
@@ -281,8 +287,25 @@ function AboutModal({ continuum, onClose }: { continuum: ContinuumData; onClose:
             About this continuum
           </h2>
 
-          <div style={{ fontSize: 13, color: "#888", marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: "#888", marginBottom: 12 }}>
             Created {formatted}
+          </div>
+
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 6, marginBottom: 22,
+            fontFamily: INTER, fontSize: 12, fontWeight: 600, color: "#0C447C",
+            background: "#E6F1FB", padding: "5px 11px", borderRadius: 999,
+          }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {continuum.visibility === "PASSWORD" ? (
+                <><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>
+              ) : continuum.visibility === "PUBLIC" ? (
+                <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></>
+              ) : (
+                <><path d="M9 17H7A5 5 0 0 1 7 7h2" /><path d="M15 7h2a5 5 0 0 1 0 10h-2" /><line x1="8" y1="12" x2="16" y2="12" /></>
+              )}
+            </svg>
+            {visibilityLabel}
           </div>
 
           {owner && (
