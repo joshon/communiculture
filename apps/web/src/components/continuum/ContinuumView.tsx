@@ -997,10 +997,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       updateComment(userId, comment);
     });
     // Someone removed themselves from the continuum — drop their avatar live.
+    // Keep their cached styling though: they're still connected and may place
+    // again, and re-placement carries no avatar config of its own.
     socket.on("participant:removed", ({ userId }: { userId: string }) => {
       if (!userId || userId === currentUserIdRef.current) return;
       removeParticipant(userId);
-      delete connectedUsersRef.current[userId];
     });
 
     return () => {
