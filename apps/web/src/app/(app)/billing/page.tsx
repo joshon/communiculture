@@ -31,11 +31,11 @@ export default async function BillingPage({ searchParams }: { searchParams: { su
       <AppHeader />
       <div style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px" }}>
         <h2 style={{ fontFamily: INTER, fontSize: 24, fontWeight: 700, color: "#0083FF", marginBottom: 24 }}>
-          billing
+          Billing
         </h2>
 
         {searchParams.success && (
-          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", padding: "12px 16px", marginBottom: 24, fontFamily: INTER, fontSize: 14, color: "#15803d" }}>
+          <div style={{ background: "#15803d", border: "none", borderRadius: 8, padding: "12px 16px", marginBottom: 24, fontFamily: INTER, fontSize: 14, color: "white" }}>
             purchase successful — your continuums have been added.
           </div>
         )}
