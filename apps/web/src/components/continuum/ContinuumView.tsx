@@ -841,6 +841,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const storeParticipantsRef = useRef(storeParticipants);
   storeParticipantsRef.current = storeParticipants;
   const currentUserId = session?.user?.id ?? "";
+  // Always-current id for the socket handlers, whose effect only runs once
+  // (deps [continuum.id]) — the closed-over currentUserId would otherwise be the
+  // empty first-render value before the session resolved.
+  const currentUserIdRef = useRef(currentUserId);
+  currentUserIdRef.current = currentUserId;
 
   // Seeding placeholders — trigger seed endpoint then poll until 5 bots arrive.
   // If the bots are already here (e.g. a refresh with ?seeding=1 still in the
@@ -905,6 +910,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const selectedParticipant = selectedUserId ? storeParticipants[selectedUserId] : null;
 
+  // Styling for users who are *connected* but haven't placed themselves yet.
+  // We remember their avatar config here (from join/presence) but DON'T render
+  // them — an avatar only appears once it's actually placed (DB load or a live
+  // position broadcast). This is then used to render them fully-styled the
+  // moment they drag in.
+  const connectedUsersRef = useRef<Record<string, { name: string | null; image: string | null; avatarConfig: AvatarConfig }>>({});
+
   // ── socket setup ──
   useEffect(() => {
     setContinuumId(continuum.id);
@@ -928,45 +940,60 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       socket.emit("join:continuum", continuum.id);
     });
     socket.on("disconnect", () => setConnected(false));
+    // A live position broadcast means the user is *placed*. If we already render
+    // them (DB-loaded or placed earlier this session) just move them; otherwise
+    // this is their first placement — promote them into the scene now, fully
+    // styled from the avatar config we cached on join/presence.
     socket.on("position:broadcast", ({ userId, position, positionZ }: { userId: string; position: number; positionZ: number }) => {
-      updatePositionXZ(userId, position, positionZ ?? 50);
-    });
-    socket.on("user:join", (data: { userId: string; userName: string; userImage: string; avatarConfig?: AvatarConfig }) => {
+      if (!userId || userId === currentUserIdRef.current) return;
+      if (useContinuumStore.getState().participants[userId]) {
+        updatePositionXZ(userId, position, positionZ ?? 50);
+        return;
+      }
+      const info = connectedUsersRef.current[userId];
       addParticipant({
-        userId: data.userId,
-        name: data.userName,
-        image: data.userImage,
-        // Real avatar config so they render fully styled (not a blank default).
-        avatarConfig: (data.avatarConfig ?? {}) as AvatarConfig,
+        userId,
+        name: info?.name ?? null,
+        image: info?.image ?? null,
+        avatarConfig: (info?.avatarConfig ?? {}) as AvatarConfig,
         isSynthetic: false,
-        position: 50,
-        positionZ: 50,
+        position,
+        positionZ: positionZ ?? 50,
         comment: null,
       });
     });
-    socket.on("user:leave", ({ userId }: { userId: string }) => {
-      removeParticipant(userId);
+    // Someone connected — remember their styling but DON'T render them. They
+    // only appear once they actually place themselves (position:broadcast).
+    socket.on("user:join", (data: { userId: string; userName: string; userImage: string; avatarConfig?: AvatarConfig }) => {
+      if (!data.userId || data.userId === currentUserIdRef.current) return;
+      connectedUsersRef.current[data.userId] = {
+        name: data.userName ?? null,
+        image: data.userImage ?? null,
+        avatarConfig: (data.avatarConfig ?? {}) as AvatarConfig,
+      };
     });
-    // Roster of who's already connected when we join — add anyone we don't
-    // already know (placed users come from the DB and keep their position).
+    // Someone disconnected. Leave their placed avatar in the scene — their
+    // placement lives in the DB and other viewers loaded it from there; a closed
+    // tab shouldn't make a placed avatar vanish. Just drop the cached styling.
+    socket.on("user:leave", ({ userId }: { userId: string }) => {
+      delete connectedUsersRef.current[userId];
+    });
+    // Roster of who was already connected when we joined — cache styling only.
     socket.on("presence:sync", ({ users }: { users: Array<{ userId: string; userName: string; userImage: string; avatarConfig?: AvatarConfig }> }) => {
-      const existing = useContinuumStore.getState().participants;
       users.forEach((u) => {
-        if (!u.userId || u.userId === currentUserId || existing[u.userId]) return;
-        addParticipant({
-          userId: u.userId,
-          name: u.userName,
-          image: u.userImage,
+        if (!u.userId || u.userId === currentUserIdRef.current) return;
+        connectedUsersRef.current[u.userId] = {
+          name: u.userName ?? null,
+          image: u.userImage ?? null,
           avatarConfig: (u.avatarConfig ?? {}) as AvatarConfig,
-          isSynthetic: false,
-          position: 50,
-          positionZ: 50,
-          comment: null,
-        });
+        };
       });
     });
-    // Live comments — show others' comments as they're written, no refresh.
+    // Live comments — show others' comments as they're written, no refresh. Only
+    // applies to already-placed avatars (a comment without a placement is a
+    // no-op until they appear).
     socket.on("comment:broadcast", ({ userId, comment }: { userId: string; comment: string }) => {
+      if (!userId || userId === currentUserIdRef.current) return;
       updateComment(userId, comment);
     });
 
