@@ -12,6 +12,7 @@
     "@communiculture/db": "workspace:*",
     "@socket.io/redis-adapter": "^8.3.0",
     "ioredis": "^5.3.2",
+    "next-auth": "^4.24.7",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {

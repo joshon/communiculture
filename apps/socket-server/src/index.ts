@@ -2,6 +2,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import Redis from "ioredis";
 import { createAdapter } from "@socket.io/redis-adapter";
+import { decode } from "next-auth/jwt";
 import { prisma } from "@communiculture/db";
 import { registerPositionHandlers } from "./handlers/position";
 import { registerChatHandlers } from "./handlers/chat";
@@ -29,21 +30,27 @@ if (process.env.NODE_ENV === "production" && REDIS_URL) {
 }
 
 // ─── Auth middleware ─────────────────────────────────────────────────────────
-// Validates the NextAuth session token by looking it up in the database.
+// The app uses JWT sessions (no DB Session rows), so we decode the NextAuth
+// session-token cookie (a JWE) with NEXTAUTH_SECRET and look the user up by id.
 io.use(async (socket, next) => {
   const token = socket.handshake.auth?.token as string | undefined;
   if (!token) return next(new Error("unauthorized"));
 
   try {
-    const session = await prisma.session.findUnique({
-      where: { sessionToken: token },
-      include: { user: { select: { id: true, name: true, image: true, avatarConfig: true } } },
+    const decoded = await decode({ token, secret: process.env.NEXTAUTH_SECRET! });
+    const userId = ((decoded as { id?: string } | null)?.id ?? decoded?.sub) as string | undefined;
+    if (!userId) return next(new Error("unauthorized"));
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, image: true, avatarConfig: true },
     });
-    if (!session || session.expires < new Date()) return next(new Error("unauthorized"));
-    socket.data.userId = session.user.id;
-    socket.data.userName = session.user.name ?? "";
-    socket.data.userImage = session.user.image ?? "";
-    socket.data.avatarConfig = session.user.avatarConfig ?? {};
+    if (!user) return next(new Error("unauthorized"));
+
+    socket.data.userId = user.id;
+    socket.data.userName = user.name ?? "";
+    socket.data.userImage = user.image ?? "";
+    socket.data.avatarConfig = user.avatarConfig ?? {};
     next();
   } catch {
     next(new Error("unauthorized"));
