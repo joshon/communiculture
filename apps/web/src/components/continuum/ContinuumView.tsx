@@ -1077,6 +1077,10 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
   // ── leave continuum: remove the current user's own participation ──
   const handleRemoveSelf = useCallback(async () => {
+    // Cancel any pending placement commit — otherwise its debounced timer fires
+    // after we remove and re-adds us (locally and via a position upsert), so the
+    // avatar snaps back into the continuum instead of returning to the platform.
+    if (commitTimer.current) { clearTimeout(commitTimer.current); commitTimer.current = null; }
     setSelectedUserId(null);
     removeParticipant(currentUserId);
     positionInitialized.current = false;
