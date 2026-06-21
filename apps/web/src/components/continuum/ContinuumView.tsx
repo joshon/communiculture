@@ -925,6 +925,9 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const canModerate =
     continuum.ownerId === currentUserId ||
     !!(session?.user as { isAdmin?: boolean } | undefined)?.isAdmin;
+  // Owners opt into moderation explicitly (off by default). Only then do the
+  // delete affordances appear.
+  const [moderationMode, setModerationMode] = useState(false);
 
   // Styling for users who are *connected* but haven't placed themselves yet.
   // We remember their avatar config here (from join/presence) but DON'T render
@@ -1215,7 +1218,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
                 arrowCenterY={arrowCenterY}
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
                 onRemove={selectedUserId === currentUserId ? handleRemoveSelf : undefined}
-                canModerate={canModerate && selectedUserId !== currentUserId}
+                canModerate={canModerate && moderationMode && selectedUserId !== currentUserId}
                 onDeleteComment={selectedUserId && selectedUserId !== currentUserId ? () => handleDeleteComment(selectedUserId) : undefined}
               />
             );
@@ -1240,6 +1243,23 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           display: "flex", justifyContent: "flex-end", alignItems: "center",
           gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
+          {/* Moderation toggle — owners/admins only, off by default. When on,
+              a "Delete this comment" action appears on others' bubbles. */}
+          {canModerate && (
+            <button
+              onClick={() => setModerationMode((v) => !v)}
+              style={{
+                fontFamily: INTER, fontSize: 16, marginRight: "auto",
+                color: moderationMode ? "#c00" : "#999",
+                fontWeight: moderationMode ? 600 : 400,
+                background: "none", border: "none", cursor: "pointer", padding: 0,
+              }}
+              title="When on, you can delete comments on this continuum"
+            >
+              Moderation: {moderationMode ? "on" : "off"}
+            </button>
+          )}
+
           {/* Export button + dropdown */}
           <div style={{ position: "relative" }}>
             <button
