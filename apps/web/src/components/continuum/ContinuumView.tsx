@@ -10,6 +10,7 @@ import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
 import { AppHeader } from "@/components/ui/AppHeader";
+import { ReportModal, type ReportTarget } from "./ReportModal";
 import { PillButton } from "@/components/ui/PillButton";
 import { SpeechBubble } from "@/components/ui/SpeechBubble";
 import { type AvatarConfig } from "@/store/avatarStore";
@@ -675,9 +676,12 @@ interface BubbleProps {
   arrowCenterY: number;
   onCommentSubmit?: (text: string) => void;
   onRemove?: () => void;
+  reportMode?: boolean;
+  continuumId?: string;
+  onReport?: (t: ReportTarget) => void;
 }
 
-function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit, onRemove }: BubbleProps) {
+function CommentBubble({ userId, name, comment, isSelf, positionFraction, headScreenX, bubbleTop, arrowCenterY, onCommentSubmit, onRemove, reportMode, continuumId, onReport }: BubbleProps) {
   const [draft, setDraft] = useState(comment ?? "");
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -821,6 +825,20 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
             {name && !userId && (
               <div style={{ fontSize: 12, color: "#888", textAlign: "right" }}>— {name}</div>
             )}
+            {reportMode && userId && onReport && (
+              <div style={{ display: "flex", gap: 12, marginTop: 8, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>
+                {comment && (
+                  <button
+                    onClick={() => onReport({ targetType: "COMMENT", targetId: userId, continuumId, label: `Comment by ${name ?? "this person"}` })}
+                    style={{ fontFamily: INTER, fontSize: 11, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                  >⚑ Report comment</button>
+                )}
+                <button
+                  onClick={() => onReport({ targetType: "USER", targetId: userId, continuumId, label: name ?? "this person" })}
+                  style={{ fontFamily: INTER, fontSize: 11, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
+                >⚑ Report person</button>
+              </div>
+            )}
           </>
         )}
       </SpeechBubble>
@@ -909,6 +927,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   // Selected avatar for comment bubble
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const selectedParticipant = selectedUserId ? storeParticipants[selectedUserId] : null;
+
+  // Per-viewer "report mode": when on, flag affordances appear on others'
+  // comments/avatars. Off by default so flagging isn't ever-present.
+  const [reportMode, setReportMode] = useState(false);
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   // Styling for users who are *connected* but haven't placed themselves yet.
   // We remember their avatar config here (from join/presence) but DON'T render
@@ -1187,10 +1210,17 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
                 arrowCenterY={arrowCenterY}
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
                 onRemove={selectedUserId === currentUserId ? handleRemoveSelf : undefined}
+                reportMode={reportMode && selectedUserId !== currentUserId}
+                continuumId={continuum.id}
+                onReport={setReportTarget}
               />
             );
           })()}
         </div>
+
+        {reportTarget && (
+          <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />
+        )}
 
         {/* Position labels */}
         <div style={{
@@ -1210,6 +1240,27 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           display: "flex", justifyContent: "flex-end", alignItems: "center",
           gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
+          {/* Report mode toggle — when on, flag links appear on others' bubbles */}
+          {reportMode && (
+            <button
+              onClick={() => setReportTarget({ targetType: "CONTINUUM", targetId: continuum.id, continuumId: continuum.id, label: `Continuum: "${continuum.title}"` })}
+              style={{ fontFamily: INTER, fontSize: 14, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", marginRight: -8 }}
+            >
+              ⚑ Report this continuum
+            </button>
+          )}
+          <button
+            onClick={() => setReportMode((v) => !v)}
+            style={{
+              fontFamily: INTER, fontSize: 16, color: reportMode ? "#c00" : "#999",
+              fontWeight: reportMode ? 600 : 400,
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+            }}
+            title="Turn on to flag comments, people, or this continuum"
+          >
+            {reportMode ? "Done reporting" : "Report"}
+          </button>
+
           {/* Export button + dropdown */}
           <div style={{ position: "relative" }}>
             <button

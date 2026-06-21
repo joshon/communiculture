@@ -1,0 +1,27 @@
+name: Weekly moderation digest
+
+# Emails the admin allowlist a summary of the week's feedback + reports.
+# Hits the secured endpoint on the deployed web app.
+#
+# Setup (one-time): add two repository secrets in GitHub → Settings → Secrets:
+#   CRON_SECRET   — must match the CRON_SECRET env var on the Railway `web` service
+#   DIGEST_URL    — e.g. https://www.communiculture.org/api/cron/weekly-digest
+#                   (optional; defaults to the production URL below)
+
+on:
+  schedule:
+    - cron: "0 16 * * 1" # Mondays 16:00 UTC (~9am PT)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger weekly digest
+        run: |
+          URL="${{ secrets.DIGEST_URL }}"
+          if [ -z "$URL" ]; then URL="https://www.communiculture.org/api/cron/weekly-digest"; fi
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" "$URL")
+          echo "HTTP $code"; cat /tmp/resp.json || true
+          if [ "$code" != "200" ]; then echo "Digest failed"; exit 1; fi

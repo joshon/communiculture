@@ -8,6 +8,7 @@ import { ContinuumView } from "@/components/continuum/ContinuumView";
 import { ContinuumPasswordGate } from "@/components/continuum/ContinuumPasswordGate";
 import { cookies } from "next/headers";
 import crypto from "crypto";
+import { isAdminEmail } from "@/lib/admin";
 
 interface Props {
   params: { id: string };
@@ -65,6 +66,16 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     notFound();
   }
 
+  // Banned from this continuum by the owner/admin → no access (owner & site
+  // admins are exempt so they can still moderate).
+  const viewerIsAdmin = isAdminEmail(session.user.email);
+  if (!isOwner && !viewerIsAdmin) {
+    const banned = await prisma.continuumBan
+      .findUnique({ where: { continuumId_userId: { continuumId: params.id, userId } }, select: { id: true } })
+      .catch(() => null);
+    if (banned) notFound();
+  }
+
   const [currentUser, participants, messages, owner] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { avatarConfig: true } }),
     prisma.continuumParticipant.findMany({
@@ -92,10 +103,18 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     cookieStore.get("__Secure-next-auth.session-token")?.value ??
     "";
 
+  // Hidden comments (by AI moderation / owner / admin) are blanked for other
+  // viewers. The comment's author still sees their own; owners/admins see all.
+  const safeParticipants = participants.map((p) =>
+    (p as { commentHidden?: boolean }).commentHidden && p.userId !== userId && !isOwner && !viewerIsAdmin
+      ? { ...p, comment: null }
+      : p
+  );
+
   return (
     <ContinuumView
       continuum={{ ...continuum, createdAt: continuum.createdAt.toISOString(), owner: owner ?? null }}
-      participants={participants as any}
+      participants={safeParticipants as any}
       messages={messages as any}
       sessionToken={sessionToken}
       currentUserAvatarConfig={(currentUser?.avatarConfig ?? {}) as any}

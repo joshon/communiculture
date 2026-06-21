@@ -6,6 +6,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import EmailProvider from "next-auth/providers/email";
 import bcrypt from "bcryptjs";
 import { createTransport } from "nodemailer";
+import { isAdminEmail } from "@/lib/admin";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma as any) as any,
@@ -127,6 +128,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.id as string;
         (session.user as any).onboardingComplete = token.onboardingComplete;
+        (session.user as any).isAdmin = isAdminEmail(session.user.email);
       }
       return session;
     },

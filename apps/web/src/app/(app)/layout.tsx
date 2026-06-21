@@ -11,8 +11,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const dbUser = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { avatarThumbnail: true },
+    select: { avatarThumbnail: true, bannedAt: true },
   });
+
+  // Site-banned users are still signed in but locked out of the whole app.
+  if (dbUser?.bannedAt) redirect("/banned");
 
   const thumbnailUrl = dbUser?.avatarThumbnail ?? null;
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRef, useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { PixelBox } from "@/components/ui/PixelBox";
 
 const BLUE = "#0083FF";
@@ -30,6 +31,8 @@ interface Props {
 export function LogoMenu({ logoWidth, isMobile }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const isAdmin = !!(session?.user as { isAdmin?: boolean } | undefined)?.isAdmin;
 
   useEffect(() => {
     if (!open) return;
@@ -177,6 +180,12 @@ export function LogoMenu({ logoWidth, isMobile }: Props) {
             <Link href="/contact" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Contact</Link>
             <Link href="/terms" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Terms</Link>
             <Link href="/privacy" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Privacy</Link>
+            {isAdmin && (
+              <>
+                <div style={{ borderTop: `1px solid ${BLUE}` }} />
+                <Link href="/admin" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Admin</Link>
+              </>
+            )}
           </PixelBox>
         </div>
       )}
