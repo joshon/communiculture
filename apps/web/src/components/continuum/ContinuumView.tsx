@@ -996,6 +996,12 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       if (!userId || userId === currentUserIdRef.current) return;
       updateComment(userId, comment);
     });
+    // Someone removed themselves from the continuum — drop their avatar live.
+    socket.on("participant:removed", ({ userId }: { userId: string }) => {
+      if (!userId || userId === currentUserIdRef.current) return;
+      removeParticipant(userId);
+      delete connectedUsersRef.current[userId];
+    });
 
     return () => {
       socket.emit("leave:continuum", continuum.id);
@@ -1006,6 +1012,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       socket.off("user:leave");
       socket.off("presence:sync");
       socket.off("comment:broadcast");
+      socket.off("participant:removed");
     };
   }, [continuum.id]);
 
@@ -1074,8 +1081,10 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     positionInitialized.current = false;
     setLocalPosition(50);
     setLocalPositionZ(50);
+    // Broadcast the removal so other viewers drop the avatar without refreshing.
+    getSocket(sessionToken).emit("participant:remove", continuum.id);
     await fetch(`/api/continuums/${continuum.id}/position`, { method: "DELETE" });
-  }, [continuum.id, currentUserId, removeParticipant]);
+  }, [continuum.id, sessionToken, currentUserId, removeParticipant]);
 
   // ── share modal ──
   const [showShareModal, setShowShareModal] = useState(false);

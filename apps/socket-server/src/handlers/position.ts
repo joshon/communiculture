@@ -54,6 +54,16 @@ export function registerPositionHandlers(io: Server, socket: Socket) {
     }
   );
 
+  // User removed themselves from the continuum — relay so other viewers drop
+  // their avatar live. Uses the authenticated socket's userId (own removal only).
+  socket.on("participant:remove", (continuumId: string) => {
+    if (!continuumId) return;
+    socket.to(continuumId).emit("participant:removed", {
+      userId: socket.data.userId,
+      continuumId,
+    });
+  });
+
   // Live comment — broadcast only (DB write handled by the Next.js API). Uses
   // the authenticated socket's userId so a client can only update its own.
   socket.on("comment:update", (payload: { continuumId: string; comment: string }) => {
