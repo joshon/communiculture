@@ -3,7 +3,11 @@
 # the repo-root web Dockerfile). The socket server is run with tsx at runtime
 # because it imports @communiculture/db, whose package main is TypeScript
 # (src/index.ts) — plain `node dist/index.js` can't load that.
-FROM node:20-alpine AS base
+# Debian (not alpine): Prisma's engine needs libssl, and node:20-alpine ships an
+# OpenSSL the bundled engine can't load (libssl.so.1.1 missing). node:20-slim
+# has libssl3 and Prisma detects openssl-3.0.x cleanly.
+FROM node:20-slim AS base
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN corepack enable && corepack prepare pnpm@9.15.9 --activate
 
 # ── Install workspace deps ────────────────────────────────────────────────────
