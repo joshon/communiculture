@@ -44,6 +44,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     select: { id: true },
   }).catch(() => null));
   const tokenMatches = !!shareToken && shareToken === continuum.shareToken;
+  const publiclyListed = continuum.visibility === "PUBLIC"; // anyone can view a listed continuum
   const publicLinkOk = continuum.visibility === "PUBLIC_LINK" && tokenMatches;
 
   // Password-protected: a matching share token gets the visitor to the gate;
@@ -57,7 +58,7 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
     showPasswordGate = !passwordOk;
   }
 
-  if (!isOwner && !isTeamMember && !publicLinkOk && !passwordOk && !isParticipant) {
+  if (!isOwner && !isTeamMember && !publiclyListed && !publicLinkOk && !passwordOk && !isParticipant) {
     if (showPasswordGate) {
       return <ContinuumPasswordGate continuumId={continuum.id} token={shareToken ?? ""} title={continuum.title} />;
     }
