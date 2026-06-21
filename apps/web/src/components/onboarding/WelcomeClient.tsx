@@ -161,7 +161,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
       <div style={{ padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
         {error && <span style={{ fontFamily: INTER, color: "#c00", fontSize: 13 }}>{error}</span>}
         <div style={{ marginLeft: "auto" }}>
-          <PillButton variant="primary" label={loading ? "…" : continueLabel} onClick={handleContinue} />
+          <PillButton variant="primary" label={continueLabel} onClick={handleContinue} loading={loading} disabled={!name.trim()} />
         </div>
       </div>
     </div>

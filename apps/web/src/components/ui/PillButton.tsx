@@ -23,14 +23,16 @@ interface PillButtonProps {
   fontSize?: string;
   style?: CSSProperties;
   variant?: "primary" | "secondary";
+  disabled?: boolean;
 }
 
 export function PillButton({
   children, href, onClick, type = "button",
-  loading, arrow, label, fontSize, style, variant = "primary",
+  loading, arrow, label, fontSize, style, variant = "primary", disabled,
 }: PillButtonProps) {
   const fs = fontSize ?? "clamp(13px, 3vw, 16px)";
   const isPrimary = variant === "primary";
+  const inactive = loading || disabled;
 
   const base: CSSProperties = {
     display: "inline-flex",
@@ -47,8 +49,8 @@ export function PillButton({
     paddingLeft: "20px",
     paddingRight: "20px",
     borderRadius: 99,
-    cursor: loading ? "default" : "pointer",
-    opacity: loading ? 0.6 : 1,
+    cursor: inactive ? (disabled ? "not-allowed" : "default") : "pointer",
+    opacity: inactive ? 0.5 : 1,
     whiteSpace: "nowrap",
     ...style,
   };
@@ -69,7 +71,7 @@ export function PillButton({
   );
 
   return (
-    <button type={type} onClick={onClick} disabled={loading} style={base}>
+    <button type={type} onClick={onClick} disabled={inactive} style={base}>
       {content}
     </button>
   );
