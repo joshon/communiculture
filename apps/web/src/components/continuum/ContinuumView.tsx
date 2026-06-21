@@ -826,7 +826,7 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
             {canModerate && comment && onDeleteComment && (
               <div style={{ marginTop: 8, borderTop: "1px solid #f0f0f0", paddingTop: 8 }}>
                 <button
-                  onClick={() => { if (confirm("Delete this comment? It will be removed for everyone.")) onDeleteComment(); }}
+                  onClick={onDeleteComment}
                   style={{ fontFamily: INTER, fontSize: 11, color: "#c00", background: "none", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline" }}
                 >Delete this comment</button>
               </div>
@@ -928,6 +928,8 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   // Owners opt into moderation explicitly (off by default). Only then do the
   // delete affordances appear.
   const [moderationMode, setModerationMode] = useState(false);
+  // userId whose comment is pending a delete confirmation (drives the modal).
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
 
   // Styling for users who are *connected* but haven't placed themselves yet.
   // We remember their avatar config here (from join/presence) but DON'T render
@@ -1219,7 +1221,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
                 onCommentSubmit={selectedUserId === currentUserId ? handleCommentSubmit : undefined}
                 onRemove={selectedUserId === currentUserId ? handleRemoveSelf : undefined}
                 canModerate={canModerate && moderationMode && selectedUserId !== currentUserId}
-                onDeleteComment={selectedUserId && selectedUserId !== currentUserId ? () => handleDeleteComment(selectedUserId) : undefined}
+                onDeleteComment={selectedUserId && selectedUserId !== currentUserId ? () => setConfirmDeleteUserId(selectedUserId) : undefined}
               />
             );
           })()}
@@ -1319,6 +1321,54 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
       {showAbout && (
         <AboutModal continuum={continuum} onClose={() => setShowAbout(false)} />
+      )}
+
+      {confirmDeleteUserId && (
+        <div
+          onClick={() => setConfirmDeleteUserId(null)}
+          style={{
+            position: "fixed", inset: 0, zIndex: 1000,
+            background: "rgba(0,0,0,0.45)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24,
+          }}
+        >
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 380, fontFamily: INTER }}>
+            <PixelBox shadowDir="bottom-right" style={{ padding: "30px 28px 26px" }}>
+              <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 700, color: "#1a1a1a" }}>
+                Delete this comment?
+              </h2>
+              <p style={{ margin: "0 0 22px", fontSize: 14, color: "#555", lineHeight: 1.5 }}>
+                It will be removed for everyone.
+              </p>
+              <div style={{ display: "flex", gap: 16, alignItems: "center", justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => setConfirmDeleteUserId(null)}
+                  style={{
+                    fontFamily: INTER, fontSize: 15, color: "#888",
+                    background: "none", border: "none", cursor: "pointer", padding: "8px 4px",
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const uid = confirmDeleteUserId;
+                    setConfirmDeleteUserId(null);
+                    if (uid) handleDeleteComment(uid);
+                  }}
+                  style={{
+                    fontFamily: INTER, fontSize: 15, fontWeight: 600, color: "white",
+                    background: "#D62A2A", border: "none", borderRadius: 999,
+                    padding: "9px 22px", cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </PixelBox>
+          </div>
+        </div>
       )}
     </div>
   );
