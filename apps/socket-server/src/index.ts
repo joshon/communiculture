@@ -15,11 +15,26 @@ const PORT = parseInt(process.env.SOCKET_PORT ?? "3001", 10);
 const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 const NEXTAUTH_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
+// Allow the app's web origin (both apex + www — the site is served from
+// www.communiculture.org but NEXTAUTH_URL may be either), plus an explicit
+// override and local dev. Deduped.
+const ALLOWED_ORIGINS = Array.from(
+  new Set(
+    [
+      NEXTAUTH_URL,
+      "https://communiculture.org",
+      "https://www.communiculture.org",
+      process.env.CORS_ORIGIN,
+      "http://localhost:3000",
+    ].filter(Boolean) as string[]
+  )
+);
+
 const httpServer = createServer();
 
 const io = new Server(httpServer, {
   cors: {
-    origin: [NEXTAUTH_URL, "http://localhost:3000"],
+    origin: ALLOWED_ORIGINS,
     credentials: true,
   },
 });
