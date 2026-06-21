@@ -37,12 +37,13 @@ io.use(async (socket, next) => {
   try {
     const session = await prisma.session.findUnique({
       where: { sessionToken: token },
-      include: { user: { select: { id: true, name: true, image: true } } },
+      include: { user: { select: { id: true, name: true, image: true, avatarConfig: true } } },
     });
     if (!session || session.expires < new Date()) return next(new Error("unauthorized"));
     socket.data.userId = session.user.id;
     socket.data.userName = session.user.name ?? "";
     socket.data.userImage = session.user.image ?? "";
+    socket.data.avatarConfig = session.user.avatarConfig ?? {};
     next();
   } catch {
     next(new Error("unauthorized"));

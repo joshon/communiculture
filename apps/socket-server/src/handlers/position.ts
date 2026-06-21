@@ -7,6 +7,7 @@ export function registerPositionHandlers(io: Server, socket: Socket) {
       userId: socket.data.userId,
       userName: socket.data.userName,
       userImage: socket.data.userImage,
+      avatarConfig: socket.data.avatarConfig ?? {},
       continuumId,
     });
     console.log(`[position] ${socket.data.userId} joined room ${continuumId}`);
@@ -33,4 +34,16 @@ export function registerPositionHandlers(io: Server, socket: Socket) {
       });
     }
   );
+
+  // Live comment — broadcast only (DB write handled by the Next.js API). Uses
+  // the authenticated socket's userId so a client can only update its own.
+  socket.on("comment:update", (payload: { continuumId: string; comment: string }) => {
+    const continuumId = payload?.continuumId;
+    if (!continuumId) return;
+    socket.to(continuumId).emit("comment:broadcast", {
+      userId: socket.data.userId,
+      continuumId,
+      comment: typeof payload?.comment === "string" ? payload.comment.slice(0, 2000) : "",
+    });
+  });
 }

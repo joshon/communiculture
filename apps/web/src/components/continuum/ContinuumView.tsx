@@ -772,7 +772,7 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
                   padding: 0, textDecoration: "underline",
                 }}
               >
-                remove from continuum
+                Remove from continuum
               </button>
             )}
           </div>
@@ -908,12 +908,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     socket.on("position:broadcast", ({ userId, position, positionZ }: { userId: string; position: number; positionZ: number }) => {
       updatePositionXZ(userId, position, positionZ ?? 50);
     });
-    socket.on("user:join", (data: { userId: string; userName: string; userImage: string }) => {
+    socket.on("user:join", (data: { userId: string; userName: string; userImage: string; avatarConfig?: AvatarConfig }) => {
       addParticipant({
         userId: data.userId,
         name: data.userName,
         image: data.userImage,
-        avatarConfig: {} as AvatarConfig,
+        // Real avatar config so they render fully styled (not a blank default).
+        avatarConfig: (data.avatarConfig ?? {}) as AvatarConfig,
         isSynthetic: false,
         position: 50,
         positionZ: 50,
@@ -923,6 +924,10 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     socket.on("user:leave", ({ userId }: { userId: string }) => {
       removeParticipant(userId);
     });
+    // Live comments — show others' comments as they're written, no refresh.
+    socket.on("comment:broadcast", ({ userId, comment }: { userId: string; comment: string }) => {
+      updateComment(userId, comment);
+    });
 
     return () => {
       socket.emit("leave:continuum", continuum.id);
@@ -931,6 +936,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       socket.off("position:broadcast");
       socket.off("user:join");
       socket.off("user:leave");
+      socket.off("comment:broadcast");
     };
   }, [continuum.id]);
 
@@ -975,14 +981,16 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   // ── comment handler ──
   const handleCommentSubmit = useCallback(
     async (comment: string) => {
+      updateComment(currentUserId, comment);
+      // Broadcast live so others see it without refreshing.
+      getSocket(sessionToken).emit("comment:update", { continuumId: continuum.id, comment });
       await fetch(`/api/continuums/${continuum.id}/comment`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment }),
       });
-      updateComment(currentUserId, comment);
     },
-    [continuum.id, currentUserId]
+    [continuum.id, currentUserId, sessionToken]
   );
 
   // ── leave continuum: remove the current user's own participation ──
