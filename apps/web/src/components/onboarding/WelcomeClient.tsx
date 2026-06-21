@@ -139,10 +139,8 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
         />
       </div>
 
-      {/* Avatar editor fills the middle. minHeight guarantees the editor a usable
-          slot on short screens (the page scrolls rather than squeezing the avatar
-          until its head clips). */}
-      <div style={{ flex: 1, minHeight: 380, display: "flex", flexDirection: "column", marginTop: 10 }}>
+      {/* Avatar editor (embedded = fixed-height avatar, flows in the page) */}
+      <div style={{ marginTop: 10 }}>
         {library ? (
           <AvatarEditor
             library={library}
@@ -151,16 +149,17 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
             autoSpin={autoSpin}
             onSave={handleAvatarSave}
             onChange={handleAvatarChange}
+            embedded
           />
         ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
+          <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
             loading…
           </div>
         )}
       </div>
 
       {/* CTA */}
-      <div style={{ padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
+      <div style={{ marginTop: "auto", padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
         {error && <span style={{ fontFamily: INTER, color: "#c00", fontSize: 13 }}>{error}</span>}
         <div style={{ marginLeft: "auto" }}>
           <PillButton variant="primary" label={continueLabel} onClick={handleContinue} loading={loading} disabled={!name.trim()} />

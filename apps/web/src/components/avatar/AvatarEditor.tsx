@@ -144,11 +144,17 @@ interface AvatarEditorProps {
   autoSpin?: boolean;
   onSave: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => Promise<void>;
   onChange?: (colors: Record<AvatarPart, string>, variants: Record<AvatarPart, number>) => void;
+  /**
+   * Embedded mode (e.g. onboarding): renders in normal document flow with a
+   * fixed-height avatar so it can't over-zoom/clip, instead of the full-screen
+   * mobile layout's 100vw / flex:1 / svh sizing.
+   */
+  embedded?: boolean;
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
 
-export function AvatarEditor({ library, initialColors, initialVariants, autoSpin, onSave, onChange }: AvatarEditorProps) {
+export function AvatarEditor({ library, initialColors, initialVariants, autoSpin, onSave, onChange, embedded }: AvatarEditorProps) {
   const openColors   = useRef(initialColors  ?? DEFAULT_COLORS);
   const openVariants = useRef(initialVariants ?? DEFAULT_VARIANTS);
 
@@ -309,7 +315,9 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
   // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
   if (isMobile) {
     return (
-      <div style={{ width: "100vw", flex: 1, minHeight: 0, background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
+      <div style={embedded
+        ? { width: "100%", display: "flex", flexDirection: "column", background: "white", userSelect: "none" }
+        : { width: "100vw", flex: 1, minHeight: 0, background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
         {/* Variant selector — always reserves 2-row height to prevent layout jump */}
         <div style={{
@@ -330,12 +338,16 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
           ))}
         </div>
 
-        {/* 3D canvas — capped at 60svh so palette+buttons always have room */}
-        {/* Measure the actual avatar area and fit the avatar to it (via fixedZoom)
-            so it scales down in constrained embeds like onboarding instead of
-            overflowing. On the full-screen editor the area is tall, so this is a
-            no-op. */}
-        <div ref={canvasContainerRef} style={{ flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}>
+        {/* 3D canvas. We measure the avatar area and fit the avatar to it via
+            fixedZoom. Embedded mode uses a deterministic fixed height (the
+            full-screen layout's flex:1/60svh measurement is unreliable when the
+            page scrolls, causing the avatar to over-zoom and clip). */}
+        <div
+          ref={canvasContainerRef}
+          style={embedded
+            ? { height: 280, flexShrink: 0, position: "relative" }
+            : { flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}
+        >
           {desktopAvatarRenderer}
         </div>
 
