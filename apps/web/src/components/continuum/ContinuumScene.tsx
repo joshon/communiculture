@@ -193,10 +193,10 @@ function viewWidthFor(mobile: boolean): number {
 
 // Aim above the ground so the crowd (which stands at Y≥0) is vertically centred,
 // instead of the ground line sitting mid-canvas with empty floor below it.
-// Camera look-target height. Desktop aims above the ground to fill the empty
-// floor; mobile (tall canvas) aims lower so the crowd fills the top.
+// Camera look-target height. Raising it adds headroom above the avatars so tall
+// hair isn't clipped at the top edge (mobile previously aimed too low).
 function cameraLookY(mobile: boolean): number {
-  return mobile ? -0.5 : 1.2;
+  return mobile ? 0.8 : 1.2;
 }
 
 function CrowdCamera() {

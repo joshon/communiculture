@@ -1254,87 +1254,86 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           </span>
         </div>
 
-        {/* Action bar */}
+        {/* Action bar — anonymous viewers just get a centered "Join" CTA; signed-in
+            viewers get the full controls (wrapping on narrow screens). */}
         <div style={{
-          display: "flex", justifyContent: "flex-end", alignItems: "center",
-          gap: 24, marginTop: "clamp(16px, 2vh, 32px)",
+          display: "flex", flexWrap: "wrap",
+          justifyContent: isAnon ? "center" : "flex-end", alignItems: "center",
+          columnGap: 24, rowGap: 12, marginTop: "clamp(16px, 2vh, 32px)",
         }}>
-          {/* Anonymous viewers: prompt to sign up, then return to this continuum */}
-          {isAnon && (
-            <div style={{ marginRight: "auto" }}>
-              <PillButton
-                variant="primary"
-                label="Add yourself to the continuum"
-                onClick={() => {
-                  const back =
-                    typeof window !== "undefined"
-                      ? window.location.pathname + window.location.search
-                      : `/continuum/${continuum.id}`;
-                  window.location.href = `/login?callbackUrl=${encodeURIComponent(back)}`;
+          {isAnon ? (
+            <PillButton
+              variant="primary"
+              label="Join this continuum"
+              onClick={() => {
+                const back =
+                  typeof window !== "undefined"
+                    ? window.location.pathname + window.location.search
+                    : `/continuum/${continuum.id}`;
+                window.location.href = `/login?callbackUrl=${encodeURIComponent(back)}`;
+              }}
+            />
+          ) : (
+            <>
+              {/* Moderation toggle — owners/admins only, off by default. When on,
+                  a "Delete this comment" action appears on others' bubbles. */}
+              {canModerate && (
+                <button
+                  onClick={() => setModerationMode((v) => !v)}
+                  style={{
+                    fontFamily: INTER, fontSize: 16, marginRight: "auto",
+                    color: moderationMode ? "#c00" : "#999",
+                    fontWeight: moderationMode ? 600 : 400,
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                  }}
+                  title="When on, you can delete comments on this continuum"
+                >
+                  Moderation: {moderationMode ? "on" : "off"}
+                </button>
+              )}
+
+              {/* Export button + dropdown */}
+              <div style={{ position: "relative" }}>
+                <button
+                  ref={exportBtnRef}
+                  onClick={() => setShowExportMenu(v => !v)}
+                  style={{
+                    fontFamily: INTER, fontSize: 16, color: BLUE,
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                  }}
+                >
+                  Export
+                </button>
+                {showExportMenu && (
+                  <>
+                    {/* Click-outside backdrop */}
+                    <div
+                      onClick={() => setShowExportMenu(false)}
+                      style={{ position: "fixed", inset: 0, zIndex: 199 }}
+                    />
+                    <div style={{ position: "absolute", bottom: "calc(100% + 10px)", right: 0, zIndex: 200 }}>
+                      <ExportMenu
+                        continuum={continuum}
+                        participants={participants}
+                        onClose={() => setShowExportMenu(false)}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowAbout(true)}
+                style={{
+                  fontFamily: INTER, fontSize: 16, color: BLUE,
+                  background: "none", border: "none", cursor: "pointer", padding: 0,
                 }}
-              />
-            </div>
-          )}
+              >
+                About this continuum
+              </button>
 
-          {/* Moderation toggle — owners/admins only, off by default. When on,
-              a "Delete this comment" action appears on others' bubbles. */}
-          {canModerate && (
-            <button
-              onClick={() => setModerationMode((v) => !v)}
-              style={{
-                fontFamily: INTER, fontSize: 16, marginRight: "auto",
-                color: moderationMode ? "#c00" : "#999",
-                fontWeight: moderationMode ? 600 : 400,
-                background: "none", border: "none", cursor: "pointer", padding: 0,
-              }}
-              title="When on, you can delete comments on this continuum"
-            >
-              Moderation: {moderationMode ? "on" : "off"}
-            </button>
-          )}
-
-          {/* Export button + dropdown */}
-          <div style={{ position: "relative" }}>
-            <button
-              ref={exportBtnRef}
-              onClick={() => setShowExportMenu(v => !v)}
-              style={{
-                fontFamily: INTER, fontSize: 16, color: BLUE,
-                background: "none", border: "none", cursor: "pointer", padding: 0,
-              }}
-            >
-              Export
-            </button>
-            {showExportMenu && (
-              <>
-                {/* Click-outside backdrop */}
-                <div
-                  onClick={() => setShowExportMenu(false)}
-                  style={{ position: "fixed", inset: 0, zIndex: 199 }}
-                />
-                <div style={{ position: "absolute", bottom: "calc(100% + 10px)", right: 0, zIndex: 200 }}>
-                  <ExportMenu
-                    continuum={continuum}
-                    participants={participants}
-                    onClose={() => setShowExportMenu(false)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <button
-            onClick={() => setShowAbout(true)}
-            style={{
-              fontFamily: INTER, fontSize: 16, color: BLUE,
-              background: "none", border: "none", cursor: "pointer", padding: 0,
-            }}
-          >
-            About this continuum
-          </button>
-
-          {shareUrl && (
-            <PillButton variant="secondary" label="Share" onClick={() => setShowShareModal(true)} />
+              <PillButton variant="secondary" label="Share" onClick={() => setShowShareModal(true)} />
+            </>
           )}
         </div>
 
