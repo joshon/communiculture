@@ -174,6 +174,7 @@ export function LogoMenu({ logoWidth, isMobile }: Props) {
             <Link href="/everyone" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>View everyone</Link>
             <div style={{ borderTop: `1px solid ${BLUE}` }} />
             <Link href="/about" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>About Communiculture</Link>
+            <Link href="/contact" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Contact</Link>
             <Link href="/terms" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Terms</Link>
             <Link href="/privacy" onClick={() => setOpen(false)} className="cc-mi" style={itemStyle}>Privacy</Link>
           </PixelBox>
