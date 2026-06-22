@@ -157,6 +157,13 @@ function worldYAtScreenBottom(camera: THREE.Camera, z: number, marginNdc: number
   return (targetNdc - a.y) / (b.y - a.y);
 }
 
+// Reused across every pointermove during a drag — allocating these per call
+// caused GC stutter that made dragging feel laggy on mobile.
+const _stwRaycaster = new THREE.Raycaster();
+const _stwNdc = new THREE.Vector2();
+const _stwPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Y=0
+const _stwHit = new THREE.Vector3();
+
 // Convert screen coords → world (X, Z) on the Y=0 ground plane using raycasting
 function screenToWorldXZ(
   clientX: number,
@@ -168,13 +175,10 @@ function screenToWorldXZ(
   const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
   const ndcY = -(((clientY - rect.top) / rect.height) * 2 - 1);
 
-  const raycaster = new THREE.Raycaster();
-  raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
-
-  const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Y=0
-  const target = new THREE.Vector3();
-  raycaster.ray.intersectPlane(plane, target);
-  return [target.x, target.z];
+  _stwNdc.set(ndcX, ndcY);
+  _stwRaycaster.setFromCamera(_stwNdc, camera);
+  _stwRaycaster.ray.intersectPlane(_stwPlane, _stwHit);
+  return [_stwHit.x, _stwHit.z];
 }
 
 // Mobile is decided by the VIEWPORT width, not the canvas aspect — on short
@@ -868,7 +872,10 @@ export function ContinuumScene({
           orthographic
           camera={{ position: [0, 5, 10], zoom: 46, near: -100, far: 100 }}
           gl={{ antialias: true, stencil: true }}
-          style={{ width: "100%", height: "100%" }}
+          // Cap pixel ratio so high-DPR phones (2–3x) don't render at full res,
+          // which tanks FPS and makes dragging feel laggy.
+          dpr={[1, 2]}
+          style={{ width: "100%", height: "100%", touchAction: "none" }}
           onPointerMissed={() => onSelectUser(null)}
         >
           <CrowdCamera />
