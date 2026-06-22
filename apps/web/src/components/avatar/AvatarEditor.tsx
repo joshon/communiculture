@@ -312,6 +312,23 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     />
   );
 
+  // Embedded: smaller zoom (clear margin) + a higher camera target so the avatar
+  // is centred and the head/hair never clips at the top.
+  const embeddedAvatarRenderer = (
+    <AvatarRenderer
+      library={library}
+      variantIndices={variants}
+      colors={colors}
+      selectedPart={selectedPart}
+      onPartClick={handlePartClick}
+      showOutline={true}
+      showLabels={true}
+      spinning={isSpinning}
+      fixedZoom={Math.round(canvasZoom * 0.82)}
+      cameraTargetY={1.7}
+    />
+  );
+
   // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
   if (isMobile) {
     return (
@@ -348,7 +365,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
             ? { height: 280, flexShrink: 0, position: "relative" }
             : { flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}
         >
-          {desktopAvatarRenderer}
+          {embedded ? embeddedAvatarRenderer : desktopAvatarRenderer}
         </div>
 
         {/* Color palette — wider rows */}
