@@ -102,7 +102,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
   }
 
   return (
-    <div style={{ minHeight: "100svh", display: "flex", flexDirection: "column", background: "white", overflowY: "auto" }}>
+    <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: "white", overflow: "hidden" }}>
       {/* Minimal top — logo only, no navigation */}
       <div style={{ padding: "16px clamp(16px, 4vw, 32px) 4px", flexShrink: 0 }}>
         <Image
@@ -139,8 +139,9 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
         />
       </div>
 
-      {/* Avatar editor (embedded = fixed-height avatar, flows in the page) */}
-      <div style={{ marginTop: 10 }}>
+      {/* Avatar editor — fills the remaining space (responsive); the avatar fits
+          whatever height it gets, so bigger screens get a bigger avatar. */}
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 8 }}>
         {library ? (
           <AvatarEditor
             library={library}
@@ -152,7 +153,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
             embedded
           />
         ) : (
-          <div style={{ height: 280, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
             loading…
           </div>
         )}

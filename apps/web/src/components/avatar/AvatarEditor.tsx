@@ -312,8 +312,8 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     />
   );
 
-  // Embedded: smaller zoom (clear margin) + a higher camera target so the avatar
-  // is centred and the head/hair never clips at the top.
+  // Embedded: centre the avatar (target ≈ its vertical mid-point) and pull the
+  // zoom in a touch so neither the hair nor the feet clip, at any container size.
   const embeddedAvatarRenderer = (
     <AvatarRenderer
       library={library}
@@ -325,7 +325,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
       showLabels={true}
       spinning={isSpinning}
       fixedZoom={Math.round(canvasZoom * 0.82)}
-      cameraTargetY={1.7}
+      cameraTargetY={1.55}
     />
   );
 
@@ -333,7 +333,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
   if (isMobile) {
     return (
       <div style={embedded
-        ? { width: "100%", display: "flex", flexDirection: "column", background: "white", userSelect: "none" }
+        ? { width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "white", userSelect: "none" }
         : { width: "100vw", flex: 1, minHeight: 0, background: "white", display: "flex", flexDirection: "column", overflow: "hidden", userSelect: "none" }}>
 
         {/* Variant selector — always reserves 2-row height to prevent layout jump */}
@@ -362,7 +362,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
         <div
           ref={canvasContainerRef}
           style={embedded
-            ? { height: 280, flexShrink: 0, position: "relative" }
+            ? { flex: 1, minHeight: 120, position: "relative" }
             : { flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}
         >
           {embedded ? embeddedAvatarRenderer : desktopAvatarRenderer}
