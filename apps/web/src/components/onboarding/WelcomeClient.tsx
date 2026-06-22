@@ -7,6 +7,7 @@ import Image from "next/image";
 import { AvatarEditor } from "@/components/avatar/AvatarEditor";
 import type { AvatarVariantLibrary, AvatarPart } from "@/components/avatar-builder/types";
 import { useAvatarStore } from "@/store/avatarStore";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { PillButton } from "@/components/ui/PillButton";
 
 const INTER = "Inter, sans-serif";
@@ -29,6 +30,7 @@ function parseAvatarConfig(raw: unknown): { colors: Record<AvatarPart, string>; 
 export function WelcomeClient({ next, initialAvatarConfig }: { next: string; initialAvatarConfig: unknown }) {
   const router = useRouter();
   const { update } = useSession();
+  const isMobile = useIsMobile(900);
   const setEditingConfig = useAvatarStore((s) => s.setEditingConfig);
   const setPendingCapture = useAvatarStore((s) => s.setPendingCapture);
   const editingColors = useAvatarStore((s) => s.editingColors);
@@ -77,8 +79,6 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
     if (!n) { setError("please choose a name"); return; }
     setError(""); setLoading(true);
     try {
-      // Make sure the latest avatar is saved (in case the editor's debounce
-      // hasn't fired yet).
       if (editingColors && editingVariants) {
         await fetch("/api/users/avatar", {
           method: "PATCH",
@@ -92,7 +92,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
         body: JSON.stringify({ name: n }),
       });
       if (!res.ok) { setError("something went wrong — try again"); return; }
-      await update(); // refresh session so the new name/onboarding state applies
+      await update();
       router.push(next);
     } catch {
       setError("something went wrong — try again");
@@ -101,71 +101,82 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
     }
   }
 
-  return (
-    <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: "white", overflow: "hidden" }}>
-      {/* Minimal top — logo only, no navigation */}
-      <div style={{ padding: "16px clamp(16px, 4vw, 32px) 4px", flexShrink: 0 }}>
-        <Image
-          src="/logo.svg"
-          alt="communi*culture"
-          width={361}
-          height={65}
-          priority
-          style={{ width: "clamp(120px, 20vw, 180px)", height: "auto", display: "block" }}
-        />
-      </div>
+  const logo = (
+    <Image src="/logo.svg" alt="communi*culture" width={361} height={65} priority
+      style={{ width: "clamp(120px, 18vw, 180px)", height: "auto", display: "block" }} />
+  );
 
-      {/* Name (mandatory) */}
-      <div style={{ width: "100%", maxWidth: 520, margin: "0 auto", padding: "8px clamp(16px, 4vw, 32px) 0", flexShrink: 0 }}>
-        <h1 style={{ fontFamily: INTER, fontSize: "clamp(20px, 4vw, 26px)", fontWeight: 700, color: "#1a1a1a", margin: "0 0 4px" }}>
-          Set up your profile
-        </h1>
-        <p style={{ fontFamily: INTER, fontSize: 14, color: "#888", margin: "0 0 14px" }}>
-          Choose a name and make your avatar your own.
-        </p>
-        <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>
-          Your name
-        </label>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="e.g. Josh"
-          autoFocus
-          maxLength={60}
-          style={{
-            width: "100%", boxSizing: "border-box", border: "1.5px solid #AAAAAA", borderRadius: 10,
-            padding: "12px 16px", fontFamily: INTER, fontSize: 16, color: "#1a1a1a", outline: "none",
-          }}
-        />
-      </div>
+  const heading = (
+    <>
+      <h1 style={{ fontFamily: INTER, fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 700, color: "#1a1a1a", margin: "0 0 4px" }}>
+        Set up your profile
+      </h1>
+      <p style={{ fontFamily: INTER, fontSize: 14, color: "#888", margin: "0 0 16px" }}>
+        Choose a name and make your avatar your own.
+      </p>
+      <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>Your name</label>
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="e.g. Josh"
+        autoFocus
+        maxLength={60}
+        style={{
+          width: "100%", boxSizing: "border-box", border: "1.5px solid #AAAAAA", borderRadius: 10,
+          padding: "12px 16px", fontFamily: INTER, fontSize: 16, color: "#1a1a1a", outline: "none",
+        }}
+      />
+    </>
+  );
 
-      {/* Avatar editor — fills the remaining space (responsive); the avatar fits
-          whatever height it gets, so bigger screens get a bigger avatar. */}
-      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 8 }}>
-        {library ? (
-          <AvatarEditor
-            library={library}
-            initialColors={initialColors}
-            initialVariants={initialVariants}
-            autoSpin={autoSpin}
-            onSave={handleAvatarSave}
-            onChange={handleAvatarChange}
-            embedded
-          />
-        ) : (
-          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>
-            loading…
+  const editor = library ? (
+    <AvatarEditor
+      library={library}
+      initialColors={initialColors}
+      initialVariants={initialVariants}
+      autoSpin={autoSpin}
+      onSave={handleAvatarSave}
+      onChange={handleAvatarChange}
+      embedded
+    />
+  ) : (
+    <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: INTER, color: "#bbb" }}>loading…</div>
+  );
+
+  const cta = (
+    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      {error && <span style={{ fontFamily: INTER, color: "#c00", fontSize: 13 }}>{error}</span>}
+      <div style={{ marginLeft: "auto" }}>
+        <PillButton variant="primary" label={continueLabel} onClick={handleContinue} loading={loading} disabled={!name.trim()} />
+      </div>
+    </div>
+  );
+
+  // ── Desktop: form/heading on the left, avatar on the right ──────────────────
+  if (!isMobile) {
+    return (
+      <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: "white", overflow: "hidden" }}>
+        <div style={{ padding: "20px clamp(20px, 4vw, 48px) 8px", flexShrink: 0 }}>{logo}</div>
+        <div style={{ flex: 1, minHeight: 0, display: "flex", alignItems: "stretch", gap: "clamp(24px, 4vw, 64px)", padding: "0 clamp(20px, 4vw, 48px) 24px" }}>
+          {/* Left: heading + name + CTA */}
+          <div style={{ flex: "0 0 clamp(280px, 32vw, 420px)", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+            {heading}
+            <div style={{ marginTop: 28 }}>{cta}</div>
           </div>
-        )}
-      </div>
-
-      {/* CTA */}
-      <div style={{ marginTop: "auto", padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", display: "flex", alignItems: "center", gap: 16, flexShrink: 0 }}>
-        {error && <span style={{ fontFamily: INTER, color: "#c00", fontSize: 13 }}>{error}</span>}
-        <div style={{ marginLeft: "auto" }}>
-          <PillButton variant="primary" label={continueLabel} onClick={handleContinue} loading={loading} disabled={!name.trim()} />
+          {/* Right: avatar editor (fills the column, scales to fit) */}
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>{editor}</div>
         </div>
       </div>
+    );
+  }
+
+  // ── Mobile: stacked ─────────────────────────────────────────────────────────
+  return (
+    <div style={{ height: "100svh", display: "flex", flexDirection: "column", background: "white", overflow: "hidden" }}>
+      <div style={{ padding: "16px clamp(16px, 4vw, 32px) 4px", flexShrink: 0 }}>{logo}</div>
+      <div style={{ width: "100%", maxWidth: 520, margin: "0 auto", padding: "8px clamp(16px, 4vw, 32px) 0", flexShrink: 0 }}>{heading}</div>
+      <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", marginTop: 8 }}>{editor}</div>
+      <div style={{ marginTop: "auto", padding: "14px clamp(16px, 4vw, 32px)", borderTop: "1px solid #f0f0f0", flexShrink: 0 }}>{cta}</div>
     </div>
   );
 }

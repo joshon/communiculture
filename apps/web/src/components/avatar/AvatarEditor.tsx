@@ -329,8 +329,10 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     />
   );
 
-  // ─── mobile layout — height-scaled, no scroll ─────────────────────────────────
-  if (isMobile) {
+  // ─── mobile / embedded layout — vertical, fits its container ──────────────────
+  // Embedded always uses this vertical layout (even on desktop), so the editor
+  // can sit in a column without triggering the full-screen side-by-side layout.
+  if (isMobile || embedded) {
     return (
       <div style={embedded
         ? { width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", background: "white", userSelect: "none" }
