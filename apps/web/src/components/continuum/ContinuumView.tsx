@@ -1264,7 +1264,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
           {isAnon ? (
             <PillButton
               variant="primary"
-              label="Join this continuum"
+              label="Add your answer"
               onClick={() => {
                 const back =
                   typeof window !== "undefined"
