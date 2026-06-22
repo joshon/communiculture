@@ -707,8 +707,13 @@ function CrowdScene({
   // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
   const platformXRef = useRef(0);
 
-  // In-crowd drag state for current user's avatar
+  // In-crowd drag state for current user's avatar. A tap must NOT move the
+  // avatar — only a pointer that travels past this threshold counts as a drag.
+  // (Otherwise tapping to open the comment bubble commits the tap point projected
+  // to the ground, which sits above/behind the avatar's real spot → it jumps.)
   const isDraggingRef = useRef(false);
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+  const DRAG_THRESHOLD_SQ = 36; // (6px)^2
   const onPositionChangeRef = useRef(onPositionChange);
   const onPositionCommitRef = useRef(onPositionCommit);
   onPositionChangeRef.current = onPositionChange;
@@ -719,7 +724,14 @@ function CrowdScene({
     const canvas = gl.domElement;
 
     const onMove = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
+      const start = dragStartRef.current;
+      if (!start) return;
+      if (!isDraggingRef.current) {
+        const dx = e.clientX - start.x, dy = e.clientY - start.y;
+        if (dx * dx + dy * dy < DRAG_THRESHOLD_SQ) return; // still a tap — don't move
+        isDraggingRef.current = true;
+        canvas.style.cursor = "grabbing";
+      }
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       const m = bodyEdgeMarginPosXRef.current;
       const posX = Math.max(m, Math.min(100 - m, (worldX / CROWD_WIDTH + 0.5) * 100));
@@ -728,9 +740,12 @@ function CrowdScene({
     };
 
     const onUp = (e: PointerEvent) => {
-      if (!isDraggingRef.current) return;
+      const start = dragStartRef.current;
+      const wasDragging = isDraggingRef.current;
+      dragStartRef.current = null;
       isDraggingRef.current = false;
       canvas.style.cursor = "";
+      if (!start || !wasDragging) return; // a tap — leave the avatar put; the click selects it
       const [worldX, worldZ] = screenToWorldXZ(e.clientX, e.clientY, camera, canvas);
       const m = bodyEdgeMarginPosXRef.current;
       const posX = Math.max(m, Math.min(100 - m, (worldX / CROWD_WIDTH + 0.5) * 100));
@@ -756,8 +771,10 @@ function CrowdScene({
 
   const handleDragStart = React.useCallback((e: any) => {
     e.stopPropagation();
-    isDraggingRef.current = true;
-    gl.domElement.style.cursor = "grabbing";
+    // Arm a drag, but don't actually drag/move until the pointer travels past the
+    // threshold — so a tap stays a tap (and just opens the comment bubble).
+    dragStartRef.current = { x: e.nativeEvent.clientX, y: e.nativeEvent.clientY };
+    isDraggingRef.current = false;
     (e.nativeEvent.target as HTMLElement).setPointerCapture(e.nativeEvent.pointerId);
   }, [gl]);
 
