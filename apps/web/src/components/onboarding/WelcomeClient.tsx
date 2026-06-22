@@ -103,7 +103,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
 
   const logo = (
     <Image src="/logo.svg" alt="communi*culture" width={361} height={65} priority
-      style={{ width: "clamp(120px, 18vw, 180px)", height: "auto", display: "block" }} />
+      style={{ width: isMobile ? "104px" : "clamp(120px, 18vw, 180px)", height: "auto", display: "block" }} />
   );
 
   const heading = (
@@ -111,10 +111,13 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
       <h1 style={{ fontFamily: INTER, fontSize: "clamp(20px, 4vw, 28px)", fontWeight: 700, color: "#1a1a1a", margin: "0 0 4px" }}>
         Set up your profile
       </h1>
-      <p style={{ fontFamily: INTER, fontSize: 14, color: "#888", margin: "0 0 16px" }}>
-        Choose a name and make your avatar your own.
-      </p>
-      <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: 6 }}>Your name</label>
+      {/* Subtitle takes vertical room that short phones need for the avatar. */}
+      {!isMobile && (
+        <p style={{ fontFamily: INTER, fontSize: 14, color: "#888", margin: "0 0 16px" }}>
+          Choose a name and make your avatar your own.
+        </p>
+      )}
+      <label style={{ fontFamily: INTER, fontSize: 13, color: "#6b6b6b", display: "block", marginBottom: isMobile ? 4 : 6, marginTop: isMobile ? 10 : 0 }}>Your name</label>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
