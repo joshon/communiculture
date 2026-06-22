@@ -38,6 +38,13 @@ RUN echo "--- schema field check ---"; \
       find node_modules/.prisma -name index.d.ts 2>/dev/null | head; \
       exit 1; \
     fi
+# NEXT_PUBLIC_* vars are inlined into the client bundle at build time. Railway
+# passes service variables as Docker build args, so surface the socket URL as an
+# env var before `next build`. Without this the client falls back to
+# http://localhost:3001 → real-time never connects in prod, and browsers show a
+# "access other apps and services on this device" (local network access) prompt.
+ARG NEXT_PUBLIC_SOCKET_URL
+ENV NEXT_PUBLIC_SOCKET_URL=$NEXT_PUBLIC_SOCKET_URL
 RUN npm run build
 
 # Production image
