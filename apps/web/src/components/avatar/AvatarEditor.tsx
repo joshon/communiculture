@@ -330,6 +330,22 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
     />
   );
 
+  // Standalone mobile editor: 10% smaller than the canvas-fit zoom so the avatar
+  // doesn't crowd the edges on real phones. (Desktop keeps the full zoom.)
+  const mobileAvatarRenderer = (
+    <AvatarRenderer
+      library={library}
+      variantIndices={variants}
+      colors={colors}
+      selectedPart={selectedPart}
+      onPartClick={handlePartClick}
+      showOutline={true}
+      showLabels={true}
+      spinning={isSpinning}
+      fixedZoom={Math.round(canvasZoom * 0.9)}
+    />
+  );
+
   // ─── mobile / embedded layout — vertical, fits its container ──────────────────
   // Embedded always uses this vertical layout (even on desktop), so the editor
   // can sit in a column without triggering the full-screen side-by-side layout.
@@ -368,7 +384,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
             ? { flex: 1, minHeight: 120, position: "relative" }
             : { flex: 1, minHeight: 0, maxHeight: "60svh", position: "relative" }}
         >
-          {embedded ? embeddedAvatarRenderer : desktopAvatarRenderer}
+          {embedded ? embeddedAvatarRenderer : mobileAvatarRenderer}
         </div>
 
         {/* Color palette — wider rows */}
