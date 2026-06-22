@@ -324,7 +324,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
       showOutline={true}
       showLabels={true}
       spinning={isSpinning}
-      fixedZoom={Math.round(canvasZoom * 0.82)}
+      fixedZoom={Math.round(canvasZoom * 0.6)}
       cameraTargetY={1.55}
     />
   );
