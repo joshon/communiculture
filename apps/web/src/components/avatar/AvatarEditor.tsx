@@ -26,10 +26,11 @@ function useEditorCanvasSize() {
     const el = ref.current;
     if (!el) return;
     const measure = () => {
-      // Floor low enough that constrained embeds (onboarding) can shrink the
-      // avatar to fit; the full-screen editor's container is always ≥300 so it's
-      // unaffected.
-      const h = Math.max(150, Math.min(EDITOR_MAX_H, el.clientHeight || EDITOR_MAX_H));
+      // Use the ACTUAL container height (no meaningful floor) so the avatar scales
+      // to whatever space it has and never over-renders past a small container —
+      // the cause of cropping on short screens. The full-screen editor's container
+      // is always large, so this doesn't change it.
+      const h = Math.max(40, Math.min(EDITOR_MAX_H, el.clientHeight || EDITOR_MAX_H));
       setHeight(h);
       setZoom(Math.round(EDITOR_BASE_ZOOM * h / EDITOR_MAX_H));
       setWidth(Math.round(h * EDITOR_ASPECT));
@@ -324,7 +325,7 @@ export function AvatarEditor({ library, initialColors, initialVariants, autoSpin
       showOutline={true}
       showLabels={true}
       spinning={isSpinning}
-      fixedZoom={Math.round(canvasZoom * 0.6)}
+      fixedZoom={Math.round(canvasZoom * 0.46)}
       cameraTargetY={1.55}
     />
   );
