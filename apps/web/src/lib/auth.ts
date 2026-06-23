@@ -21,8 +21,16 @@ export const authOptions: NextAuthOptions = {
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM ?? "Communiculture <noreply@communiculture.com>",
       sendVerificationRequest: async ({ identifier, url, provider }) => {
+        // Link to our confirmation page instead of straight to the callback.
+        // The magic-link token is single-use, and email security scanners
+        // (Outlook Safe Links, Mimecast, antivirus, link unfurlers) pre-fetch
+        // links — which would consume the token before the human clicks. The
+        // confirm page is safe to pre-fetch; the token is only spent when the
+        // user actually clicks the button. See app/(auth)/verify-signin.
+        const confirmUrl = `${new URL(url).origin}/verify-signin?callback=${encodeURIComponent(url)}`;
+
         const subject = "sign in to communiculture";
-        const text = `sign in to communiculture\n\n${url}\n\nthis link expires in 24 hours and can only be used once.`;
+        const text = `sign in to communiculture\n\n${confirmUrl}\n\nthis link expires in 24 hours and can only be used once.`;
         const html = `
             <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:40px 24px">
               <p style="font-size:13px;color:#0083FF;letter-spacing:0.05em;margin:0 0 24px">COMMUNICULTURE</p>
@@ -30,7 +38,7 @@ export const authOptions: NextAuthOptions = {
               <p style="font-size:14px;color:#555;margin:0 0 32px;line-height:1.6">
                 click the button below to sign in. this link expires in 24 hours.
               </p>
-              <a href="${url}" style="display:inline-block;background:#0083FF;color:white;text-decoration:none;padding:10px 24px;border-radius:999px;font-size:14px;letter-spacing:0.04em">
+              <a href="${confirmUrl}" style="display:inline-block;background:#0083FF;color:white;text-decoration:none;padding:10px 24px;border-radius:999px;font-size:14px;letter-spacing:0.04em">
                 sign in →
               </a>
               <p style="font-size:12px;color:#999;margin:32px 0 0;line-height:1.6">
