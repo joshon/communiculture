@@ -1,14 +1,23 @@
 import type { Server, Socket } from "socket.io";
 import { prisma } from "@communiculture/db";
 import { enqueueMessage } from "../lib/moderation";
+import { canAccessContinuum } from "../lib/access";
 
 export function registerChatHandlers(io: Server, socket: Socket) {
   socket.on(
     "chat:send",
-    async (payload: { continuumId: string; body: string }) => {
-      const { continuumId, body } = payload;
+    async (payload: { continuumId: string; body: string; token?: string }) => {
+      const continuumId = payload?.continuumId;
+      const body = payload?.body;
+      if (typeof continuumId !== "string" || typeof body !== "string") return;
       const trimmed = body.trim();
       if (!trimmed || trimmed.length > 1000) return;
+
+      // Only members/owner/link-holders who aren't banned may post to this room.
+      if (!(await canAccessContinuum(socket.data.userId, continuumId, payload?.token))) {
+        socket.emit("chat:error", { message: "not allowed" });
+        return;
+      }
 
       try {
         const message = await prisma.message.create({

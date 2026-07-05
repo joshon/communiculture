@@ -10,9 +10,11 @@ interface Props {
   continuumId: string;
   sessionToken: string;
   initialMessages: ChatMessage[];
+  /** Share token for link/password continuums, so the server can authorize sends. */
+  token?: string | null;
 }
 
-export function ChatPanel({ continuumId, sessionToken, initialMessages }: Props) {
+export function ChatPanel({ continuumId, sessionToken, initialMessages, token }: Props) {
   const { data: session } = useSession();
   const { messages, unread, panelOpen, setMessages, addMessage, openPanel, closePanel } = useChatStore();
   const [input, setInput] = useState("");
@@ -44,7 +46,7 @@ export function ChatPanel({ continuumId, sessionToken, initialMessages }: Props)
     const trimmed = input.trim();
     if (!trimmed) return;
     const socket = getSocket(sessionToken);
-    socket.emit("chat:send", { continuumId, body: trimmed });
+    socket.emit("chat:send", { continuumId, body: trimmed, token: token ?? undefined });
     setInput("");
   };
 

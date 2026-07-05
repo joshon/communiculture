@@ -970,7 +970,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
     socket.on("connect", () => {
       setConnected(true);
-      socket.emit("join:continuum", continuum.id);
+      socket.emit("join:continuum", { continuumId: continuum.id, token: continuum.shareToken ?? undefined });
     });
     socket.on("disconnect", () => setConnected(false));
     // A live position broadcast means the user is *placed*. If we already render
