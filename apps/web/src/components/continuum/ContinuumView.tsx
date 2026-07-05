@@ -844,6 +844,10 @@ function CommentBubble({ userId, name, comment, isSelf, positionFraction, headSc
 
 export function ContinuumView({ continuum, participants, messages, sessionToken, authenticated = true, currentUserAvatarConfig, seeding: initialSeeding }: Props) {
   const { data: session } = useSession();
+  // Share token to prove access on data/write calls for link- and password-gated
+  // continuums (the API re-checks access; a bare id is no longer enough). Empty
+  // for PUBLIC continuums.
+  const tokenQ = continuum.shareToken ? `?token=${encodeURIComponent(continuum.shareToken)}` : "";
   // Anonymous viewers (server says not authenticated, or no client session):
   // read-only view with an "add yourself" CTA, no socket, no placement.
   const isAnon = !authenticated;
@@ -878,7 +882,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
     // Poll every 2s for bots appearing
     const poll = setInterval(async () => {
       try {
-        const res = await fetch(`/api/continuums/${continuum.id}`);
+        const res = await fetch(`/api/continuums/${continuum.id}${tokenQ}`);
         const data = await res.json();
         const bots = (data.participants ?? []).filter((p: any) => p.user?.isSynthetic);
         if (bots.length >= 5) {
@@ -1067,7 +1071,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       getSocket(sessionToken).emit("position:update", { continuumId: continuum.id, position: posX, positionZ: posZ });
       if (commitTimer.current) clearTimeout(commitTimer.current);
       commitTimer.current = setTimeout(async () => {
-        await fetch(`/api/continuums/${continuum.id}/position`, {
+        await fetch(`/api/continuums/${continuum.id}/position${tokenQ}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ position: posX, positionZ: posZ }),
@@ -1086,7 +1090,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
         }
       }, 300);
     },
-    [continuum.id, sessionToken, currentUserId, addParticipant, session, currentUserAvatarConfig]
+    [continuum.id, tokenQ, sessionToken, currentUserId, addParticipant, session, currentUserAvatarConfig]
   );
 
   // ── comment handler ──
@@ -1095,13 +1099,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
       updateComment(currentUserId, comment);
       // Broadcast live so others see it without refreshing.
       getSocket(sessionToken).emit("comment:update", { continuumId: continuum.id, comment });
-      await fetch(`/api/continuums/${continuum.id}/comment`, {
+      await fetch(`/api/continuums/${continuum.id}/comment${tokenQ}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comment }),
       });
     },
-    [continuum.id, currentUserId, sessionToken]
+    [continuum.id, tokenQ, currentUserId, sessionToken]
   );
 
   // ── leave continuum: remove the current user's own participation ──

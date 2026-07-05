@@ -3,13 +3,25 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import { enqueueForModeration } from "@/lib/moderation";
+import { resolveContinuumAccess } from "@/lib/continuum-access";
+
+const MAX_COMMENT_LEN = 1000;
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
+  const shareToken = new URL(req.url).searchParams.get("token");
+  const { ok } = await resolveContinuumAccess({
+    continuumId: params.id,
+    userId: session.user.id,
+    email: session.user.email,
+    shareToken,
+  });
+  if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+
   const { comment } = await req.json();
-  const trimmed = typeof comment === "string" ? comment.trim() || null : null;
+  const trimmed = typeof comment === "string" ? comment.trim().slice(0, MAX_COMMENT_LEN) || null : null;
 
   const updated = await prisma.continuumParticipant.updateMany({
     where: { continuumId: params.id, userId: session.user.id },

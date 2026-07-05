@@ -4,40 +4,20 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import bcrypt from "bcryptjs";
 import { nanoid } from "@/lib/nanoid";
-
-async function canAccess(userId: string, continuumId: string, shareToken?: string | null) {
-  const c = await prisma.continuum.findUnique({
-    where: { id: continuumId },
-    include: { team: { include: { members: true } } },
-  });
-  if (!c) return null;
-
-  if (c.ownerId === userId) return c;
-  if (c.visibility === "PUBLIC") return c;
-  if (c.visibility === "PUBLIC_LINK" && shareToken && c.shareToken === shareToken) return c;
-  if (c.visibility === "PASSWORD" && shareToken && c.shareToken === shareToken) return c;
-  if (
-    c.visibility === "TEAM" &&
-    c.team?.members.some((m) => m.userId === userId)
-  )
-    return c;
-  if (await prisma.continuumParticipant.findUnique({
-    where: { continuumId_userId: { continuumId, userId } },
-  }))
-    return c;
-
-  return null;
-}
+import { resolveContinuumAccess } from "@/lib/continuum-access";
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   const url = new URL(req.url);
   const shareToken = url.searchParams.get("token");
 
-  const userId = session?.user.id ?? "__guest__";
-
-  const continuum = await canAccess(userId, params.id, shareToken);
-  if (!continuum) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const { ok, continuum } = await resolveContinuumAccess({
+    continuumId: params.id,
+    userId: session?.user?.id ?? null,
+    email: session?.user?.email,
+    shareToken,
+  });
+  if (!ok || !continuum) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const [participants, messages] = await Promise.all([
     prisma.continuumParticipant.findMany({

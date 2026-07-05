@@ -2,10 +2,20 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
+import { resolveContinuumAccess } from "@/lib/continuum-access";
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const shareToken = new URL(req.url).searchParams.get("token");
+  const { ok } = await resolveContinuumAccess({
+    continuumId: params.id,
+    userId: session.user.id,
+    email: session.user.email,
+    shareToken,
+  });
+  if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   const { position, positionZ } = await req.json();
   if (typeof position !== "number" || position < 0 || position > 100) {
