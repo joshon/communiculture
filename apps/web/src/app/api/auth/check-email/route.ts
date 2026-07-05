@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@communiculture/db";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 // Drives the progressive login flow: given an email, does that account have a
 // password set? If so the UI prompts for it; otherwise (new user, or an account
@@ -7,6 +8,12 @@ import { prisma } from "@communiculture/db";
 // Note: this reveals whether an email has a password — an acceptable tradeoff
 // for the progressive UX on this app.
 export async function POST(req: Request) {
+  // Throttle per IP so this can't be used to bulk-enumerate which emails are
+  // registered / have a password.
+  if (!(await rateLimit(`check-email:${clientIp(req)}`, 30, 3600))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
+
   let email: string | undefined;
   try {
     ({ email } = await req.json());
