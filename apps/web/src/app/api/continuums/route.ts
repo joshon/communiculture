@@ -9,6 +9,11 @@ import fs from "fs/promises";
 import path from "path";
 import { canCreateContinuum } from "@/lib/plans";
 import { moderateNow } from "@/lib/moderation";
+import { rateLimit } from "@/lib/rate-limit";
+
+// Length caps on user-provided text so a caller can't bloat the DB with
+// megabyte strings. Generous vs. the UI, strict vs. abuse.
+const MAX = { title: 300, label: 120, description: 2000, category: 80 } as const;
 
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
 const BOT_BLUE = "#0083FF";
@@ -129,6 +134,10 @@ export async function POST(req: Request) {
 
   const userId = session.user.id;
 
+  if (!(await rateLimit(`continuum-create:${userId}`, 30, 3600))) {
+    return NextResponse.json({ error: "rate_limited", message: "Slow down a moment and try again." }, { status: 429 });
+  }
+
   const [user, totalOwned] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -186,15 +195,15 @@ export async function POST(req: Request) {
 
   const continuum = await prisma.continuum.create({
     data: {
-      title: title.trim(),
-      leftLabel: leftLabel.trim(),
-      rightLabel: rightLabel.trim(),
-      description: description?.trim() || null,
+      title: title.trim().slice(0, MAX.title),
+      leftLabel: leftLabel.trim().slice(0, MAX.label),
+      rightLabel: rightLabel.trim().slice(0, MAX.label),
+      description: description?.trim().slice(0, MAX.description) || null,
       ownerId: userId,
       teamId: teamId || null,
       visibility: visibility ?? "PUBLIC_LINK",
       shareToken,
-      category: category?.trim() || null,
+      category: category?.trim().slice(0, MAX.category) || null,
       passwordHash,
     },
   });

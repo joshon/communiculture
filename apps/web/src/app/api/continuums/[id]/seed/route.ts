@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@communiculture/db";
 import Anthropic from "@anthropic-ai/sdk";
+import { rateLimit } from "@/lib/rate-limit";
 
 const POSITIONS = [10, 30, 50, 70, 90];
 const AVATAR_PARTS = ["hair","head","face","neck","arms","body","pants","legs","shoes"] as const;
@@ -15,6 +16,11 @@ function seededInt(seed: number, salt: number, max: number): number {
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  // Each seed can fire 5 Anthropic calls — cap per user regardless of idempotency.
+  if (!(await rateLimit(`seed:${session.user.id}`, 20, 3600))) {
+    return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+  }
 
   const continuum = await prisma.continuum.findUnique({ where: { id: params.id } });
   if (!continuum || continuum.ownerId !== session.user.id) {

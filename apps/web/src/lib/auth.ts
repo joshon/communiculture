@@ -7,6 +7,7 @@ import EmailProvider from "next-auth/providers/email";
 import bcrypt from "bcryptjs";
 import { createTransport } from "nodemailer";
 import { isAdminEmail } from "@/lib/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma as any) as any,
@@ -21,6 +22,16 @@ export const authOptions: NextAuthOptions = {
       server: process.env.EMAIL_SERVER,
       from: process.env.EMAIL_FROM ?? "Communiculture <noreply@communiculture.com>",
       sendVerificationRequest: async ({ identifier, url, provider }) => {
+        // Throttle per email address so nobody can email-bomb a victim (or burn
+        // our Resend quota) by hammering the sign-in form. Silently no-op when
+        // over the limit — the form still shows "check your email", so this
+        // doesn't leak whether the address is being targeted.
+        const allowed = await rateLimit(`magic:${identifier.toLowerCase()}`, 5, 3600);
+        if (!allowed) {
+          console.warn("[magic-link] rate-limited:", identifier);
+          return;
+        }
+
         // Link to our confirmation page instead of straight to the callback.
         // The magic-link token is single-use, and email security scanners
         // (Outlook Safe Links, Mimecast, antivirus, link unfurlers) pre-fetch
