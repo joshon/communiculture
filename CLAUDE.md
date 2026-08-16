@@ -108,6 +108,31 @@ Tertiary pattern:
 </button>
 ```
 
+## Location-scoped continuums (`NEARBY`)
+
+A continuum created as **"Within 5 miles, public"** is stored with `visibility:
+NEARBY` plus `lat`/`lng`. It surfaces under the **"Within 5 miles"** chip on the
+dashboard for viewers near it.
+
+**Proximity is discovery only — never access control.** `NEARBY` reads exactly
+like `PUBLIC`: anyone with the link can open it, and `lib/continuum-access.ts`
+grants it unconditionally. Coordinates are self-reported by the browser, so a
+distance check would be trivially spoofed and would imply a privacy guarantee we
+can't keep. Do not add one.
+
+**Coordinates are always coarsened** to 2dp (~0.7 miles) by `coarsen()` in
+`apps/web/src/lib/geo.ts`. The browser rounds before sending and the API rounds
+again before writing — the server call is the only real guarantee, so keep it.
+The viewer's own location is session-scoped (`sessionStorage`) and never stored.
+
+**Units: miles, always.** The product speaks miles; don't put kilometres in UI
+copy. 2dp is described to users as "under a mile".
+
+Both entry points share `useLocation` / `LocationPrompt` from
+`components/ui/LocationPrompt.tsx` — put any new location UI through those so
+the consent wording stays consistent. `RADIUS_MILES` in `lib/geo.ts` is the
+single source of truth for the distance, including the label text.
+
 ## Form controls & filter chips
 
 Square edges throughout — no pills, no rounded corners on controls.

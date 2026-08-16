@@ -26,6 +26,8 @@ export default async function DashboardPage() {
     shareToken: true,
     category: true,
     closedAt: true,
+    lat: true,
+    lng: true,
     _count: {
       select: {
         participants: { where: { user: { isSynthetic: false } } },
@@ -53,6 +55,9 @@ export default async function DashboardPage() {
           { ownerId: userId },
           // Discovery feed (Popular / Recent) = publicly listed continuums only.
           { AND: [{ visibility: "PUBLIC" }, { deletedAt: null }] },
+          // Nearby continuums travel with the feed; the "Within N miles" chip
+          // narrows them client-side once the viewer shares a location.
+          { AND: [{ visibility: "NEARBY" }, { deletedAt: null }] },
           { AND: [{ team: { members: { some: { userId } } } }, { deletedAt: null }] },
           { AND: [{ participants: { some: { userId } } }, { deletedAt: null }] },
         ],
@@ -90,6 +95,8 @@ export default async function DashboardPage() {
       ownerId: c.ownerId,
       visibility: c.visibility,
       category: c.category ?? null,
+      lat: c.lat ?? null,
+      lng: c.lng ?? null,
       closedAt: c.closedAt?.toISOString() ?? null,
       // Most recent signal of activity: continuum edits or anyone joining/moving.
       lastActivityAt: new Date(Math.max(

@@ -57,6 +57,12 @@ export async function resolveContinuumAccess(opts: {
   if (isOwner || isAdmin) return { ok: true, continuum: c };
   if (c.visibility === "PUBLIC") return { ok: true, continuum: c };
 
+  // NEARBY reads exactly like PUBLIC. Proximity is a discovery filter applied
+  // when listing, never an access gate: coordinates are self-reported by the
+  // browser, so a distance check here would be trivially spoofed and would
+  // imply a privacy guarantee we cannot keep.
+  if (c.visibility === "NEARBY") return { ok: true, continuum: c };
+
   const tokenMatches = !!shareToken && shareToken === c.shareToken;
   if (c.visibility === "PUBLIC_LINK" && tokenMatches) return { ok: true, continuum: c };
 

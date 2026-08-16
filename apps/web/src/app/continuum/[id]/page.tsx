@@ -39,7 +39,10 @@ export default async function ContinuumPage({ params, searchParams }: Props) {
       .findUnique({ where: { continuumId_userId: { continuumId: params.id, userId } }, select: { id: true } })
       .catch(() => null));
   const tokenMatches = !!shareToken && shareToken === continuum.shareToken;
-  const publiclyListed = continuum.visibility === "PUBLIC"; // anyone can view a listed continuum
+  // NEARBY sits with PUBLIC deliberately: proximity decides what gets *listed*,
+  // not what may be read. Mirrors lib/continuum-access.ts.
+  const publiclyListed =
+    continuum.visibility === "PUBLIC" || continuum.visibility === "NEARBY";
   const publicLinkOk = continuum.visibility === "PUBLIC_LINK" && tokenMatches;
 
   // Password-protected: a matching share token gets the visitor to the gate;

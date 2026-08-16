@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { ContinuumPreviewBar } from "./ContinuumPreviewBar";
 import { PixelBox } from "@/components/ui/PixelBox";
+import { useLocation } from "@/components/ui/LocationPrompt";
+import { RADIUS_MILES, isWithinRadius } from "@/lib/geo";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
@@ -30,7 +32,7 @@ const FULL_AT = 100;
 
 type SortKey = "popular" | "active" | "created";
 type SortDir = "asc" | "desc";
-type FilterKey = "open" | "mine" | "in";
+type FilterKey = "open" | "mine" | "in" | "near";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "popular", label: "Popular" },
@@ -44,6 +46,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "open", label: "Are open" },
   { key: "mine", label: "You own" },
   { key: "in", label: "You are in" },
+  { key: "near", label: `Within ${RADIUS_MILES} miles` },
 ];
 
 export interface ContinuumItem {
@@ -59,6 +62,9 @@ export interface ContinuumItem {
   closedAt: string | null;
   lastActivityAt: string;
   shareToken: string | null;
+  /** Set only for NEARBY continuums, coarsened to ~0.7 miles. */
+  lat: number | null;
+  lng: number | null;
   participantCount: number;
   myPosition: number | null;
   allPositions: number[];
@@ -238,6 +244,11 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
   const [items, setItems] = useState(initialItems);
   const [showArchived, setShowArchived] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const coords = location.coords;
+  // True while a "near" click is waiting on the permission dialog, so the chip
+  // can switch itself on when the answer comes back.
+  const [nearPending, setNearPending] = useState(false);
 
   useEffect(() => {
     function onDown(e: MouseEvent) {
@@ -260,12 +271,31 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
   }, [sort, sortDir, filters, query]);
 
   const toggleFilter = (key: FilterKey) => {
+    // "near" needs a location before it can mean anything. First click asks;
+    // the chip only switches on once coordinates arrive (see the effect below).
+    if (key === "near" && !filters.has("near") && !location.coords) {
+      setNearPending(true);
+      location.request();
+      return;
+    }
     setFilters(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key); else next.add(key);
       return next;
     });
   };
+
+  // Resolve a pending "near" click: switch the chip on if we got a location,
+  // and give up quietly if the request failed (the error copy shows below).
+  useEffect(() => {
+    if (!nearPending) return;
+    if (location.coords) {
+      setFilters(prev => new Set(prev).add("near"));
+      setNearPending(false);
+    } else if (location.status === "denied" || location.status === "unavailable") {
+      setNearPending(false);
+    }
+  }, [nearPending, location.coords, location.status]);
 
   const handleDelete = (id: string) => {
     setItems(prev => prev.filter(c => c.id !== id));
@@ -292,6 +322,11 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       if (filters.has("mine") && c.ownerId !== userId) return false;
       if (filters.has("in") && c.myPosition === null) return false;
       if (filters.has("open") && c.participantCount >= FULL_AT) return false;
+      if (filters.has("near")) {
+        // Only NEARBY continuums carry coordinates; everything else drops out.
+        if (c.lat === null || c.lng === null) return false;
+        if (!coords || !isWithinRadius(coords, { lat: c.lat, lng: c.lng })) return false;
+      }
       if (q && !matchesQuery(c, q)) return false;
       return true;
     });
@@ -304,10 +339,18 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
       : new Date(c.createdAt).getTime();
     list = [...list].sort((a, b) => dir * (metric(a) - metric(b)));
     return list;
-  }, [items, sort, sortDir, filters, query, userId]);
+  }, [items, sort, sortDir, filters, query, userId, coords]);
 
   const showBar = filters.has("in");
-  const emptyMsg = query.trim()
+
+  // ?f=near can come back from a shared/restored URL in a new session, where
+  // the location is gone. Say so rather than showing an empty list as though
+  // nothing were nearby.
+  const needsLocation = filters.has("near") && location.hydrated && !coords;
+
+  const emptyMsg = needsLocation
+    ? "Share your location to see continuums near you."
+    : query.trim()
     ? "No continuums match your search."
     : filters.size > 0
     ? "Nothing matches these filters."
@@ -389,11 +432,32 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
                 cursor: "pointer", whiteSpace: "nowrap",
               }}
             >
-              {label}
+              {key === "near" && nearPending ? "Locating…" : label}
             </button>
           );
         })}
       </div>
+
+      {/* Why the location chip didn't take effect, if it didn't. */}
+      {location.error && (
+        <p style={{ fontFamily: INTER, fontSize: 12, color: "#c00", margin: "-16px 0 20px", lineHeight: 1.5 }}>
+          {location.error}
+        </p>
+      )}
+      {needsLocation && !location.error && (
+        <p style={{ fontFamily: INTER, fontSize: 12, color: "#888", margin: "-16px 0 20px", lineHeight: 1.5 }}>
+          <button
+            onClick={() => { setNearPending(true); location.request(); }}
+            style={{
+              fontFamily: INTER, fontSize: 12, color: BLUE, background: "none",
+              border: "none", cursor: "pointer", textDecoration: "underline", padding: 0,
+            }}
+          >
+            Share your location
+          </button>{" "}
+          to use this filter. It&apos;s rounded to under a mile and kept only for this visit.
+        </p>
+      )}
 
       {/* List */}
       {filtered.length === 0 ? (

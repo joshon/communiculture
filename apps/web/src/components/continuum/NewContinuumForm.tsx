@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppHeader } from "@/components/ui/AppHeader";
 import { PillButton } from "@/components/ui/PillButton";
+import { LocationPrompt, useLocation } from "@/components/ui/LocationPrompt";
+import { RADIUS_MILES } from "@/lib/geo";
 import Link from "next/link";
 import Select, { components, StylesConfig, DropdownIndicatorProps, MenuProps, GroupBase } from "react-select";
 
@@ -15,7 +17,7 @@ const BREADCRUMBS = [
   { label: "new continuum" },
 ];
 
-type Visibility = "PUBLIC" | "PUBLIC_LINK" | "PASSWORD";
+type Visibility = "PUBLIC" | "PUBLIC_LINK" | "PASSWORD" | "NEARBY";
 
 type Option = { value: string; label: string };
 
@@ -23,6 +25,7 @@ const VISIBILITY_OPTIONS: Option[] = [
   { value: "PUBLIC", label: "Publicly listed" },
   { value: "PUBLIC_LINK", label: "Public link — unlisted" },
   { value: "PASSWORD", label: "Link with password" },
+  { value: "NEARBY", label: `Within ${RADIUS_MILES} miles, public` },
 ];
 
 const TOPICS: Option[] = [
@@ -227,6 +230,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
   const [prepopulate, setPrepopulate]   = useState(false);
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
+  const location = useLocation();
 
   const visibilityOption = VISIBILITY_OPTIONS.find((o) => o.value === visibility) ?? VISIBILITY_OPTIONS[1];
 
@@ -235,7 +239,10 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
     leftLabel.trim() &&
     rightLabel.trim() &&
     (visibility !== "PUBLIC" || category) &&
-    (visibility !== "PASSWORD" || password.trim());
+    (visibility !== "PASSWORD" || password.trim()) &&
+    // A nearby continuum is meaningless without somewhere to pin it, so this
+    // greys out Create until location is granted — same shape as the rules above.
+    (visibility !== "NEARBY" || !!location.coords);
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -251,6 +258,9 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
           category: category?.label ?? null,
           password: password || null,
           prepopulate,
+          // Only sent for NEARBY; already coarsened, and re-coarsened server-side.
+          lat: visibility === "NEARBY" ? location.coords?.lat ?? null : null,
+          lng: visibility === "NEARBY" ? location.coords?.lng ?? null : null,
         }),
       });
       if (res.status === 402) {
@@ -368,6 +378,15 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                     placeholder="Search topics…"
                     styles={selectStyles}
                     components={{ DropdownIndicator: ChevronIndicator, Menu: PixelMenu }}
+                  />
+                </Field>
+              )}
+
+              {visibility === "NEARBY" && (
+                <Field label="Location">
+                  <LocationPrompt
+                    location={location}
+                    reason={`This continuum will be pinned where you are now, and shown to people within ${RADIUS_MILES} miles. Anyone with the link can still read it.`}
                   />
                 </Field>
               )}

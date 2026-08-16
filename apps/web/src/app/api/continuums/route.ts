@@ -10,6 +10,7 @@ import path from "path";
 import { canCreateContinuum } from "@/lib/plans";
 import { moderateNow } from "@/lib/moderation";
 import { rateLimit } from "@/lib/rate-limit";
+import { coarsen, isValidLatLng } from "@/lib/geo";
 
 // Length caps on user-provided text so a caller can't bloat the DB with
 // megabyte strings. Generous vs. the UI, strict vs. abuse.
@@ -153,7 +154,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { title, leftLabel, rightLabel, description, teamId, visibility, category, password, prepopulate } =
+  const { title, leftLabel, rightLabel, description, teamId, visibility, category, password, prepopulate, lat, lng } =
     await req.json();
 
   if (!title?.trim() || !leftLabel?.trim() || !rightLabel?.trim()) {
@@ -164,6 +165,9 @@ export async function POST(req: Request) {
   }
   if (visibility === "PASSWORD" && !password?.trim()) {
     return NextResponse.json({ error: "password_required" }, { status: 400 });
+  }
+  if (visibility === "NEARBY" && !isValidLatLng(lat, lng)) {
+    return NextResponse.json({ error: "location_required" }, { status: 400 });
   }
 
   // Gate creation on a synchronous moderation check of the prompt itself, so an
@@ -189,9 +193,14 @@ export async function POST(req: Request) {
     );
   }
 
+  // NEARBY reads publicly, like PUBLIC, so it needs no share token.
   const needsShareToken = visibility === "PUBLIC_LINK" || visibility === "PASSWORD";
   const shareToken = needsShareToken ? nanoid() : null;
   const passwordHash = password ? await bcrypt.hash(password.trim(), 10) : null;
+
+  // Re-coarsen here rather than trusting the browser to have done it. This is
+  // the only point that actually guarantees we never store precise coordinates.
+  const isNearby = visibility === "NEARBY";
 
   const continuum = await prisma.continuum.create({
     data: {
@@ -205,6 +214,8 @@ export async function POST(req: Request) {
       shareToken,
       category: category?.trim().slice(0, MAX.category) || null,
       passwordHash,
+      lat: isNearby ? coarsen(lat) : null,
+      lng: isNearby ? coarsen(lng) : null,
     },
   });
 

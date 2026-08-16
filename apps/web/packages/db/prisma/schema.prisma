@@ -27,6 +27,7 @@ enum Visibility {
   PUBLIC_LINK  // unlisted, link only
   PUBLIC       // publicly listed with category
   PASSWORD     // link + password required
+  NEARBY       // publicly readable; surfaced by proximity instead of category
 }
 
 enum ModerationStatus {
@@ -175,6 +176,12 @@ model Continuum {
   category     String?
   passwordHash String?
 
+  // Where a NEARBY continuum is pinned. Always coarsened to ~2dp (~0.7 miles) before
+  // being written — these sit on a publicly readable record, so they must never
+  // hold full GPS precision. Null for every other visibility.
+  lat Float?
+  lng Float?
+
   participants ContinuumParticipant[]
   messages     Message[]
   bans         ContinuumBan[]
@@ -188,6 +195,9 @@ model Continuum {
   updatedAt DateTime  @updatedAt
   closedAt  DateTime?
   deletedAt DateTime?
+
+  // Supports the bounding-box prefilter behind the "Within 5 miles" listing.
+  @@index([lat, lng])
 }
 
 model ContinuumParticipant {
