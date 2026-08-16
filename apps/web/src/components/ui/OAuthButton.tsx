@@ -18,7 +18,7 @@ export function OAuthButton({ onClick, icon, label }: OAuthButtonProps) {
         gap: 10,
         width: "100%",
         border: `1.5px solid ${BLUE}`,
-        borderRadius: 10,
+        borderRadius: 0,
         paddingTop: 13,
         paddingBottom: 13,
         paddingLeft: 20,

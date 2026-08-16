@@ -125,7 +125,7 @@ export function WelcomeClient({ next, initialAvatarConfig }: { next: string; ini
         autoFocus
         maxLength={60}
         style={{
-          width: "100%", boxSizing: "border-box", border: "1.5px solid #AAAAAA", borderRadius: 10,
+          width: "100%", boxSizing: "border-box", border: "1.5px solid #AAAAAA", borderRadius: 0,
           padding: "12px 16px", fontFamily: INTER, fontSize: 16, color: "#1a1a1a", outline: "none",
         }}
       />

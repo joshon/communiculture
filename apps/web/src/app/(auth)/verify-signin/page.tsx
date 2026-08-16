@@ -85,7 +85,7 @@ export default function VerifySignInPage({
                 fontWeight: 600,
                 lineHeight: 1,
                 padding: "10px 24px",
-                borderRadius: 99,
+                borderRadius: 0,
               }}
             >
               Confirm sign in

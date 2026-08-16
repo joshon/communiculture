@@ -23,7 +23,7 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 
 const inputStyle: React.CSSProperties = {
   width: "100%", boxSizing: "border-box",
-  border: "1.5px solid #AAAAAA", borderRadius: 10,
+  border: "1.5px solid #AAAAAA", borderRadius: 0,
   padding: "12px 16px",
   fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)",
   color: "#1a1a1a", background: "white", outline: "none",
@@ -220,7 +220,7 @@ function LoginPageInner({ callbackUrl }: { callbackUrl: string }) {
 
           {/* ── Step: magic link sent ── */}
           {step === "sent" && (
-            <div style={{ border: `1.5px solid ${BLUE}`, borderRadius: 10, padding: "16px 18px" }}>
+            <div style={{ border: `1.5px solid ${BLUE}`, borderRadius: 0, padding: "16px 18px" }}>
               <p style={{ fontFamily: INTER, color: BLUE, fontSize: 15, lineHeight: 1.6, margin: "0 0 10px" }}>
                 Check your email — we sent a sign-in link to {email.trim()}
               </p>
@@ -253,7 +253,7 @@ function WideButton({ label, loading, type = "button", onClick }: {
       disabled={loading}
       style={{
         display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        width: "100%", border: "none", borderRadius: 10,
+        width: "100%", border: "none", borderRadius: 0,
         padding: "13px 20px",
         fontFamily: INTER, fontSize: "clamp(13px, 3vw, 16px)", fontWeight: 600,
         color: "white", background: BLUE,
