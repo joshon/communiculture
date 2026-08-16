@@ -30,7 +30,7 @@ export function CreateContinuumButton({ canCreate, totalOwned, allowed }: Props)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-      <PillButton href="/continuum/new" label="New continuum" fontSize="16px" />
+      <PillButton href="/continuum/new" plus label="New continuum" fontSize="18px" />
       <p style={{ fontFamily: INTER, fontSize: 12, color: "#aaa", margin: 0 }}>{countLabel}</p>
     </div>
   );

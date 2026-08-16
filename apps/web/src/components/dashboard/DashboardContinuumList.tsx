@@ -9,6 +9,20 @@ import { PixelBox } from "@/components/ui/PixelBox";
 
 const INTER = "Inter, sans-serif";
 const BLUE = "#0083FF";
+// Search box border — deliberately neutral so the field reads as an input
+// rather than as one of the blue-bordered control chips beside it.
+const INK = "#1a1a1a";
+
+// Shared metrics for the filter-row controls (sort trigger, arrows toggle,
+// filter chips). Line height is pinned so every control resolves to exactly
+// CONTROL_H and the arrows toggle can be a square of that same height rather
+// than a hardcoded guess that drifts when padding or font size changes.
+const CONTROL_FS = 13;
+const CONTROL_LH = 16;
+const CONTROL_PY = 7;
+const CONTROL_BW = 1.5;
+const CONTROL_H = CONTROL_LH + CONTROL_PY * 2 + CONTROL_BW * 2; // 33
+
 const AVATAR_SIZE = "52px";
 // A continuum is "full" once it hits the crowd cap (real participants); below
 // that it still has room, i.e. it's open to join.
@@ -161,9 +175,10 @@ function SortMenu({ value, onChange }: { value: SortKey; onChange: (k: SortKey) 
         onClick={() => setOpen(o => !o)}
         style={{
           display: "inline-flex", alignItems: "center", gap: 8,
-          fontFamily: INTER, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
-          border: "1.5px solid #ddd", borderRadius: 999, background: "white",
-          padding: "5px 12px", cursor: "pointer", whiteSpace: "nowrap",
+          fontFamily: INTER, fontSize: CONTROL_FS, lineHeight: `${CONTROL_LH}px`,
+          fontWeight: 600, color: INK,
+          border: `${CONTROL_BW}px solid ${BLUE}`, borderRadius: 0, background: "white",
+          padding: `${CONTROL_PY}px 14px`, cursor: "pointer", whiteSpace: "nowrap",
         }}
       >
         {current.label}
@@ -174,23 +189,28 @@ function SortMenu({ value, onChange }: { value: SortKey; onChange: (k: SortKey) 
 
       {open && (
         <div style={{ position: "absolute", top: "100%", left: 0, marginTop: 6, zIndex: 50, ["--tile" as keyof React.CSSProperties]: "2px" }}>
-          <PixelBox shadowDir="bottom-right" style={{ minWidth: 150 }}>
-            {SORTS.map(s => (
-              <button
-                key={s.key}
-                onClick={() => { onChange(s.key); setOpen(false); }}
-                className="cc-sort-mi"
-                style={{
-                  display: "block", width: "100%", textAlign: "left",
-                  fontFamily: INTER, fontSize: 14,
-                  color: s.key === value ? BLUE : undefined,
-                  fontWeight: s.key === value ? 600 : 400,
-                  background: "none", border: "none", cursor: "pointer",
-                  padding: "9px 16px", whiteSpace: "nowrap",
-                }}
-              >
-                {s.label}
-              </button>
+          <PixelBox shadowDir="bottom-right" style={{ minWidth: 190 }}>
+            {SORTS.map((s, i) => (
+              <div key={s.key}>
+                {/* Dotted rule between entries — not above the first. */}
+                {i > 0 && (
+                  <div aria-hidden style={{ borderTop: `1.5px dotted ${BLUE}`, margin: "0 18px" }} />
+                )}
+                <button
+                  onClick={() => { onChange(s.key); setOpen(false); }}
+                  className="cc-sort-mi"
+                  style={{
+                    display: "block", width: "100%", textAlign: "left",
+                    fontFamily: INTER, fontSize: 15,
+                    color: s.key === value ? BLUE : undefined,
+                    fontWeight: s.key === value ? 600 : 400,
+                    background: "none", border: "none", cursor: "pointer",
+                    padding: "11px 18px", whiteSpace: "nowrap",
+                  }}
+                >
+                  {s.label}
+                </button>
+              </div>
             ))}
           </PixelBox>
         </div>
@@ -304,18 +324,18 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             onChange={e => { setQuery(e.target.value); setShowSuggestions(true); }}
             onFocus={() => setShowSuggestions(true)}
             style={{
-              width: "100%", boxSizing: "border-box", padding: "10px 36px 10px 2px",
-              fontFamily: INTER, fontSize: 15, color: "#1a1a1a",
-              border: "none", borderBottom: `1.5px solid ${BLUE}`,
-              outline: "none", background: "transparent", borderRadius: 0,
+              width: "100%", boxSizing: "border-box", padding: "14px 40px 14px 18px",
+              fontFamily: INTER, fontSize: 16, color: INK,
+              border: `2px solid ${INK}`,
+              outline: "none", background: "white", borderRadius: 0,
             }}
           />
           {query && (
-            <button onClick={() => { setQuery(""); setShowSuggestions(false); }} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#999", fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
+            <button onClick={() => { setQuery(""); setShowSuggestions(false); }} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#999", fontSize: 20, lineHeight: 1, padding: 0 }}>×</button>
           )}
         </div>
         {showSuggestions && suggestions.length > 0 && (
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: `1.5px solid ${BLUE}`, borderTop: "none", zIndex: 100 }}>
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "white", border: `2px solid ${INK}`, borderTop: "none", zIndex: 100 }}>
             {suggestions.map(c => {
               const href = c.ownerId === userId || !c.shareToken ? `/continuum/${c.id}` : `/continuum/${c.id}?token=${c.shareToken}`;
               return (
@@ -339,8 +359,9 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
           title={sortDir === "desc" ? "Descending" : "Ascending"}
           style={{
             display: "inline-flex", alignItems: "center", justifyContent: "center",
-            border: "1.5px solid #ddd", borderRadius: 8, background: "white",
-            width: 30, height: 30, cursor: "pointer", padding: 0,
+            border: `${CONTROL_BW}px solid ${BLUE}`, borderRadius: 0, background: "white",
+            boxSizing: "border-box", width: CONTROL_H, height: CONTROL_H,
+            flexShrink: 0, cursor: "pointer", padding: 0,
           }}
         >
           <svg width="12" height="16" viewBox="0 0 12 16" fill="none" aria-hidden>
@@ -349,9 +370,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
           </svg>
         </button>
 
-        <span style={{ width: "1.5px", height: 18, background: "#e0e0e0", margin: "0 4px" }} />
-
-        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", marginRight: 2 }}>Continuums that:</span>
+        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: "0 2px 0 12px" }}>Continuums that:</span>
         {FILTERS.map(({ key, label }) => {
           const active = filters.has(key);
           return (
@@ -360,11 +379,11 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
               onClick={() => toggleFilter(key)}
               aria-pressed={active}
               style={{
-                fontFamily: INTER, fontSize: 13,
-                padding: "5px 12px", borderRadius: 999,
-                border: `1.5px solid ${active ? BLUE : "#ddd"}`,
+                fontFamily: INTER, fontSize: CONTROL_FS, lineHeight: `${CONTROL_LH}px`,
+                padding: `${CONTROL_PY}px 14px`, borderRadius: 0,
+                border: `${CONTROL_BW}px solid ${BLUE}`,
                 background: active ? BLUE : "white",
-                color: active ? "white" : "#555",
+                color: active ? "white" : INK,
                 fontWeight: active ? 600 : 400,
                 cursor: "pointer", whiteSpace: "nowrap",
               }}
