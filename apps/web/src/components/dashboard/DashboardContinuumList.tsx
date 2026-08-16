@@ -393,8 +393,17 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
         )}
       </div>
 
-      {/* Sort · Filters · Topic — wraps on narrow screens */}
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginBottom: 24 }}>
+      {/* Sort · Filters — two groups rather than one flat row, so the first
+          wrap always falls between "sort" and "filter" instead of stranding a
+          chip away from its label. The sort group never breaks internally; the
+          filter group only breaks if it alone is too wide for the line.
+          columnGap 12 between groups matches the old label spacing, and the
+          inner gap of 8 keeps the controls spaced as before. */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        columnGap: 12, rowGap: 10, marginBottom: 24,
+      }}>
+        <div style={{ display: "flex", flexWrap: "nowrap", alignItems: "center", gap: 8 }}>
         <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", marginRight: 2 }}>Sort by:</span>
         <SortMenu value={sort} onChange={setSort} />
         <button
@@ -413,8 +422,10 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             <path d="M3 10.5L6 13.5L9 10.5" stroke={sortDir === "desc" ? BLUE : "#bbb"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
+        </div>
 
-        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", margin: "0 2px 0 12px" }}>Continuums that:</span>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 10 }}>
+        <span style={{ fontFamily: INTER, fontSize: 13, color: "#888", marginRight: 2 }}>Continuums that:</span>
         {FILTERS.map(({ key, label }) => {
           const active = filters.has(key);
           return (
@@ -436,6 +447,7 @@ export function DashboardContinuumList({ items: initialItems, archived, userId, 
             </button>
           );
         })}
+        </div>
       </div>
 
       {/* Why the location chip didn't take effect, if it didn't. */}
