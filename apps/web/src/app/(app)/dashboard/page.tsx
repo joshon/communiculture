@@ -124,7 +124,11 @@ export default async function DashboardPage() {
         paddingLeft: "clamp(16px, 5vw, 48px)",
         paddingRight: "clamp(16px, 5vw, 48px)",
       }}>
-        <div style={{ maxWidth: 640, margin: "0 auto" }}>
+        {/* Wide enough to keep the sort + filter controls on one line: they
+            need ~738px all told, so this leaves a little headroom for font
+            differences across platforms. Narrower viewports still wrap, which
+            is what should happen. */}
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
 
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
             <p style={{ fontFamily: INTER, fontSize: 16, fontWeight: 600, color: "#1a1a1a", margin: 0 }}>
