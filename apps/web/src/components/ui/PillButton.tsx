@@ -95,6 +95,11 @@ export function PillButton({
     position: "relative",
     display: "inline-block",
     verticalAlign: "bottom",
+    // Keep the button's z-index:1 (which only exists to sit above its own
+    // shadow strips) inside its own stacking context. Without this it competes
+    // page-wide and wins ties on DOM order, so dropdown menus opening near a
+    // button render behind it.
+    isolation: "isolate",
     // Disabled is expressed as grey, not transparency — see `tint`.
     opacity: styleOpacity ?? 1,
   };
