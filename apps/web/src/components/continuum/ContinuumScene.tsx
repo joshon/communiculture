@@ -584,6 +584,7 @@ interface SceneProps {
   onPositionCommit: (posX: number, posZ: number) => void;
   botConfig: typeof BOT_CONFIG;
   onHeadScreen?: (x: number, y: number) => void;
+  onPlatformBottom?: (gapBelowPlatformPx: number) => void;
 }
 
 function CrowdScene({
@@ -594,7 +595,7 @@ function CrowdScene({
   isInCrowd, readOnly, onPreJoinCommit,
   onPositionChange, onPositionCommit,
   botConfig,
-  onHeadScreen,
+  onHeadScreen, onPlatformBottom,
 }: SceneProps) {
   const { size, gl, camera } = useThree();
   // Responsive world widths (single ContinuumScene mounts at a time, so module-level
@@ -702,6 +703,37 @@ function CrowdScene({
     const screenX = ((v.x + 1) / 2) * cw;
     const screenY = (1 - (v.y + 1) / 2) * ch;
     onHeadScreenRef.current(screenX, screenY);
+  });
+
+  // Report the empty canvas below the platform bar, in pixels, so the page can
+  // centre its divider between the bar and the position labels. Reported as a
+  // gap from the canvas bottom rather than an absolute y, so the page doesn't
+  // need to know the canvas height and nothing has to be recomputed on resize.
+  //
+  // Computed here rather than inside PlatformBillboardInner because that only
+  // mounts pre-join — the slot the bar occupies is a pure function of the
+  // camera and the constants below, so reporting it from the always-mounted
+  // scene keeps the divider still when someone joins the crowd. Mirrors the
+  // maths in PlatformBillboardInner; the two must move together.
+  const onPlatformBottomRef = useRef(onPlatformBottom);
+  onPlatformBottomRef.current = onPlatformBottom;
+  const lastPlatformBottom = useRef(-1);
+  useFrame(({ camera, gl }) => {
+    if (!onPlatformBottomRef.current) return;
+    const ortho = camera as THREE.OrthographicCamera;
+    const width = Math.min(PLATFORM_WIDTH, PLATFORM_MAX_PX / (ortho.zoom || 46));
+    const height = width / PLATFORM_PNG_ASPECT;
+    const surfaceY = worldYAtScreenBottom(camera, preJoinZ, PLATFORM_BOTTOM_MARGIN);
+    const bottomY = surfaceY - height + PLATFORM_TOP_BORDER_FRAC * height;
+
+    const v = new THREE.Vector3(0, bottomY, preJoinZ).project(camera);
+    const ch = gl.domElement.clientHeight;
+    const gap = ch - (1 - (v.y + 1) / 2) * ch;
+
+    // Only surface real movement — this runs every frame and drives React state.
+    if (Math.abs(gap - lastPlatformBottom.current) < 0.5) return;
+    lastPlatformBottom.current = gap;
+    onPlatformBottomRef.current(gap);
   });
 
   // Shared ref: pre-join avatar writes its bar-center X here; PlatformPlane reads it
@@ -858,6 +890,7 @@ interface Props {
   onPositionChange: (posX: number, posZ: number) => void;
   onPositionCommit: (posX: number, posZ: number) => void;
   onHeadScreen?: (x: number, y: number) => void;
+  onPlatformBottom?: (gapBelowPlatformPx: number) => void;
   isSeeding?: boolean;
 }
 
@@ -869,7 +902,7 @@ export function ContinuumScene({
   selectedUserId, onSelectUser,
   isInCrowd, readOnly, onPreJoinCommit,
   onPositionChange, onPositionCommit,
-  onHeadScreen, isSeeding,
+  onHeadScreen, onPlatformBottom, isSeeding,
 }: Props) {
   const [library, setLibrary] = useState<AvatarVariantLibrary | null>(null);
   const participants = useContinuumStore((s) => s.participants);
@@ -916,6 +949,7 @@ export function ContinuumScene({
             onPositionCommit={onPositionCommit}
             botConfig={BOT_CONFIG}
             onHeadScreen={onHeadScreen}
+            onPlatformBottom={onPlatformBottom}
           />
           {isSeeding && SEEDING_POSITIONS.map((pos) => (
             <SpinningAsterisk

@@ -16,6 +16,10 @@ import { SpeechBubble } from "@/components/ui/SpeechBubble";
 import { type AvatarConfig } from "@/store/avatarStore";
 
 const INTER = "Inter, sans-serif";
+
+// Gap above the position labels. Also the target gap below the checkerboard
+// rule, so the rule ends up centred between the drag platform and the labels.
+const LABEL_GAP = 16;
 const BLUE = "#0083FF";
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -926,6 +930,13 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
   const [headPos, setHeadPos] = useState({ x: 700, y: 180 });
   const handleHeadScreen = useCallback((x: number, y: number) => setHeadPos({ x, y }), []);
 
+  // Bottom edge of the drag platform, in canvas pixels — used to centre the
+  // divider between the platform and the position labels. Null until the scene
+  // has rendered a frame; the divider falls back to a plain gap until then.
+  const [platformBottom, setPlatformBottom] = useState<number | null>(null);
+  const handlePlatformBottom = useCallback((y: number) => setPlatformBottom(y), []);
+  const sceneBoxRef = useRef<HTMLDivElement>(null);
+
   // Selected avatar for comment bubble
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const selectedParticipant = selectedUserId ? storeParticipants[selectedUserId] : null;
@@ -1207,7 +1218,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
 
         {/* Crowd + comment bubble — flex-grows to fill, so the page fits the
             viewport and the share row stays on screen (canvas shrinks if needed) */}
-        <div style={{ position: "relative", marginTop: "clamp(16px, 3vh, 40px)", flex: 1, minHeight: 220, maxHeight: 860 }}>
+        <div ref={sceneBoxRef} style={{ position: "relative", marginTop: "clamp(16px, 3vh, 40px)", flex: 1, minHeight: 220, maxHeight: 860 }}>
           <ContinuumScene
             currentUserId={currentUserId}
             currentUserAvatarConfig={currentUserAvatarConfig}
@@ -1221,6 +1232,7 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             onPositionChange={handlePositionChange}
             onPositionCommit={handlePositionCommit}
             onHeadScreen={handleHeadScreen}
+            onPlatformBottom={handlePlatformBottom}
             isSeeding={isSeeding}
           />
 
@@ -1244,17 +1256,40 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
               />
             );
           })()}
-        </div>
 
-        {/* Checkerboard rule — same graphic as the button shadows. Sits below
-            the crowd platform and above the position labels, spanning their
-            full width (both labels flex out to the container edges). */}
-        <PixelRule style={{ marginTop: 16 }} />
+          {/* Checkerboard rule — same graphic as the button shadows, spanning
+              the full width of the two position labels below.
+
+              Absolutely positioned rather than in flow: the scene box is
+              flex:1, so a rule that consumed (or with a negative margin,
+              freed) vertical space would resize the canvas, move the platform
+              it's aligned to, and push the labels up under the opaque canvas —
+              which clipped their tops.
+
+              Centred between the platform's bottom edge and the label text:
+              the platform sits `platformBottom` px above the canvas bottom and
+              the labels start LABEL_GAP px below it, so the midpoint is
+              (platformBottom - LABEL_GAP) / 2 above the bottom edge.
+              translateY(50%) then centres the rule's own height on that line. */}
+          {platformBottom !== null && (
+            <PixelRule
+              solidTop
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: (platformBottom - LABEL_GAP) / 2,
+                transform: "translateY(50%)",
+                zIndex: 1,
+              }}
+            />
+          )}
+        </div>
 
         {/* Position labels */}
         <div style={{
           display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-          gap: 16, marginTop: 16,
+          gap: 16, marginTop: LABEL_GAP,
         }}>
           <span style={{ fontFamily: INTER, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 700, color: "#1a1a1a", textAlign: "left", flex: 1 }}>
             {continuum.leftLabel}

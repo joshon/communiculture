@@ -12,6 +12,9 @@ const GREY = "#BDBDBD";
 // Square edges — corners sit flush with the pixel checkerboard shadow.
 const RADIUS = 0;
 
+/** Secondary-button stroke. Exported so rules elsewhere can match it. */
+export const BUTTON_BORDER_W = 1.5;
+
 function ArrowIcon({ color = "white" }: { color?: string }) {
   return (
     <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ marginLeft: 7, flexShrink: 0 }}>
@@ -60,7 +63,7 @@ export function PillButton({
     alignItems: "center",
     background: isPrimary ? tint : "white",
     color: isPrimary ? "white" : tint,
-    border: isPrimary ? "none" : `1.5px solid ${tint}`,
+    border: isPrimary ? "none" : `${BUTTON_BORDER_W}px solid ${tint}`,
     fontFamily: "Inter, sans-serif",
     fontSize: fs,
     fontWeight: 600,
