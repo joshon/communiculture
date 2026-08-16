@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import QRCode from "qrcode";
 import { PixelBox } from "@/components/ui/PixelBox";
+import { PixelRule } from "@/components/ui/PixelRule";
 import { getSocket } from "@/lib/socket-client";
 import { useContinuumStore } from "@/store/continuumStore";
 import { ContinuumScene } from "./ContinuumScene";
@@ -1244,6 +1245,11 @@ export function ContinuumView({ continuum, participants, messages, sessionToken,
             );
           })()}
         </div>
+
+        {/* Checkerboard rule — same graphic as the button shadows. Sits below
+            the crowd platform and above the position labels, spanning their
+            full width (both labels flex out to the container edges). */}
+        <PixelRule style={{ marginTop: 16 }} />
 
         {/* Position labels */}
         <div style={{

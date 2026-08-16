@@ -7,9 +7,28 @@ const BLUE = "#0083FF";
 
 export type ShadowDir = "bottom-left" | "bottom-right";
 
+/** Reads the live --tile square size. See makeTileSvg for what it means. */
+export function useTileSquare(): number {
+  const [sq, setSq] = useState(3);
+
+  useEffect(() => {
+    const read = () =>
+      setSq(
+        parseInt(
+          getComputedStyle(document.documentElement).getPropertyValue("--tile").trim()
+        ) || 3
+      );
+    read();
+    window.addEventListener("resize", read);
+    return () => window.removeEventListener("resize", read);
+  }, []);
+
+  return sq;
+}
+
 // sq = square size in px (1, 2, or 3). SVG pattern tile = sq * 2.
 // `color` is a hex string; "#" must be percent-encoded inside a data: URI.
-function makeTileSvg(sq: number, color: string): string {
+export function makeTileSvg(sq: number, color: string = BLUE): string {
   const tile = sq * 2;
   const fill = color.replace("#", "%23");
   return (
