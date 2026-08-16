@@ -130,3 +130,14 @@ input:-webkit-autofill:active {
     transform: translate(0, 0);
   }
 }
+
+/* ── Continuum list rows ────────────────────────────────────────────────── */
+/* Each row's separator picks up the brand blue while the row is hovered, so
+   the whole row reads as one target even though only the title is a link. */
+.cc-row-rule {
+  background: #ebebeb;
+}
+
+.cc-row:hover .cc-row-rule {
+  background: #0083FF;
+}

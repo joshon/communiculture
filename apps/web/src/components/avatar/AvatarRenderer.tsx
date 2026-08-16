@@ -384,11 +384,18 @@ const PART_POS: Partial<Record<AvatarPart, [number, number, number]>> = {
   arms:  [0.05, 2.38, 0.0],
   body:  [0.0,  1.95, 0.0],
   pants: [0.0,  0.65, 0.0],
-  legs:  [0.0,  0.2,  0.0],
-  shoes: [0.0,  -0.05, 0.0],
+  // legs and shoes are mirrored pairs, so x=0 is the empty gap between them.
+  // Anchor on the limb nearest the label (both labels sit at +x) instead.
+  legs:  [0.10, 0.2,  0.0],
+  shoes: [0.10, -0.05, 0.0],
 };
 
 const LABEL_PARTS: AvatarPart[] = ["hair", "head", "face", "arms", "body", "pants", "legs", "shoes"];
+
+// Target dash length for the label leader lines, in world units. The actual
+// dash is derived per line from this so the pattern divides the line evenly —
+// see the leader line in PartLabels.
+const LEADER_DASH = 0.0375;
 
 function PartLabels({
   selectedPart,
@@ -433,7 +440,25 @@ function PartLabels({
               const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
               const t = Math.min(0.18 / len, 1);
               const lineStart: [number, number, number] = [lpos[0] + dx * t, lpos[1] + dy * t, lpos[2] + dz * t];
-              return <Line points={[lineStart, ppos]} color={LOGO_BLUE} lineWidth={1.5} />;
+
+              // Fit a whole number of dashes into the drawn span so the line
+              // begins and ends on a full dash rather than a clipped fragment,
+              // and every leader reads with the same rhythm regardless of
+              // length. n dashes separated by n-1 equal gaps spans (2n-1)*d.
+              const span = len * (1 - t);
+              const n = Math.max(1, Math.round((span + LEADER_DASH) / (2 * LEADER_DASH)));
+              const dash = span / (2 * n - 1);
+
+              return (
+                <Line
+                  points={[lineStart, ppos]}
+                  color={LOGO_BLUE}
+                  lineWidth={1.5}
+                  dashed
+                  dashSize={dash}
+                  gapSize={dash}
+                />
+              );
             })()}
           </group>
         );

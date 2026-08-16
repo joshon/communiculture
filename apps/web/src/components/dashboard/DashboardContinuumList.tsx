@@ -104,7 +104,7 @@ function ContinuumRow({
   };
 
   return (
-    <div>
+    <div className="cc-row">
       {/* Meta row: date | responses | delete */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
         <span style={{ fontFamily: INTER, fontSize: 13, color: "#aaa" }}>{formatDate(c.createdAt)}</span>
@@ -148,7 +148,8 @@ function ContinuumRow({
         </div>
       </Link>
 
-      <div style={{ height: 1, background: "#ebebeb", margin: "14px 0" }} />
+      {/* Goes blue on row hover — see .cc-row-rule in globals.css. */}
+      <div className="cc-row-rule" style={{ height: 1, margin: "14px 0" }} />
     </div>
   );
 }

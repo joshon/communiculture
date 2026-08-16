@@ -51,7 +51,15 @@ const TOPICS: Option[] = [
 
 const ChevronIndicator = (props: DropdownIndicatorProps<Option>) => (
   <components.DropdownIndicator {...props}>
-    <svg width="20" height="13" viewBox="0 0 20 13" fill="none" aria-hidden>
+    <svg
+      width="20" height="13" viewBox="0 0 20 13" fill="none" aria-hidden
+      style={{
+        // Flip to point back at the field while its menu is open.
+        transform: props.selectProps.menuIsOpen ? "rotate(180deg)" : "none",
+        transformOrigin: "center",
+        display: "block",
+      }}
+    >
       <path d="M2 2L10.0156 10.0156L18.0312 2" stroke="#0083FF" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   </components.DropdownIndicator>
@@ -125,11 +133,16 @@ function PixelMenu(props: MenuProps<Option, false, GroupBase<Option>>) {
   );
 }
 
+// The grey rule under a field. The open menu is pulled up by exactly this much
+// so its top border lands on the rule and hides it, rather than leaving a grey
+// line stranded between the field and the menu.
+const FIELD_BORDER_W = 1.5;
+
 const makeSelectStyles = (): StylesConfig<Option> => ({
   control: (base) => ({
     ...base,
     border: "none",
-    borderBottom: "1.5px solid #AAAAAA",
+    borderBottom: `${FIELD_BORDER_W}px solid #AAAAAA`,
     borderRadius: 0,
     boxShadow: "none",
     background: "transparent",
@@ -147,7 +160,7 @@ const makeSelectStyles = (): StylesConfig<Option> => ({
   placeholder: (base) => ({ ...base, fontFamily: INTER, fontSize: 16, color: "#AAAAAA", margin: 0 }),
   menu: (base) => ({
     ...base, borderRadius: 0, border: `2px solid ${BLUE}`,
-    boxShadow: "none", marginTop: 4,
+    boxShadow: "none", marginTop: -FIELD_BORDER_W,
   }),
   option: (base, state) => ({
     ...base,
