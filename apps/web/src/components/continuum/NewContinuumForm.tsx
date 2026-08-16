@@ -450,7 +450,7 @@ export function NewContinuumForm({ canCreate }: { canCreate: boolean }) {
                   arrow
                   label={prepopulate ? "Create + seed" : "Create"}
                   loading={loading}
-                  style={!ready ? { opacity: 0.4, cursor: "default" } : undefined}
+                  disabled={!ready}
                 />
               </div>
             </form>

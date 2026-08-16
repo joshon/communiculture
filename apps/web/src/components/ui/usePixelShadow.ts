@@ -8,13 +8,15 @@ const BLUE = "#0083FF";
 export type ShadowDir = "bottom-left" | "bottom-right";
 
 // sq = square size in px (1, 2, or 3). SVG pattern tile = sq * 2.
-function makeTileSvg(sq: number): string {
+// `color` is a hex string; "#" must be percent-encoded inside a data: URI.
+function makeTileSvg(sq: number, color: string): string {
   const tile = sq * 2;
+  const fill = color.replace("#", "%23");
   return (
     `url("data:image/svg+xml,` +
     `%3Csvg xmlns='http://www.w3.org/2000/svg' width='${tile}' height='${tile}'%3E` +
-    `%3Crect x='0' y='0' width='${sq}' height='${sq}' fill='%230083FF'/%3E` +
-    `%3Crect x='${sq}' y='${sq}' width='${sq}' height='${sq}' fill='%230083FF'/%3E` +
+    `%3Crect x='0' y='0' width='${sq}' height='${sq}' fill='${fill}'/%3E` +
+    `%3Crect x='${sq}' y='${sq}' width='${sq}' height='${sq}' fill='${fill}'/%3E` +
     `%3C/svg%3E")`
   );
 }
@@ -32,7 +34,7 @@ function makeTileSvg(sq: number): string {
  * so the last tile ends flush at the corner; both strips use backgroundPosition
  * "0 0" so phase 0 (blue) sits at the corner.
  */
-export function usePixelShadow(shadowDir: ShadowDir = "bottom-left") {
+export function usePixelShadow(shadowDir: ShadowDir = "bottom-left", color: string = BLUE) {
   const ref = useRef<HTMLElement | null>(null);
   const [m, setM] = useState({ sq: 3, sideH: 0, bottomW: 0 });
 
@@ -68,7 +70,7 @@ export function usePixelShadow(shadowDir: ShadowDir = "bottom-left") {
   const { sq, sideH, bottomW } = m;
   const tile = sq * 2;
   const isLeft = shadowDir === "bottom-left";
-  const svg = makeTileSvg(sq);
+  const svg = makeTileSvg(sq, color);
   const tileStr = `${tile}px`;
   const negTile = `-${tile}px`;
 

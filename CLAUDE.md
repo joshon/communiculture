@@ -75,8 +75,12 @@ one `--tile` pattern deep. The graphic lives in `components/ui/usePixelShadow.ts
 and is shared by `PixelBox`/`SpeechBubble` (bottom-left) and `PillButton`
 (bottom-right); change it there, not in either consumer. Buttons have **square
 corners** (`borderRadius: 0`) — no pills, no rounding — so the shadow strips sit
-flush at the corners. The shadow reads as the button's *active* state and is
-dropped while `loading` or `disabled`.
+flush at the corners.
+
+**Disabled/loading** buttons go **grey (`#BDBDBD`)** — fill and shadow for
+primary, border and text for secondary. Never express disabled with `opacity`;
+a translucent button ghosts whatever sits behind it. Greyed buttons keep their
+shadow but don't move on hover or press.
 
 Three tiers:
 

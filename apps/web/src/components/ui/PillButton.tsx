@@ -5,6 +5,9 @@ import type { CSSProperties } from "react";
 import { usePixelShadow } from "./usePixelShadow";
 
 const BLUE = "#0083FF";
+// Disabled buttons go grey rather than translucent, so they keep their weight
+// on the page instead of ghosting whatever sits behind them.
+const GREY = "#BDBDBD";
 
 // Square edges — corners sit flush with the pixel checkerboard shadow.
 const RADIUS = 0;
@@ -42,10 +45,12 @@ export function PillButton({
   const isPrimary = variant === "primary";
   const inactive = loading || disabled;
 
-  // Same graphic as the speech-bubble shadow on continuum person rollovers.
-  const { ref, bottomStrip, sideStrip, sq } = usePixelShadow("bottom-right");
+  // Everything the button is drawn in collapses to grey once it can't be used.
+  const tint = inactive ? GREY : BLUE;
 
-  // Opacity belongs on the wrapper so the shadow dims with the button.
+  // Same graphic as the speech-bubble shadow on continuum person rollovers.
+  const { ref, bottomStrip, sideStrip, sq } = usePixelShadow("bottom-right", tint);
+
   const { opacity: styleOpacity, ...restStyle } = style ?? {};
 
   const base: CSSProperties = {
@@ -53,9 +58,9 @@ export function PillButton({
     zIndex: 1,
     display: "inline-flex",
     alignItems: "center",
-    background: isPrimary ? BLUE : "white",
-    color: isPrimary ? "white" : BLUE,
-    border: isPrimary ? "none" : `1.5px solid ${BLUE}`,
+    background: isPrimary ? tint : "white",
+    color: isPrimary ? "white" : tint,
+    border: isPrimary ? "none" : `1.5px solid ${tint}`,
     fontFamily: "Inter, sans-serif",
     fontSize: fs,
     fontWeight: 600,
@@ -73,10 +78,10 @@ export function PillButton({
     ...restStyle,
   };
 
-  // Only the shadowed (pressable) state moves; a dimmed button stays put.
+  // Only a pressable button moves; a greyed-out one stays put.
   const pressClass = inactive ? undefined : "cc-pill";
 
-  const arrowColor = isPrimary ? "white" : BLUE;
+  const arrowColor = isPrimary ? "white" : tint;
 
   const content = loading ? "…" : (
     <>
@@ -90,18 +95,18 @@ export function PillButton({
     position: "relative",
     display: "inline-block",
     verticalAlign: "bottom",
-    opacity: inactive ? 0.5 : styleOpacity ?? 1,
+    // Disabled is expressed as grey, not transparency — see `tint`.
+    opacity: styleOpacity ?? 1,
   };
 
-  // The shadow reads as the button's "active" state — drop it while the button
-  // can't be pressed.
+  // Drawn in `tint`, so it goes grey with the button rather than disappearing.
   //
   // Rendered AFTER the button so `.cc-pill:active ~ .cc-pill-shadow` can hide
   // it on press. Paint order is unaffected: the button's z-index (1) still
   // beats the strips' (0) regardless of DOM order. Hiding matters because the
   // strips are deliberately over-wide to keep the checker pattern phase-locked
   // at the corner, so a few px can survive to the left of a pressed button.
-  const shadow = inactive ? null : (
+  const shadow = (
     <>
       <div aria-hidden className="cc-pill-shadow" style={bottomStrip} />
       <div aria-hidden className="cc-pill-shadow" style={sideStrip} />
