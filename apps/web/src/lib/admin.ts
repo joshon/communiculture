@@ -1,6 +1,12 @@
 // Site admins — can view feedback/reports and take admin moderation actions.
 // Overridable via ADMIN_EMAILS (comma-separated); defaults to the two owners.
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "joshononon@gmail.com,amy@futurefarmers.com")
+//
+// These must be the addresses the owners actually sign in with, not their
+// preferred contact addresses — the check is against User.email. Amy's used to
+// read amy@futurefarmers.com, which matches no account, so she silently had no
+// admin access. Production also sets ADMIN_EMAILS; keep the two in step, since
+// the variable replaces this list rather than adding to it.
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS ?? "joshononon@gmail.com,amyfuturefarmer@gmail.com")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
