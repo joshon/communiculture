@@ -74,8 +74,8 @@ export default function AboutPage() {
             <A href="https://vimeo.com/165099530">Watch the 2002 version on Vimeo →</A>
           </p>
           <p style={{ margin: 0 }}>
-            In 2026, Josh rebuilt Communiculture with{" "}
-            <A href="https://claude.ai">Claude</A> — a real-time, multiplayer web app with 3D Avatars (trying to keep the spirit of <A href="https://brianwon.com/about">Brian Won</A>&rsquo;s originals — apologies to the extent they don&rsquo;t, Brian!), live positioning, and mobile support, all building on the original Futurefarmers design with <A href="https://futurefarmers.com">Amy Franceschini</A>.
+            In 2026, Josh and <A href="https://futurefarmers.com">Amy Franceschini</A> collaborated on an updated design, building on their original Futurefarmers version, and Josh rebuilt the app with{" "}
+            <A href="https://claude.ai">Claude</A> — a real-time, multiplayer web app with 3D Avatars (trying to keep the spirit of <A href="https://brianwon.com/about">Brian Won</A>&rsquo;s originals — apologies to the extent they don&rsquo;t, Brian!), live positioning, and mobile support.
           </p>
         </Section>
 
@@ -83,11 +83,8 @@ export default function AboutPage() {
           <p style={{ margin: "0 0 16px" }}>
             Someone poses a question with two opposing positions — <em>early bird</em> or <em>night owl</em>, <em>books always</em> or <em>cinema is the highest art</em> — and everyone in the group drags their avatar to where they stand on the spectrum.
           </p>
-          <p style={{ margin: "0 0 16px" }}>
-            You see the crowd form in real time. You can leave a comment. You can see where your teammates, friends, or strangers placed themselves, and why.
-          </p>
           <p style={{ margin: 0 }}>
-            The result isn't a poll. It's a picture of a group — where it agrees, where it's divided, and all the texture in between.
+            You see the crowd form in real time. You can leave a comment. You can see where your teammates, friends, or strangers placed themselves, and why.
           </p>
         </Section>
 
